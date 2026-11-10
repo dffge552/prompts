@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>考場指令與版本控制 — workflow</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --sidebar-bg: #14171c;
+      --panel-bg: #23272f;
+      --pre-bg: #12151a;
+      --border: #2e333d;
+      --text: #e6e8ec;
+      --text-dim: #9aa1ad;
+      --accent: #4f9cf9;
+      --accent-dim: #2c5a94;
+      --success: #22c55e;
+      --yellow: #facc15;
+      --sidebar-w: 220px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .layout { display: flex; min-height: 100vh; }
+
+    /* 左側欄 */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px; overflow-y: auto; z-index: 100;
+    }
+    .sidebar h1 {
+      font-size: 16px; color: var(--text-dim);
+      margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+    }
+    .sidebar h2 {
+      font-size: 13px; color: #6b7280; margin: 20px 8px 6px;
+      letter-spacing: 1px; font-weight: 600; text-transform: uppercase;
+    }
+    .nav-item {
+      display: block; padding: 8px 14px; margin: 2px 0;
+      border-radius: 8px; color: var(--text-dim); text-decoration: none;
+      font-size: 15px; transition: background 0.15s, color 0.15s; cursor: pointer;
+    }
+    .nav-item:hover { background: #1f242c; color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+    /* 主內容 */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1; padding: 28px 40px 80px;
+      max-width: 1100px;
+    }
+    .page-title {
+      font-size: 30px; font-weight: 700; margin: 0 0 8px;
+      padding-bottom: 12px; border-bottom: 2px solid var(--border);
+    }
+    .page-subtitle {
+      color: var(--text-dim); font-size: 16px; margin: 0 0 24px;
+      padding-bottom: 12px; border-bottom: 1px dashed var(--border);
+    }
+
+    /* 頂部工具列 */
+    .top-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+      padding: 14px 18px; background: var(--panel-bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .top-bar label { color: var(--text-dim); font-size: 15px; white-space: nowrap; }
+    .top-bar input[type="text"] {
+      flex: 0 1 240px;
+      padding: 8px 14px; background: var(--pre-bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 16px;
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+    }
+    .top-bar input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    .big-copy-btn {
+      margin-left: auto;
+      padding: 10px 20px; background: var(--accent);
+      border: none; border-radius: 8px; color: #fff;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .big-copy-btn:hover { background: #3b82f6; transform: translateY(-1px); }
+    .big-copy-btn.copied { background: var(--success); }
+
+    /* 搜尋框 */
+    .search-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; background: var(--panel-bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .search-bar input {
+      flex: 1; padding: 8px 14px; background: var(--pre-bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 16px;
+    }
+    .search-bar input:focus { outline: none; border-color: var(--accent); }
+    .search-bar .search-icon { font-size: 18px; color: var(--text-dim); }
+    .search-bar .clear-btn {
+      padding: 6px 12px; background: transparent;
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-dim); font-size: 13px; cursor: pointer;
+    }
+    .search-bar .clear-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    /* 區塊標題 */
+    .section-title {
+      font-size: 20px; font-weight: 700; color: var(--accent);
+      margin: 32px 0 14px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title:first-of-type { margin-top: 0; }
+
+    /* 字母切換列 */
+    .letter-row {
+      display: flex; gap: 8px; padding: 14px 18px;
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .letter-btn {
+      position: relative;
+      flex: 0 0 auto;
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--pre-bg); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-dim);
+      font-size: 18px; font-weight: 700; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .letter-btn:hover { border-color: var(--accent); color: var(--text); background: #1f242c; }
+
+    /* 當前作用中的字母（藍底） */
+    .letter-btn.active {
+      background: var(--accent); border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(79,156,249,0.5);
+    }
+
+    /* 已經用過/封版的字母（綠底） */
+    .letter-btn.has-progress {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
+    /* 版本格子 */
+    .version-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 6px; padding: 16px; background: var(--panel-bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .v-cell {
+      aspect-ratio: 1 / 1;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--pre-bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-dim);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .v-cell:hover { border-color: var(--accent); color: var(--text); background: #1f242c; }
+
+    /* 最新版（亮黃色） */
+    .v-cell.is-current-latest {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      color: #1a1d23;
+      font-weight: 700;
+      box-shadow: 0 0 12px rgba(250,204,21,0.6);
+    }
+
+    /* 選中版（藍色外框） */
+    .v-cell.is-selected {
+      outline: 3px solid #3b82f6;
+      outline-offset: -2px;
+      box-shadow: 0 0 16px rgba(59,130,246,0.8);
+      z-index: 2;
+    }
+
+    /* 同時是最新版又是選中版 */
+    .v-cell.is-selected.is-current-latest {
+      outline: 3px solid #3b82f6;
+      outline-offset: -2px;
+      box-shadow: 0 0 16px rgba(59,130,246,0.8), 0 0 12px rgba(250,204,21,0.6);
+    }
+
+    /* 指令區 */
+    .cmd-group {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+    }
+    .cmd-group-title {
+      padding: 10px 18px; background: #12151a;
+      font-size: 14px; font-weight: 600; color: var(--text-dim);
+      border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+    }
+    .cmd-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 18px; border-bottom: 1px solid #262b34;
+      transition: background 0.15s;
+    }
+    .cmd-row:last-child { border-bottom: none; }
+    .cmd-row:hover { background: #1f242c; }
+    .cmd-row.hidden { display: none; }
+    .cmd-desc {
+      flex: 0 0 170px; font-size: 14px; color: var(--text-dim);
+    }
+    .cmd-text {
+      flex: 1;
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      font-size: 14px; color: #d4d8de;
+      background: var(--pre-bg); padding: 6px 12px;
+      border-radius: 6px; border: 1px solid var(--border);
+      overflow-x: auto; white-space: nowrap;
+    }
+    .copy-btn {
+      flex-shrink: 0; padding: 6px 14px; background: transparent;
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-dim); font-size: 13px; cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+    .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+
+    /* 寫入指令可展開區 */
+    .write-block {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+    }
+    .write-block-header {
+      padding: 12px 18px; background: #12151a;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .write-block-header:hover { background: #1f242c; }
+    .write-block-header .title {
+      font-size: 15px; font-weight: 700; color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .write-block-header .arrow {
+      font-size: 14px; color: var(--text-dim); transition: transform 0.25s;
+    }
+    .write-block.open .write-block-header .arrow {
+      transform: rotate(180deg);
+    }
+    .write-block-body {
+      display: none;
+      padding: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .write-block.open .write-block-body {
+      display: block;
+    }
+    .write-block-body .desc-line {
+      color: var(--text-dim); font-size: 14px; margin-bottom: 12px;
+    }
+    .write-block-body textarea {
+      width: 100%;
+      min-height: 240px;
+      padding: 14px 16px;
+      background: var(--pre-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #d4d8de;
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+    .write-block-body textarea:focus {
+      border-color: var(--accent);
+    }
+    .write-block-actions {
+      display: flex; gap: 12px; margin-top: 12px; align-items: center;
+      flex-wrap: wrap;
+    }
+    .write-block-actions .target-name {
+      font-family: "SF Mono", "Consolas", monospace;
+      color: var(--yellow); font-size: 14px;
+      background: var(--pre-bg); padding: 6px 12px;
+      border-radius: 6px; border: 1px solid var(--border);
+    }
+    .write-block-actions .copy-btn {
+      padding: 8px 18px; background: var(--accent);
+      border: none; color: #fff; font-weight: 700;
+    }
+    .write-block-actions .copy-btn:hover {
+      background: #3b82f6; color: #fff;
+    }
+    .write-block-actions .copy-btn.copied {
+      background: var(--success);
+    }
+
+    /* 總表 */
+    .master-table-wrap {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+    }
+    .master-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 14px;
+    }
+    .master-table th {
+      background: #12151a; color: var(--accent);
+      padding: 10px 14px; text-align: left;
+      font-size: 13px; font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.5px;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .master-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #262b34;
+      vertical-align: top;
+      color: var(--text);
+    }
+    .master-table tr:last-child td { border-bottom: none; }
+    .master-table tr.hidden { display: none; }
+    .master-table tr:hover td { background: #1f242c; }
+    .master-table .col-cmd {
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      color: #86efac; font-size: 13px;
+      word-break: break-all;
+    }
+    .master-table .col-category {
+      color: var(--text-dim); font-size: 12px; white-space: nowrap;
+    }
+    .master-table .empty-row td {
+      text-align: center; color: var(--text-dim); padding: 30px;
+    }
+
+    /* 注音表 */
+    .bopomofo-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; font-size: 16px;
+    }
+    .bopomofo-table th {
+      background: #12151a; color: var(--accent);
+      padding: 10px 14px; text-align: left;
+      font-size: 14px; font-weight: 700;
+      border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+    }
+    .bopomofo-table td {
+      padding: 8px 14px; border-bottom: 1px solid #262b34;
+      font-family: "SF Mono", "Consolas", monospace; color: var(--text);
+    }
+    .bopomofo-table tr:last-child td { border-bottom: none; }
+    .bopomofo-table .zhuyin { font-size: 18px; color: #fbbf24; font-weight: 700; }
+    .bopomofo-table .pinyin { color: #86efac; font-weight: 600; }
+
+    /* 底部連結 */
+    .footer-links {
+      margin-top: 40px; padding: 24px; background: var(--panel-bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .footer-links a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; background: var(--pre-bg);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--accent); text-decoration: none;
+      font-size: 16px; transition: all 0.15s;
+    }
+    .footer-links a:hover {
+      border-color: var(--accent); background: #1f242c; color: #fff;
+    }
+    .footer-links a .link-icon { font-size: 18px; }
+    .footer-links a .link-url {
+      color: var(--text-dim); font-size: 13px;
+      margin-left: auto; font-family: monospace;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--success); color: #fff;
+      padding: 12px 28px; border-radius: 10px;
+      font-size: 16px; font-weight: 600;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 820px) {
+      .sidebar {
+        width: 100%; height: auto; bottom: auto; position: relative;
+        border-right: none; border-bottom: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; padding: 12px;
+      }
+      .sidebar h1 { width: 100%; margin-bottom: 8px; }
+      .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+      .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+      .main { margin-left: 0; padding: 20px 16px 60px; }
+      .page-title { font-size: 24px; }
+      .version-grid { grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 10px; }
+      .v-cell { font-size: 11px; }
+      .cmd-row { flex-wrap: wrap; }
+      .cmd-desc { flex: 0 0 100%; font-size: 13px; }
+      .top-bar input[type="text"] { flex: 1 1 100%; }
+      .big-copy-btn { margin-left: 0; width: 100%; }
+      .footer-links a { flex-wrap: wrap; }
+      .footer-links a .link-url { margin-left: 0; width: 100%; }
+      .master-table { font-size: 12px; }
+      .master-table th, .master-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>提示詞查閱</h1>
+    <a class="nav-item" href="index.html">考前測試</a>
+    <a class="nav-item" href="llama3.html">Llama 3</a>
+    <a class="nav-item" href="gemma4.html">Gemma 4</a>
+    <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+    <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+    <a class="nav-item" href="muse.html">Muse</a>
+    <a class="nav-item" href="midhigh.html">中高端模型</a>
+    <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+    <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+    <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+    <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+    <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+    <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+    <a class="nav-item active" href="commands.html">🔧 工作流</a>
+    <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+  </aside>
+  <!-- 主內容 -->
+  <main class="main">
+    <h1 class="page-title">🔧 考場指令與版本控制</h1>
+    <p class="page-subtitle">
+      點字母選組 → 點格子選版本 → 剪貼簿得到 <code>main_vN{字母}.c</code> 檔名 → 下方指令自動更新。<br>
+      最下方有指令總表，可用搜尋框過濾。
+    </p>
+
+    <!-- 頂部工具列 -->
+    <div class="top-bar">
+      <label for="filenameInput">當前檔名：</label>
+      <input type="text" id="filenameInput" value="main.c" placeholder="例如 main.c 或 dma_test.c">
+      <button class="big-copy-btn" id="copyAllBtn">📋 複製全部指令給 AI</button>
+    </div>
+
+    <!-- 搜尋框 -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜尋指令、用途、關鍵字（例如 pthread、回滾、ROS、編譯）">
+      <button class="clear-btn" id="clearSearchBtn">清除</button>
+    </div>
+
+    <!-- 字母切換 -->
+    <h2 class="section-title">🔤 字母組切換（a~j）</h2>
+    <div class="letter-row" id="letterRow"></div>
+
+    <!-- 版本格子 -->
+    <h2 class="section-title">📦 版本備份格子（<span id="currentLetterLabel">a</span> 組，1~100）</h2>
+    <div class="version-grid" id="versionGrid"></div>
+
+    <!-- v{N} 相關指令 -->
+    <h2 class="section-title">🎯 與 <span id="currentVersionLabel">v1a</span> 相關的指令</h2>
+    <div class="cmd-group" id="versionCmds"></div>
+
+    <!-- 通用指令 -->
+    <h2 class="section-title">🛠️ 通用指令（隨檔名變）</h2>
+
+    <div class="cmd-group" id="group-compile">
+      <div class="cmd-group-title">編譯類</div>
+    </div>
+
+    <div class="cmd-group" id="group-git">
+      <div class="cmd-group-title">Git / GitLab 類</div>
+    </div>
+
+    <div class="cmd-group" id="group-ros">
+      <div class="cmd-group-title">ROS 2 類</div>
+    </div>
+
+    <div class="cmd-group" id="group-file">
+      <div class="cmd-group-title">檔案查找與查看類</div>
+    </div>
+
+    <div class="cmd-group" id="group-proc">
+      <div class="cmd-group-title">程序管理類</div>
+    </div>
+
+    <!-- 寫入指令（可展開填空框） -->
+    <h2 class="section-title">✍️ 直接寫入檔案</h2>
+    <div class="write-block" id="writeBlock">
+      <div class="write-block-header" id="writeBlockHeader">
+        <span class="title">📝 貼上程式碼 → 一鍵複製寫入指令</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="write-block-body">
+        <div class="desc-line">
+          把 AI 給的程式碼貼進下方框框，點「複製寫入指令」後，貼到終端機執行即可產生檔案。
+          目標檔名跟著上方選中的版本自動變。
+        </div>
+        <textarea id="codeInput" placeholder="在這裡貼上程式碼……"></textarea>
+        <div class="write-block-actions">
+          <span class="target-name" id="targetFileName">main_v1a.c</span>
+          <button class="copy-btn" id="copyWriteBtn">📋 複製寫入指令</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 指令總表 -->
+    <h2 class="section-title">📖 指令總表</h2>
+    <div class="master-table-wrap">
+      <table class="master-table" id="masterTable">
+        <thead>
+          <tr>
+            <th style="width: 12%;">分類</th>
+            <th style="width: 30%;">指令</th>
+            <th style="width: 22%;">什麼時候用</th>
+            <th style="width: 22%;">怎麼用</th>
+            <th style="width: 14%;">注意事項</th>
+          </tr>
+        </thead>
+        <tbody id="masterTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 注音表 -->
+    <h2 class="section-title">🔤 注音與拼音對照表</h2>
+    <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 12px;">
+      打不出繁中時，用 <a href="https://my-rime.vercel.app/" target="_blank" style="color: var(--accent);">my-rime</a> 或拼音輸入法，對照下方表格拼出讀音。
+    </p>
+
+    <table class="bopomofo-table">
+      <thead>
+        <tr>
+          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+          <th style="width: 14%;">注音</th><th style="width: 14%;">拼音</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="zhuyin">ㄅ</td><td class="pinyin">b</td>
+          <td class="zhuyin">ㄆ</td><td class="pinyin">p</td>
+          <td class="zhuyin">ㄇ</td><td class="pinyin">m</td>
+          <td class="zhuyin">ㄈ</td><td class="pinyin">f</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄉ</td><td class="pinyin">d</td>
+          <td class="zhuyin">ㄊ</td><td class="pinyin">t</td>
+          <td class="zhuyin">ㄋ</td><td class="pinyin">n</td>
+          <td class="zhuyin">ㄌ</td><td class="pinyin">l</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄍ</td><td class="pinyin">g</td>
+          <td class="zhuyin">ㄎ</td><td class="pinyin">k</td>
+          <td class="zhuyin">ㄏ</td><td class="pinyin">h</td>
+          <td class="zhuyin">ㄐ</td><td class="pinyin">j</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄑ</td><td class="pinyin">q</td>
+          <td class="zhuyin">ㄒ</td><td class="pinyin">x</td>
+          <td class="zhuyin">ㄓ</td><td class="pinyin">zhi</td>
+          <td class="zhuyin">ㄔ</td><td class="pinyin">chi</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄕ</td><td class="pinyin">shi</td>
+          <td class="zhuyin">ㄖ</td><td class="pinyin">ri</td>
+          <td class="zhuyin">ㄗ</td><td class="pinyin">zi</td>
+          <td class="zhuyin">ㄘ</td><td class="pinyin">ci</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄙ</td><td class="pinyin">si</td>
+          <td class="zhuyin">ㄚ</td><td class="pinyin">a</td>
+          <td class="zhuyin">ㄛ</td><td class="pinyin">o</td>
+          <td class="zhuyin">ㄜ</td><td class="pinyin">e</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄝ</td><td class="pinyin">ê</td>
+          <td class="zhuyin">ㄞ</td><td class="pinyin">ai</td>
+          <td class="zhuyin">ㄟ</td><td class="pinyin">ei</td>
+          <td class="zhuyin">ㄠ</td><td class="pinyin">ao</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄡ</td><td class="pinyin">ou</td>
+          <td class="zhuyin">ㄢ</td><td class="pinyin">an</td>
+          <td class="zhuyin">ㄣ</td><td class="pinyin">en</td>
+          <td class="zhuyin">ㄤ</td><td class="pinyin">ang</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄥ</td><td class="pinyin">eng</td>
+          <td class="zhuyin">ㄦ</td><td class="pinyin">er</td>
+          <td class="zhuyin">ㄧ</td><td class="pinyin">i / yi</td>
+          <td class="zhuyin">ㄨ</td><td class="pinyin">u / wu</td>
+        </tr>
+        <tr>
+          <td class="zhuyin">ㄩ</td><td class="pinyin">ü / yu</td>
+          <td class="zhuyin">ㄭ</td><td class="pinyin">ih</td>
+          <td></td><td></td><td></td><td></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 底部連結 -->
+    <div class="footer-links">
+      <a href="https://my-rime.vercel.app/" target="_blank" rel="noopener">
+        <span class="link-icon">🔤</span>
+        <span>my-rime — 線上注音 / 拼音輸入</span>
+        <span class="link-url">my-rime.vercel.app</span>
+      </a>
+      <a href="https://translate.google.com/?hl=zh-TW&amp;sl=auto&amp;tl=zh-TW&amp;op=translate" target="_blank" rel="noopener">
+        <span class="link-icon">🌐</span>
+        <span>Google 翻譯 — 虛擬注音鍵盤（簡繁轉換）</span>
+        <span class="link-url">translate.google.com</span>
+      </a>
+
+      <!-- 👇 PDF 與 OCR 救命工具區 👇 -->
+      <a href="https://tesseractocr.org/zh/ocr-online/" target="_blank" rel="noopener">
+        <span class="link-icon">📄</span>
+        <span>Tesseract OCR（截圖 / 掃描檔轉文字）</span>
+        <span class="link-url">tesseractocr.org</span>
+      </a>
+      <a href="https://www.ilovepdf.com/zh-tw/pdf_to_word" target="_blank" rel="noopener">
+        <span class="link-icon">📑</span>
+        <span>iLovePDF — PDF 轉 Word（純英文推薦）</span>
+        <span class="link-url">ilovepdf.com</span>
+      </a>
+      <!-- 新加入的 PDF24 連結在這裡 -->
+      <a href="https://www.pdf24.org/zh/pdf-to-txt/" target="_blank" rel="noopener">
+        <span class="link-icon">📝</span>
+        <span>PDF24 — PDF 轉純文字 TXT（最乾淨）</span>
+        <span class="link-url">pdf24.org</span>
+      </a>
+      <!-- 新加入的 CP IDE 連結 -->
+      <a href="https://cpide.me/" target="_blank" rel="noopener">
+        <span class="link-icon">🌐</span>
+        <span>CP IDE — 線上 IDE</span>
+        <span class="link-url">cpide.me</span>
+      </a>
+       </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  // ==================== 指令說明資料庫 ====================
+  const CMD_DETAILS = {
+    'vc-backup': { when: '改完程式、確認能跑之後，把當前版本備份起來。', how: '貼到終端機執行，會產生帶字母的備份檔。', note: '備份前先確認原始檔是你想保留的版本。' },
+    'vc-rollback': { when: '程式改壞了、跑不動、或編譯不過，想回到之前能跑的版本。', how: '貼到終端機執行，會用備份檔覆蓋原始檔。', note: '執行前先確認備份檔存在（用 ls 看）。' },
+    'vc-diff': { when: '想知道備份檔跟現在版本差在哪，或懷疑 AI 改了不該改的地方。', how: '貼到終端機執行，會列出兩版的差異。', note: '差異太多時按 q 退出。' },
+    'vc-compile': { when: '編譯備份版本，確認它能獨立編譯通過。', how: '貼到終端機執行。成功會產生執行檔。', note: 'pthread 程式必加 -pthread。' },
+    'vc-compile-run': { when: '編譯備份版本並直接執行，快速確認結果。', how: '貼到終端機執行，編譯成功會自動跑起來。', note: '如果程式會無限迴圈，按 Ctrl+C 停止。' },
+    'vc-git': { when: '確認能跑，要提交到 GitLab 評測。', how: '貼到終端機執行，會把當前目錄所有變更加入、commit、push。', note: '一次只能跑一個 task。評測 pending 時不要重複 push。' },
+    'gcc-pthread': { when: '寫了 pthread（多執行緒）程式，要編譯時。', how: '貼到終端機執行。成功會產生執行檔。', note: '不加 -pthread 會報 undefined reference to pthread_create。' },
+    'gcc-run': { when: '編譯並立刻執行，省一步。', how: '貼到終端機執行，編譯成功會自動跑。', note: '如果程式卡住，按 Ctrl+C 停止。' },
+    'gcc-math': { when: '程式用了 math.h 的函式（sqrt、pow 等）時。', how: '貼到終端機執行，多加 -lm 連結數學函式庫。', note: '-lm 要放在檔名後面，順序錯了會連結失敗。' },
+    'make': { when: '題目有給 Makefile 時。', how: '在 Makefile 所在目錄執行 make。', note: '若報錯，先 make clean 再 make。' },
+    'make-clean': { when: '編譯產物太亂，或改了 Makefile 想重來。', how: '在 Makefile 所在目錄執行 make clean。', note: '會刪除 bin/ 或 *.o，不影響原始碼。' },
+    'git-status': { when: '想知道哪些檔案被改過、哪些還沒 commit。', how: '在專案根目錄執行。紅色 = 未加入，綠色 = 已加入。', note: '養成 push 前先看 status 的習慣。' },
+    'git-log': { when: '想看最近 commit 紀錄，或確認上一個 push 的內容。', how: '執行後顯示最近 5 筆 commit。', note: '按 q 退出。' },
+    'git-cred': { when: 'git push 時一直問帳號密碼，或卡住不動。', how: '執行一次即可，之後 push 會記住帳密。', note: '考場通常用一次就夠。' },
+    'ros-node': { when: '想看目前有哪些節點在跑，或懷疑程式沒啟動。', how: '在終端機執行。有看到你的節點 = 程式有起來。', note: '若沒看到你的節點，代表程式崩潰或根本沒啟動。' },
+    'ros-topic': { when: '想看目前有哪些 topic 在傳資料。', how: '在終端機執行。', note: 'topic 存在不代表有資料在傳。' },
+    'ros-nodeinfo': { when: '想知道某個節點發布/訂閱了哪些 topic。', how: '把 /node_name 換成你的節點名稱。', note: '檢查 Publisher 和 Subscriber 的 topic 名稱是否一致。' },
+    'ros-topicinfo': { when: '想知道某個 topic 有幾個 publisher、幾個 subscriber。', how: '把 /topic_name 換成你的 topic 名稱。', note: 'Publisher count = 0 代表沒人在發。' },
+    'ros-echo': { when: '想直接看 topic 上實際傳的資料內容。', how: '把 /topic_name 換成你要看的 topic。', note: '按 Ctrl+C 停止。沒資料 = 上游沒發或 QoS 不匹配。' },
+    'ros-hz': { when: '想知道 topic 的發布頻率是否正常。', how: '把 /topic_name 換成你要測的 topic。', note: '頻率遠低於預期 = 上游太慢或掉包。' },
+    'ros-qos': { when: 'echo 沒資料，但 topic info 顯示有 publisher 和 subscriber。', how: '把 /topic_name 換成你要診斷的 topic，-v 會顯示 QoS 詳細資訊。', note: '檢查 Reliability（BEST_EFFORT vs RELIABLE）是否匹配。' },
+    'ros-interface': { when: '想知道某種 message type 包含哪些欄位。', how: '把 std_msgs/msg/Int32 換成你要查的型別。', note: '例如 Int32 只有一個欄位 data。' },
+    'ros-pub': { when: '想手動發一筆測試訊息，不用寫程式。', how: '把 /number 和 21 換成你要發的 topic 和數值。', note: '--once 只發一次。' },
+    'ls-v': { when: '想看目前有哪些備份版本、按時間排序。', how: '在專案目錄執行。最新的在最上面。', note: '-lt 的 t 是按修改時間排序。' },
+    'find-c': { when: '忘了程式碼放哪個資料夾，或想確認有哪些 .c 檔。', how: '在專案根目錄執行，會列出所有 .c 檔的路徑。', note: '想找 .py 就改成 "*.py"。' },
+    'find-config': { when: '懷疑是設定檔的頻率太高導致掉包。', how: '在專案根目錄執行，會列出所有 json/yaml 設定檔。', note: '找到後用 cat 看內容，找 frequency 或 rate。' },
+    'grep-rn': { when: '想找某個關鍵字出現在哪些檔案、哪幾行。', how: '把 "keyword" 換成你要找的字。', note: '-r 遞迴搜尋，-n 顯示行號。' },
+    'grep-n': { when: '想在某個檔案裡找關鍵字並看行號。', how: '把 "pthread" 換成你要找的字，檔名換成你的。', note: '找到後可以用 head/tail 看附近內容。' },
+    'cat': { when: '想一次看完某個檔案的完整內容。', how: '把檔名換成你要看的。', note: '檔案太大時改用 head 或 tail。' },
+    'head': { when: '只想看檔案前幾十行（例如看 include 和宣告）。', how: 'head -50 檔案名 會顯示前 50 行。', note: '數字可改，例如 -100 看前 100 行。' },
+    'tail': { when: '只想看檔案最後幾十行（例如看 main 函式結尾）。', how: 'tail -20 檔案名 會顯示最後 20 行。', note: 'tail -f 會持續追蹤新內容。' },
+    'ps': { when: '懷疑程式還在跑（卡住、佔用資源）時。', how: '執行後會列出所有含關鍵字的程序。', note: '記下 PID 欄位，可以用 kill 殺掉。' },
+    'kill': { when: '程式卡死、Ctrl+C 殺不掉、或佔用資源。', how: '把 PID 換成你要殺的程序編號（從 ps 查）。', note: '-9 是強制殺，最後手段。' }
+  };
+
+  // ==================== 狀態 ====================
+  const LETTERS = ['a','b','c','d','e','f','g','h','i','j'];
+  const TOTAL_VERSIONS = 100;
+  const STORAGE_KEY_STATE = 'workflow_state_v3';
+
+  let state = JSON.parse(localStorage.getItem(STORAGE_KEY_STATE) || '{}');
+  if (!state.currentLetter) state.currentLetter = 'a';
+  if (!state.filename) state.filename = 'main.c';
+  if (!state.selections) state.selections = {}; // { a: 1, b: 1, ... }
+  if (!state.latest) state.latest = {}; // { a: 0, b: 0, ... } 0 = 還沒用過
+
+  LETTERS.forEach(L => {
+    if (typeof state.selections[L] !== 'number') state.selections[L] = 1;
+    if (typeof state.latest[L] !== 'number') state.latest[L] = 0;
+  });
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(state));
+  }
+
+  // ==================== 工具 ====================
+  function getBaseName(filename) {
+    return filename.replace(/\.(c|cpp|py)$/i, '');
+  }
+  function getExtension(filename) {
+    const m = filename.match(/(\.[a-zA-Z0-9]+)$/);
+    return m ? m[1] : '.c';
+  }
+  function currentVersionFile() {
+    const base = getBaseName(state.filename);
+    const ext = getExtension(state.filename);
+    const L = state.currentLetter;
+    const N = state.selections[L];
+    return `${base}_v${N}${L}${ext}`;
+  }
+
+  // ==================== 渲染字母切換 ====================
+  const letterRow = document.getElementById('letterRow');
+  function renderLetters() {
+    letterRow.innerHTML = '';
+    const currentIndex = LETTERS.indexOf(state.currentLetter);
+
+    LETTERS.forEach((L, index) => {
+      const btn = document.createElement('div');
+      btn.className = 'letter-btn';
+
+      // 1. 如果這是當前選中的字母（藍色）
+      if (L === state.currentLetter) {
+        btn.classList.add('active');
+      }
+      // 2. 如果這個字母的索引小於當前字母的索引（代表是已經用過、被封版的，變綠色）
+      else if (index < currentIndex) {
+        btn.classList.add('has-progress');
+      }
+
+      btn.textContent = L;
+
+      // Tooltip 顯示該組最新進度
+      const latestN = state.latest[L] || 0;
+      btn.title = latestN > 0 ? `最新進度：v${latestN}${L}` : '尚未使用';
+
+      btn.addEventListener('click', () => {
+        state.currentLetter = L;
+        saveState();
+        renderAll();
+      });
+
+      letterRow.appendChild(btn);
+    });
+  }
+
+  // ==================== 渲染版本格子 ====================
+  const versionGrid = document.getElementById('versionGrid');
+  function renderGrid() {
+    versionGrid.innerHTML = '';
+    const L = state.currentLetter;
+    const selected = state.selections[L];
+    const latest = state.latest[L];
+
+    for (let i = 1; i <= TOTAL_VERSIONS; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'v-cell';
+
+      // 判斷是否為最新版（黃色）
+      if (i === latest) {
+        cell.classList.add('is-current-latest');
+      }
+
+      // 判斷是否為當前選中版（藍色框）
+      if (i === selected) {
+        cell.classList.add('is-selected');
+      }
+
+      cell.textContent = i;
+      cell.dataset.version = i;
+
+      cell.addEventListener('click', () => {
+        state.selections[L] = i;
+
+        // 如果點選的版本大於目前最新，更新最新紀錄
+        if (i > state.latest[L]) {
+          state.latest[L] = i;
+        }
+
+        saveState();
+        renderAll();
+
+        // 點擊後直接複製檔名
+        const base = getBaseName(state.filename);
+        const ext = getExtension(state.filename);
+        copyText(`${base}_v${i}${L}${ext}`, `已複製檔名：${base}_v${i}${L}${ext}`);
+      });
+
+      versionGrid.appendChild(cell);
+    }
+  }
+
+  // ==================== 渲染 v{N} 指令 ====================
+  const versionCmdsEl = document.getElementById('versionCmds');
+  function renderVersionCmds() {
+    const ext = getExtension(state.filename);
+    const base = getBaseName(state.filename);
+    const L = state.currentLetter;
+    const N = state.selections[L];
+    const vFile = `${base}_v${N}${L}${ext}`;
+    const vBin = `${base}_v${N}${L}`;
+
+    const cmds = [
+      { desc: '備份（存成 vN）', id: 'vc-backup', cmd: `cp ${state.filename} ${vFile}`, detailKey: 'vc-backup' },
+      { desc: '回滾（回到 vN）', id: 'vc-rollback', cmd: `cp ${vFile} ${state.filename}`, detailKey: 'vc-rollback' },
+      { desc: '比較（vN vs 現在）', id: 'vc-diff', cmd: `diff ${vFile} ${state.filename}`, detailKey: 'vc-diff' },
+      { desc: '編譯 vN', id: 'vc-compile', cmd: `gcc ${vFile} -o ${vBin} -pthread`, detailKey: 'vc-compile' },
+      { desc: '編譯 vN + 執行', id: 'vc-compile-run', cmd: `gcc ${vFile} -o ${vBin} -pthread && ./${vBin}`, detailKey: 'vc-compile-run' },
+      { desc: 'Git 提交 vN', id: 'vc-git', cmd: `git add . && git commit -m "v${N}${L}" && git push`, detailKey: 'vc-git' },
+    ];
+
+    versionCmdsEl.innerHTML = '';
+    const title = document.createElement('div');
+    title.className = 'cmd-group-title';
+    title.textContent = `與 v${N}${L} 相關（檔名：${state.filename}）`;
+    versionCmdsEl.appendChild(title);
+
+    cmds.forEach(item => versionCmdsEl.appendChild(makeCmdRow(item)));
+    bindCopyButtons();
+  }
+
+  // ==================== 建立指令列 ====================
+  function makeCmdRow(item) {
+    const row = document.createElement('div');
+    row.className = 'cmd-row';
+    row.dataset.detailKey = item.detailKey;
+    row.dataset.searchText = (item.desc + ' ' + item.cmd + ' ' + (CMD_DETAILS[item.detailKey]?.when || '')).toLowerCase();
+
+    const desc = document.createElement('span');
+    desc.className = 'cmd-desc';
+    desc.textContent = item.desc;
+
+    const code = document.createElement('code');
+    code.className = 'cmd-text';
+    code.id = `cmd-${item.id}`;
+    code.textContent = item.cmd;
+
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.dataset.copy = `cmd-${item.id}`;
+    btn.textContent = '📋 複製';
+
+    row.appendChild(desc);
+    row.appendChild(code);
+    row.appendChild(btn);
+    return row;
+  }
+
+  // ==================== 渲染通用指令 ====================
+  function buildGenericGroups() {
+    const f = state.filename;
+    const base = getBaseName(f);
+    const ext = getExtension(f).slice(1);
+    return {
+      compile: [
+        { desc: '編譯（pthread）', id: 'gcc-pthread', cmd: `gcc ${f} -o ${base} -pthread`, detailKey: 'gcc-pthread' },
+        { desc: '編譯 + 執行', id: 'gcc-run', cmd: `gcc ${f} -o ${base} -pthread && ./${base}`, detailKey: 'gcc-run' },
+        { desc: '編譯（含 math）', id: 'gcc-math', cmd: `gcc ${f} -o ${base} -pthread -lm`, detailKey: 'gcc-math' },
+        { desc: 'Makefile', id: 'make', cmd: `make`, detailKey: 'make' },
+        { desc: '清除編譯產物', id: 'make-clean', cmd: `make clean`, detailKey: 'make-clean' },
+      ],
+      git: [
+        { desc: '看狀態', id: 'git-status', cmd: 'git status', detailKey: 'git-status' },
+        { desc: '看最近 5 次提交', id: 'git-log', cmd: 'git log --oneline -5', detailKey: 'git-log' },
+        { desc: '設定帳密記憶', id: 'git-cred', cmd: 'git config --global credential.helper store', detailKey: 'git-cred' },
+      ],
+      ros: [
+        { desc: '節點列表', id: 'ros-node', cmd: 'ros2 node list', detailKey: 'ros-node' },
+        { desc: 'Topic 列表', id: 'ros-topic', cmd: 'ros2 topic list', detailKey: 'ros-topic' },
+        { desc: '節點詳情', id: 'ros-nodeinfo', cmd: 'ros2 node info /node_name', detailKey: 'ros-nodeinfo' },
+        { desc: 'Topic 詳情', id: 'ros-topicinfo', cmd: 'ros2 topic info /topic_name', detailKey: 'ros-topicinfo' },
+        { desc: '看資料', id: 'ros-echo', cmd: 'ros2 topic echo /topic_name', detailKey: 'ros-echo' },
+        { desc: '看頻率', id: 'ros-hz', cmd: 'ros2 topic hz /topic_name', detailKey: 'ros-hz' },
+        { desc: 'QoS 診斷', id: 'ros-qos', cmd: 'ros2 topic info /topic_name -v', detailKey: 'ros-qos' },
+        { desc: '看訊息型別', id: 'ros-interface', cmd: 'ros2 interface show std_msgs/msg/Int32', detailKey: 'ros-interface' },
+        { desc: '手動發訊息', id: 'ros-pub', cmd: 'ros2 topic pub --once /number std_msgs/msg/Int32 "{data: 21}"', detailKey: 'ros-pub' },
+      ],
+      file: [
+        { desc: '看備份列表', id: 'ls-v', cmd: `ls -lt ${base}_v*.${ext}`, detailKey: 'ls-v' },
+        { desc: '找所有 .c', id: 'find-c', cmd: 'find . -name "*.c"', detailKey: 'find-c' },
+        { desc: '找設定檔', id: 'find-config', cmd: 'find . -name "*.json" -o -name "*.yaml"', detailKey: 'find-config' },
+        { desc: '全檔搜關鍵字', id: 'grep-rn', cmd: 'grep -rn "keyword" .', detailKey: 'grep-rn' },
+        { desc: '單檔搜 + 行號', id: 'grep-n', cmd: `grep -n "pthread" ${f}`, detailKey: 'grep-n' },
+        { desc: '看整檔', id: 'cat', cmd: `cat ${f}`, detailKey: 'cat' },
+        { desc: '看前 50 行', id: 'head', cmd: `head -50 ${f}`, detailKey: 'head' },
+        { desc: '看後 20 行', id: 'tail', cmd: `tail -20 ${f}`, detailKey: 'tail' },
+      ],
+      proc: [
+        { desc: '看程序', id: 'ps', cmd: `ps aux | grep ${base}`, detailKey: 'ps' },
+        { desc: '強制殺程序', id: 'kill', cmd: 'kill -9 PID', detailKey: 'kill' },
+      ]
+    };
+  }
+
+  function renderGenericGroups() {
+    const groups = buildGenericGroups();
+    const mapping = { compile: 'group-compile', git: 'group-git', ros: 'group-ros', file: 'group-file', proc: 'group-proc' };
+    Object.entries(groups).forEach(([key, items]) => {
+      const groupEl = document.getElementById(mapping[key]);
+      const titleEl = groupEl.querySelector('.cmd-group-title');
+      groupEl.innerHTML = '';
+      groupEl.appendChild(titleEl);
+      items.forEach(item => groupEl.appendChild(makeCmdRow(item)));
+    });
+    bindCopyButtons();
+    applySearch();
+  }
+
+  // ==================== 更新標題 ====================
+  function updateLabels() {
+    document.getElementById('currentLetterLabel').textContent = state.currentLetter;
+    const L = state.currentLetter;
+    const N = state.selections[L];
+    document.getElementById('currentVersionLabel').textContent = `v${N}${L}`;
+  }
+
+  // ==================== 目標檔名（寫入區用） ====================
+  function updateTargetFileName() {
+    document.getElementById('targetFileName').textContent = currentVersionFile();
+  }
+
+  // ==================== 複製功能 ====================
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg || '✅ 已複製';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+  function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(msg); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+  function copyText(text, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+    } else fallbackCopy(text, msg);
+  }
+  function bindCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const targetEl = document.getElementById(btn.dataset.copy);
+        if (!targetEl) return;
+        copyText(targetEl.textContent);
+        const original = btn.textContent;
+        btn.textContent = '✅ 已複製';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+      });
+    });
+  }
+
+  // ==================== 寫入區 ====================
+  document.getElementById('writeBlockHeader').addEventListener('click', () => {
+    document.getElementById('writeBlock').classList.toggle('open');
+  });
+
+  document.getElementById('copyWriteBtn').addEventListener('click', () => {
+    const code = document.getElementById('codeInput').value;
+    if (!code.trim()) {
+      showToast('⚠️ 請先貼上程式碼');
+      return;
+    }
+    const target = currentVersionFile();
+    const fullCmd = `cat <<'EOF' > ${target}\n${code}\nEOF`;
+    copyText(fullCmd, `✅ 已複製寫入指令（目標：${target}）`);
+    const btn = document.getElementById('copyWriteBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ 已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+  });
+
+  // ==================== 指令總表 ====================
+  function renderMasterTable() {
+    const tbody = document.getElementById('masterTableBody');
+    tbody.innerHTML = '';   // ✅ 補上 = 號
+
+    // 收集所有指令
+    const groups = buildGenericGroups();
+
+    const L = state.currentLetter;
+    const N = state.selections[L];
+    const vFile = currentVersionFile();
+    const base = getBaseName(state.filename);
+    const vBin = `${base}_v${N}${L}`;
+
+    const versionItems = [
+      { desc: '備份（存成 vN）', id: 'vc-backup',
+        cmd: `cp ${state.filename} ${vFile}`, detailKey: 'vc-backup' },
+      { desc: '回滾（回到 vN）', id: 'vc-rollback',
+        cmd: `cp ${vFile} ${state.filename}`, detailKey: 'vc-rollback' },
+      { desc: '比較（vN vs 現在）', id: 'vc-diff',
+        cmd: `diff ${vFile} ${state.filename}`, detailKey: 'vc-diff' },
+      { desc: '編譯 vN', id: 'vc-compile',
+        cmd: `gcc ${vFile} -o ${vBin} -pthread`, detailKey: 'vc-compile' },
+      { desc: '編譯 vN + 執行', id: 'vc-compile-run',
+        cmd: `gcc ${vFile} -o ${vBin} -pthread && ./${vBin}`, detailKey: 'vc-compile-run' },
+      { desc: 'Git 提交 vN', id: 'vc-git',
+        cmd: `git add . && git commit -m "v${N}${L}" && git push`, detailKey: 'vc-git' },
+    ];
+
+    const allItems = [
+      { category: '版本相關', items: versionItems },
+      { category: '編譯類', items: groups.compile },
+      { category: 'Git 類', items: groups.git },
+      { category: 'ROS 2 類', items: groups.ros },
+      { category: '檔案查找與查看類', items: groups.file },
+      { category: '程序管理類', items: groups.proc },
+    ];
+
+    let html = '';
+    allItems.forEach(group => {
+      group.items.forEach(item => {
+        const d = CMD_DETAILS[item.detailKey] || {};
+        const searchText = `${group.category} ${item.desc} ${item.cmd} ${d.when || ''} ${d.how || ''} ${d.note || ''}`.toLowerCase();
+        html += `<tr data-search-text="${escapeAttr(searchText)}">
+        <td class="col-category">${escapeHtml(group.category)}</td>
+        <td class="col-cmd">${escapeHtml(item.cmd)}</td>
+        <td>${escapeHtml(d.when || '')}</td>
+        <td>${escapeHtml(d.how || '')}</td>
+        <td>${escapeHtml(d.note || '')}</td>
+      </tr>`;
+      });
+    });
+    tbody.innerHTML = html;
+    applySearch();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ==================== 搜尋過濾 ====================
+  const searchInput = document.getElementById('searchInput');
+  function applySearch() {
+    const q = searchInput.value.trim().toLowerCase();
+    // 過濾指令區
+    document.querySelectorAll('.cmd-row').forEach(row => {
+      const text = (row.dataset.searchText || '').toLowerCase();
+      row.classList.toggle('hidden', q && !text.includes(q));
+    });
+    // 過濾總表
+    document.querySelectorAll('#masterTableBody tr').forEach(tr => {
+      const text = (tr.dataset.searchText || '').toLowerCase();
+      tr.classList.toggle('hidden', q && !text.includes(q));
+    });
+  }
+  searchInput.addEventListener('input', applySearch);
+  document.getElementById('clearSearchBtn').addEventListener('click', () => {
+    searchInput.value = '';
+    applySearch();
+  });
+
+  // ==================== 一鍵複製給 AI ====================
+  document.getElementById('copyAllBtn').addEventListener('click', () => {
+    const text = buildAllCommandsForAI();
+    copyText(text, '✅ 已複製全部指令（貼給 AI）');
+    const btn = document.getElementById('copyAllBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ 已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+  });
+
+  function buildAllCommandsForAI() {
+    const L = state.currentLetter;
+    const N = state.selections[L];
+    const vFile = currentVersionFile();
+    const groups = buildGenericGroups();
+
+    let out = '';
+    out += `【考場指令包】\n`;
+    out += `我目前在成大資工上機考。\n`;
+    out += `當前檔名：${state.filename}\n`;
+    out += `當前選中版本：v${N}${L}（備份檔為 ${vFile}）\n\n`;
+
+    out += `=== 與 v${N}${L} 相關 ===\n`;
+    out += `1. cp ${state.filename} ${vFile}\n   用途：備份當前程式為 v${N}${L}\n`;
+    out += `2. cp ${vFile} ${state.filename}\n   用途：回滾到 v${N}${L}\n`;
+    out += `3. diff ${vFile} ${state.filename}\n   用途：比較差異\n`;
+    out += `4. gcc ${vFile} -o ${getBaseName(state.filename)}_v${N}${L} -pthread\n   用途：編譯 v${N}${L}\n`;
+    out += `5. git add . && git commit -m "v${N}${L}" && git push\n   用途：提交到 GitLab\n\n`;
+
+    const groupNames = { compile: '編譯類', git: 'Git / GitLab 類', ros: 'ROS 2 類', file: '檔案查找類', proc: '程序管理類' };
+    Object.entries(groups).forEach(([key, items]) => {
+      out += `=== ${groupNames[key]} ===\n`;
+      items.forEach((item, i) => {
+        const d = CMD_DETAILS[item.detailKey];
+        out += `${i + 1}. ${item.cmd}\n   用途：${d?.when || item.desc}\n`;
+      });
+      out += `\n`;
+    });
+
+    out += `【我的問題】\n請根據我描述的狀況，告訴我：\n1. 我現在應該用哪一條指令（直接給完整指令）\n2. 為什麼要用這條\n3. 替代方案\n\n`;
+    out += `我遇到的狀況是：（在這裡描述）\n`;
+    return out;
+  }
+
+  // ==================== 檔名輸入 ====================
+  const filenameInput = document.getElementById('filenameInput');
+  filenameInput.value = state.filename;
+  filenameInput.addEventListener('input', () => {
+    state.filename = filenameInput.value.trim() || 'main.c';
+    saveState();
+    renderAll();
+  });
+
+  // ==================== 渲染全部 ====================
+  function renderAll() {
+    renderLetters();
+    renderGrid();
+    renderVersionCmds();
+    renderGenericGroups();
+    renderMasterTable();
+    updateLabels();
+    updateTargetFileName();
+    bindCopyButtons();
+  }
+
+  // ==================== 初始化 ====================
+  renderAll();
+</script>
+</body>
+</html>

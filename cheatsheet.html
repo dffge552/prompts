@@ -1,0 +1,5082 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C++ 典型錯誤百科全書 — 提示詞查閱</title>
+<style>
+  :root {
+    --bg: #1a1d23;
+    --sidebar-bg: #14171c;
+    --panel-bg: #23272f;
+    --pre-bg: #12151a;
+    --border: #2e333d;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    --accent: #4f9cf9;
+    --accent-dim: #2c5a94;
+    --success: #4caf7d;
+    --warn-bg: #4a3f13;
+    --warn-border: #b8962e;
+    --warn-text: #ffe08a;
+    --danger-bg: #3a1e1e;
+    --danger-border: #c85a5a;
+    --danger-text: #ffb8b8;
+    --sidebar-w: 220px;
+    --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  /* 左側欄 */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w); background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 {
+    font-size: 16px; color: var(--text-dim);
+    margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+  }
+  .nav-item {
+    display: block; padding: 9px 14px; margin: 3px 0;
+    border-radius: 8px; color: var(--text-dim); text-decoration: none;
+    font-size: 16px; transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+  /* 主內容 */
+  .main {
+    margin-left: var(--sidebar-w);
+    margin-right: var(--refpanel-w);
+    flex: 1; padding: 28px 40px 80px;
+    transition: margin-right 0.25s ease;
+    max-width: 1000px;
+  }
+  .layout.panel-collapsed .main { margin-right: 44px; }
+  .page-title {
+    font-size: 30px; font-weight: 700; margin: 0 0 20px;
+    padding-bottom: 12px; border-bottom: 2px solid var(--border);
+  }
+
+  /* 頂部警告與一鍵複製 */
+  .top-warning {
+    background: rgba(217, 119, 6, 0.15);
+    border: 2px solid #d97706;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  .top-warning h2 {
+    margin: 0 0 12px; font-size: 20px; color: #fcd34d;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .top-warning p {
+    margin: 0 0 16px; font-size: 16.5px; color: var(--text); line-height: 1.7;
+  }
+
+  /* 摺疊區塊 (Details) */
+  details {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  details[open] {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  summary {
+    padding: 16px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    list-style: none; /* 隱藏預設箭頭 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e2229;
+    transition: background 0.15s;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { background: #23272f; }
+  summary .arrow {
+    font-size: 14px; color: var(--text-dim);
+    transition: transform 0.3s;
+  }
+  details[open] summary .arrow { transform: rotate(180deg); }
+  
+  /* 內容區塊 */
+  .detail-body {
+    padding: 0;
+    border-top: 1px solid var(--border);
+  }
+  .block {
+    margin: 0; border: none; border-radius: 0;
+  }
+  .block-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: #12151a;
+  }
+  .block-title { font-size: 15px; font-weight: 600; color: var(--text-dim); }
+  .copy-btn {
+    padding: 6px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 14px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+  .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+
+  /* 預覽文字區塊 */
+  pre {
+    margin: 0; padding: 20px;
+    background: var(--pre-bg);
+    font-family: "SF Mono", "Consolas", "Menlo", "Courier New", monospace;
+    font-size: 15px; line-height: 1.7; color: #d4d8de;
+    white-space: pre-wrap; word-wrap: break-word;
+    max-height: 400px; overflow-y: auto;
+  }
+
+  /* 右側面板 */
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: var(--refpanel-w); background: var(--sidebar-bg);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+    transition: width 0.25s ease;
+  }
+  .layout.panel-collapsed .refpanel { width: 44px; }
+  .refpanel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .refpanel-collapse-btn {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-dim); font-size: 14px;
+    padding: 4px 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .refpanel-collapse-btn:hover { border-color: var(--accent); color: var(--text); }
+  .refpanel-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    font-size: 14.5px; line-height: 1.65;
+  }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  
+  .layout.panel-collapsed .refpanel-title,
+  .layout.panel-collapsed .refpanel-body { display: none; }
+  .layout.panel-collapsed .refpanel-header {
+    padding: 12px 0; justify-content: center; border-bottom: none;
+    height: 100%; writing-mode: vertical-rl; text-orientation: mixed;
+  }
+  .layout.panel-collapsed .refpanel-collapse-btn {
+    writing-mode: vertical-rl; border: none; font-size: 14px; padding: 10px 6px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff;
+    padding: 12px 28px; border-radius: 10px;
+    font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 1024px) {
+    .main { margin-right: 0; padding-right: 80px; }
+    .refpanel {
+      width: 320px; transform: translateX(calc(100% - 44px));
+      box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+      transition: transform 0.25s ease;
+    }
+    .refpanel.open { transform: translateX(0); }
+    .layout.panel-collapsed .refpanel { transform: translateX(calc(100% - 44px)); }
+    .layout.panel-collapsed .refpanel.open { transform: translateX(0); }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .nav-item { padding: 6px 12px; font-size: 15px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .refpanel { width: 90%; max-width: 340px; transform: translateX(calc(100% - 40px)); }
+  }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item active" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <!-- 中間主內容 -->
+  <main class="main">
+    <h1 class="page-title">C++ 典型錯誤百科全書</h1>
+
+    <!-- 頂部警告與一鍵複製 -->
+    <div class="top-warning">
+      <h2>🚨 考前必讀：語言轉換警告</h2>
+      <p>
+        下方手稿雖為 C++ 典型錯誤，但 C++ 與 C 在許多底層邏輯（如記憶體、指標、多執行緒）是相通的。<br>
+        <strong>若你的考場是純 C 語言環境，請先複製下方這段「語言轉換警告詞」，連同手稿與你的程式碼一起貼給 AI，強迫 AI 提取邏輯並用純 C 輸出。</strong>
+      </p>
+
+      <div class="block" style="margin-bottom: 0; border: 1px solid #d97706; border-radius: 8px; overflow: hidden;">
+        <div class="block-header" style="background: rgba(217, 119, 6, 0.2); border-bottom: none;">
+          <span class="block-title" style="color: #fcd34d;">一鍵複製：語言轉換警告詞</span>
+          <button class="copy-btn" data-target="lang-warning" style="border-color: #d97706; color: #fcd34d;">📋 複製</button>
+        </div>
+        <pre id="lang-warning" style="background: #1e2229; max-height: 200px;">【🚨 語言環境與轉換警告 🚨】
+我目前的程式碼遇到了問題（詳見下方或我接下來的描述）。
+我現在提供一份「C++ 專用的錯誤解法手稿」給你參考，請你從中提取**底層邏輯與核心觀念**（例如：記憶體越界、資料競爭、指標懸垂、死結等）。
+
+⚠️ 但是請注意：我的考場環境是【純 C 語言】（使用 gcc 編譯）！
+請你不要直接照搬手稿裡的 C++ 語法，而是根據手稿的邏輯，輸出「純 C 語言」的修正版或解法。
+禁止使用任何 C++ 專屬語法（如 std::cout, new, delete, std::vector, std::mutex）。
+請使用 C 標準庫（stdio.h, stdlib.h）與 POSIX 執行緒（pthread.h, pthread_mutex_t）。
+如果我沒有貼上程式碼，請先問我遇到了什麼問題，等我貼上後再幫我結合手稿進行修正。</pre>
+      </div>
+    </div>
+
+    <!-- ==================== 前言 ==================== -->
+    <details>
+      <summary>
+        <span>📖 前言與導讀：《100 個 C++ 語言典型錯誤》</span>
+        <span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">前言與導讀</span>
+            <button class="copy-btn" data-target="ch0">📋 複製</button>
+          </div>
+          <pre id="ch0"># 《100 個 C++ 語言典型錯誤》
+
+> 借鑑 *100 Go Mistakes and How to Avoid Them* 的組織形式,為中文 C++ 開發者整理的一份「錯誤目錄」。
+
+## 前言
+
+C++ 常被形容為「易學難精」。它的手動記憶體模型、無處不在的未定義行為(undefined behavior, UB)、微妙的移動語義、複雜的模板機制以及併發陷阱,共同構成了一條即使是資深工程師也會反覆踩中的「長尾錯誤」。
+
+本書把這些典型錯誤歸納為 **13 章**,逐條給出**錯誤示例 → 為什麼錯 → 正確做法**,並標註該修復所依賴的 **C++ 標準版本**與(可選的)**ISO C++ Core Guidelines** 條目。
+
+書名取「100」是一個整數化的品牌稱呼;**本書實際收錄 100+ 條(約 105 條)典型錯誤**,編號 `#1`–`#105` 全局連續。多出來的幾條(如 `shared_from_this` 誤用、lambda 懸垂捕獲、Linux `epoll` 誤用)因實戰價值高而特意保留,而非刪掉較弱條目湊整。
+
+**面向讀者**:已經會寫 C++、但希望系統地了解「哪些地方最容易出錯」的開發者。本書不是語言教程,假設你已具備基本的 C++ 知識。
+
+**目標標準**:現代 C++(C++11 ~ C++20/23),同時標記出那些自 C++98 起就存在、至今仍在坑人的遺留問題。
+
+## 如何閱讀:條目格式
+
+全書每一條錯誤都遵循固定模板,便於掃讀:
+
+```
+### #N 標題（一句話概括錯誤）
+
+**現象 / 錯誤示例**
+（一段最小化的、只演示這一個錯誤的壞代碼）
+
+**為什麼錯**
+（解釋原因;若為未定義行為會明確標註「未定義行為(UB)」）
+
+**正確做法**
+（一段符合慣用法的、修復後的代碼）
+
+**適用標準**：C++11 / C++14 / C++17 / C++20 / C++23；或「C++98 遺留」；平台相關條目會標註「Linux 平台相關」
+
+**相關準則**：ISO C++ Core Guidelines 條目編號（如 C.35、ES.20；可選）
+```
+
+約定:**正文用簡體中文,代碼與標準庫名稱保持英文**。術語首次出現時給出英文原詞。若一個錯誤與其他章節相關,採用交叉引用而非重複條目。
+
+## 章節與編號區間
+
+| 章 | 文件 | 主題 | 編號區間 |
+|----|------|------|----------|
+| 1 | [ch01-organization.md](ch01-organization.md) | 代碼與項目組織 | #1–#6 |
+| 2 | [ch02-fundamental-types.md](ch02-fundamental-types.md) | 基本類型與轉換 | #7–#15 |
+| 3 | [ch03-memory-raii.md](ch03-memory-raii.md) | 記憶體管理與 RAII | #16–#25 |
+| 4 | [ch04-ownership.md](ch04-ownership.md) | 資源與所有權 | #26–#36 |
+| 5 | [ch05-move-semantics.md](ch05-move-semantics.md) | 移動語義與值類別 | #37–#45 |
+| 6 | [ch06-classes-inheritance.md](ch06-classes-inheritance.md) | 類、對象與繼承 | #46–#55 |
+| 7 | [ch07-templates.md](ch07-templates.md) | 模板與泛型 | #56–#64 |
+| 8 | [ch08-stl.md](ch08-stl.md) | 標準庫容器與算法 | #65–#74 |
+| 9 | [ch09-concurrency.md](ch09-concurrency.md) | 併發 | #75–#85 |
+| 10 | [ch10-error-handling.md](ch10-error-handling.md) | 錯誤處理 | #86–#93 |
+| 11 | [ch11-standard-library.md](ch11-standard-library.md) | 標準庫與 API 使用 | #94–#98 |
+| 12 | [ch12-performance.md](ch12-performance.md) | 性能與優化 | #99–#102 |
+| 13 | [ch13-systems-linux-io.md](ch13-systems-linux-io.md) | 系統編程與 Linux I/O(平台相關) | #103–#105 |
+
+## 完整目錄（100+ 條）
+
+### 第 1 章 代碼與項目組織
+- [#1 頭文件缺少 include guard / `#pragma once`](ch01-organization.md#1-頭文件缺少-include-guard--pragma-once)
+- [#2 在頭文件中定義非 inline 函數導致重複定義](ch01-organization.md#2-在頭文件中定義非-inline-函數導致重複定義)
+- [#3 在頭文件中使用 `using namespace std;`](ch01-organization.md#3-在頭文件中使用-using-namespace-std)
+- [#4 模板定義放在 .cpp 中導致鏈接錯誤](ch01-organization.md#4-模板定義放在-cpp-中導致鏈接錯誤)
+- [#5 跨翻譯單元的全局對象初始化順序問題](ch01-organization.md#5-跨翻譯單元的全局對象初始化順序問題)
+- [#6 聲明變量卻被解析為函數（most vexing parse）](ch01-organization.md#6-聲明變量卻被解析為函數most-vexing-parse)
+
+### 第 2 章 基本類型與轉換
+- [#7 有符號 / 無符號混用比較](ch02-fundamental-types.md#7-有符號--無符號混用比較)
+- [#8 有符號整型溢出是未定義行為](ch02-fundamental-types.md#8-有符號整型溢出是未定義行為)
+- [#9 隱式窄化轉換丟失數據](ch02-fundamental-types.md#9-隱式窄化轉換丟失數據)
+- [#10 用 `==` 比較浮點數](ch02-fundamental-types.md#10-用--比較浮點數)
+- [#11 用浮點表示貨幣金額](ch02-fundamental-types.md#11-用浮點表示貨幣金額)
+- [#12 假設 `char` 有符號或無符號](ch02-fundamental-types.md#12-假設-char-有符號或無符號)
+- [#13 位移超過位寬是未定義行為](ch02-fundamental-types.md#13-位移超過位寬是未定義行為)
+- [#14 `int` 與 `size_t` 混用導致回繞](ch02-fundamental-types.md#14-int-與-size_t-混用導致回繞)
+- [#15 誤用 `auto` 丟失引用 / const](ch02-fundamental-types.md#15-誤用-auto-丟失引用--const)
+
+### 第 3 章 記憶體管理與 RAII
+- [#16 `new` 後忘記 `delete` 造成洩漏](ch03-memory-raii.md#16-new-後忘記-delete-造成洩漏)
+- [#17 `new[]` 用 `delete` 釋放是未定義行為](ch03-memory-raii.md#17-new-用-delete-釋放是未定義行為)
+- [#18 重複 `delete` 造成雙重釋放](ch03-memory-raii.md#18-重複-delete-造成雙重釋放)
+- [#19 懸垂指針 use-after-free](ch03-memory-raii.md#19-懸垂指針-use-after-free)
+- [#20 使用未初始化的指針](ch03-memory-raii.md#20-使用未初始化的指針)
+- [#21 返回棧上對象的地址或引用](ch03-memory-raii.md#21-返回棧上對象的地址或引用)
+- [#22 異常路徑下手動 `delete` 洩漏](ch03-memory-raii.md#22-異常路徑下手動-delete-洩漏)
+- [#23 用裸 `new/delete` 而非 RAII](ch03-memory-raii.md#23-用裸-newdelete-而非-raii)
+- [#24 過度堆分配與記憶體碎片](ch03-memory-raii.md#24-過度堆分配與記憶體碎片)
+- [#25 `delete` 後不置空指針](ch03-memory-raii.md#25-delete-後不置空指針)
+
+### 第 4 章 資源與所有權
+- [#26 違反 Rule of 0/3/5](ch04-ownership.md#26-違反-rule-of-035)
+- [#27 拷貝 `unique_ptr`](ch04-ownership.md#27-拷貝-unique_ptr)
+- [#28 裸指針與智能指針混用所有權](ch04-ownership.md#28-裸指針與智能指針混用所有權)
+- [#29 把 `shared_ptr` 當默認指針類型](ch04-ownership.md#29-把-shared_ptr-當默認指針類型)
+- [#30 `shared_ptr` 循環引用未用 `weak_ptr`](ch04-ownership.md#30-shared_ptr-循環引用未用-weak_ptr)
+- [#31 工廠函數返回裸擁有指針](ch04-ownership.md#31-工廠函數返回裸擁有指針)
+- [#32 對 `unique_ptr` 管理的記憶體再 `delete`](ch04-ownership.md#32-對-unique_ptr-管理的記憶體再-delete)
+- [#33 用 `new` 動態分配 STL 容器](ch04-ownership.md#33-用-new-動態分配-stl-容器)
+- [#34 所有權不清晰：誰負責釋放](ch04-ownership.md#34-所有權不清晰誰負責釋放)
+- [#35 不用 `make_shared` / `make_unique`](ch04-ownership.md#35-不用-make_shared--make_unique)
+- [#36 用 `this` 構造 shared_ptr 產生第二個控制塊](ch04-ownership.md#36-用-this-構造-shared_ptr-產生第二個控制塊)
+
+### 第 5 章 移動語義與值類別
+- [#37 使用已被 move 的對象](ch05-move-semantics.md#37-使用已被-move-的對象)
+- [#38 move 構造 / 賦值未標 `noexcept`](ch05-move-semantics.md#38-move-構造--賦值未標-noexcept)
+- [#39 對返回值濫用 `std::move` 抑制 NRVO](ch05-move-semantics.md#39-對返回值濫用-stdmove-抑制-nrvo)
+- [#40 對 `const` 對象 `std::move` 靜默退化為拷貝](ch05-move-semantics.md#40-對-const-對象-stdmove-靜默退化為拷貝)
+- [#41 實現了移動構造卻漏了移動賦值](ch05-move-semantics.md#41-實現了移動構造卻漏了移動賦值)
+- [#42 移動後未重置源對象狀態](ch05-move-semantics.md#42-移動後未重置源對象狀態)
+- [#43 按值傳參與完美轉發混淆](ch05-move-semantics.md#43-按值傳參與完美轉發混淆)
+- [#44 `std::move` 與 `std::forward` 誤用](ch05-move-semantics.md#44-stdmove-與-stdforward-誤用)
+- [#45 對 moved-from 狀態假設過強](ch05-move-semantics.md#45-對-moved-from-狀態假設過強)
+
+### 第 6 章 類、對象與繼承
+- [#46 基類缺少虛析構函數](ch06-classes-inheritance.md#46-基類缺少虛析構函數)
+- [#47 在構造 / 析構中調用虛函數](ch06-classes-inheritance.md#47-在構造--析構中調用虛函數)
+- [#48 對象切片（object slicing）](ch06-classes-inheritance.md#48-對象切片object-slicing)
+- [#49 在構造 / 析構中調用純虛函數是 UB](ch06-classes-inheritance.md#49-在構造--析構中調用純虛函數是-ub)
+- [#50 隱藏而非重寫（缺 `override`）](ch06-classes-inheritance.md#50-隱藏而非重寫缺-override)
+- [#51 拷貝構造中的淺拷貝](ch06-classes-inheritance.md#51-拷貝構造中的淺拷貝)
+- [#52 成員初始化順序與聲明順序不一致](ch06-classes-inheritance.md#52-成員初始化順序與聲明順序不一致)
+- [#53 未處理自賦值](ch06-classes-inheritance.md#53-未處理自賦值)
+- [#54 單參數構造函數未加 `explicit`](ch06-classes-inheritance.md#54-單參數構造函數未加-explicit)
+- [#55 以值方式按基類傳遞派生對象](ch06-classes-inheritance.md#55-以值方式按基類傳遞派生對象)
+
+### 第 7 章 模板與泛型
+- [#56 忘記 `typename` / `template` 消歧](ch07-templates.md#56-忘記-typename--template-消歧)
+- [#57 ADL 引入意外重載](ch07-templates.md#57-adl-引入意外重載)
+- [#58 該用 concepts 卻硬寫 `enable_if`](ch07-templates.md#58-該用-concepts-卻硬寫-enable_if)
+- [#59 轉發引用與 `const&` 重載歧義](ch07-templates.md#59-轉發引用與-const-重載歧義)
+- [#60 模板約束缺失導致錯誤信息難讀](ch07-templates.md#60-模板約束缺失導致錯誤信息難讀)
+- [#61 顯式實例化缺失導致鏈接錯誤](ch07-templates.md#61-顯式實例化缺失導致鏈接錯誤)
+- [#62 誤解依賴名的查找規則](ch07-templates.md#62-誤解依賴名的查找規則)
+- [#63 可變參數模板遞歸展開寫錯](ch07-templates.md#63-可變參數模板遞歸展開寫錯)
+- [#64 模板代碼膨脹](ch07-templates.md#64-模板代碼膨脹)
+
+### 第 8 章 標準庫容器與算法
+- [#65 迭代器失效後繼續使用](ch08-stl.md#65-迭代器失效後繼續使用)
+- [#66 遍歷 `vector` 時改變其大小](ch08-stl.md#66-遍歷-vector-時改變其大小)
+- [#67 `operator[]` 越界不做邊界檢查](ch08-stl.md#67-operator-越界不做邊界檢查)
+- [#68 `map::operator[]` 意外插入默認值](ch08-stl.md#68-mapoperator-意外插入默認值)
+- [#69 `erase-remove` 慣用法誤用](ch08-stl.md#69-erase-remove-慣用法誤用)
+- [#70 `std::vector<bool>` 特化陷阱](ch08-stl.md#70-stdvectorbool-特化陷阱)
+- [#71 傳遞失效的 `end()`](ch08-stl.md#71-傳遞失效的-end)
+- [#72 算法謂詞有副作用](ch08-stl.md#72-算法謂詞有副作用)
+- [#73 缺少 `reserve` 導致多次重分配](ch08-stl.md#73-缺少-reserve-導致多次重分配)
+- [#74 `emplace_back` 與 `push_back` 誤用](ch08-stl.md#74-emplace_back-與-push_back-誤用)
+
+### 第 9 章 併發
+- [#75 共享數據無同步的數據競爭](ch09-concurrency.md#75-共享數據無同步的數據競爭)
+- [#76 只保護寫不保護讀](ch09-concurrency.md#76-只保護寫不保護讀)
+- [#77 原子變量與非原子訪問混用](ch09-concurrency.md#77-原子變量與非原子訪問混用)
+- [#78 誤解 memory order](ch09-concurrency.md#78-誤解-memory-order)
+- [#79 鎖順序不一致導致死鎖](ch09-concurrency.md#79-鎖順序不一致導致死鎖)
+- [#80 忘記 `join` / `detach` 導致 `std::terminate`](ch09-concurrency.md#80-忘記-join--detach-導致-stdterminate)
+- [#81 線程按引用捕獲局部變量導致懸垂](ch09-concurrency.md#81-線程按引用捕獲局部變量導致懸垂)
+- [#82 逃逸的 lambda 按引用 / `this` 捕獲導致懸垂](ch09-concurrency.md#82-逃逸的-lambda-按引用--this-捕獲導致懸垂)
+- [#83 條件變量虛假喚醒未循環判斷](ch09-concurrency.md#83-條件變量虛假喚醒未循環判斷)
+- [#84 在析構中做阻塞 I/O](ch09-concurrency.md#84-在析構中做阻塞-io)
+- [#85 試圖拷貝或移動 `mutex` / `atomic`](ch09-concurrency.md#85-試圖拷貝或移動-mutex--atomic)
+
+### 第 10 章 錯誤處理
+- [#86 析構函數拋異常](ch10-error-handling.md#86-析構函數拋異常)
+- [#87 從 move 操作拋異常](ch10-error-handling.md#87-從-move-操作拋異常)
+- [#88 忽略返回的錯誤碼](ch10-error-handling.md#88-忽略返回的錯誤碼)
+- [#89 `catch(...)` 吞掉異常](ch10-error-handling.md#89-catch-吞掉異常)
+- [#90 非異常安全的資源獲取順序](ch10-error-handling.md#90-非異常安全的資源獲取順序)
+- [#91 用異常處理正常控制流](ch10-error-handling.md#91-用異常處理正常控制流)
+- [#92 `noexcept` 標註不當](ch10-error-handling.md#92-noexcept-標註不當)
+- [#93 跨模塊邊界拋異常](ch10-error-handling.md#93-跨模塊邊界拋異常)
+
+### 第 11 章 標準庫與 API 使用
+- [#94 `string_view` / `span` 懸垂](ch11-standard-library.md#94-string_view--span-懸垂)
+- [#95 `c_str()` 生命週期問題](ch11-standard-library.md#95-c_str-生命週期問題)
+- [#96 `std::chrono` 單位混用](ch11-standard-library.md#96-stdchrono-單位混用)
+- [#97 誤用 C 的 `rand()`](ch11-standard-library.md#97-誤用-c-的-rand)
+- [#98 `std::endl` 頻繁刷新](ch11-standard-library.md#98-stdendl-頻繁刷新)
+
+### 第 12 章 性能與優化
+- [#99 不必要的拷貝](ch12-performance.md#99-不必要的拷貝)
+- [#100 循環內 `string +=` 重複分配](ch12-performance.md#100-循環內-string--重複分配)
+- [#101 忽視緩存局部性與數據佈局](ch12-performance.md#101-忽視緩存局部性與數據佈局)
+- [#102 未 profiling 的過早優化](ch12-performance.md#102-未-profiling-的過早優化)
+
+### 第 13 章 系統編程與 Linux I/O（平台相關）
+- [#103 epoll ET 模式未循環讀到 `EAGAIN`](ch13-systems-linux-io.md#103-epoll-et-模式未循環讀到-eagain)
+- [#104 `epoll_ctl` 與 `close(fd)` 的競態](ch13-systems-linux-io.md#104-epoll_ctl-與-closefd-的競態)
+- [#105 `epoll_event.data.ptr` 懸垂](ch13-systems-linux-io.md#105-epoll_eventdataptr-懸垂)
+
+## 參考與致謝
+
+本書在**組織形式與選題**上參考了以下資料,但所有正文與代碼均為原創,未逐字抄襲:
+
+- *100 Go Mistakes and How to Avoid Them*, Teiva Harsanyi(章節組織範式)
+- [ISO C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
+- *Effective Modern C++*, Scott Meyers(移動語義、智能指針相關主題)</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 第一部分 ==================== -->
+    <h2 class="section-title" style="font-size: 20px; color: var(--text-dim); margin-top: 32px; margin-bottom: 16px; border-bottom: none;">第一部分：基礎與內存</h2>
+
+    <details>
+      <summary><span>第 1 章 代碼與項目組織</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 1 章 內容</span>
+            <button class="copy-btn" data-target="ch1">📋 複製</button>
+          </div>
+          <pre id="ch1"># 第 1 章 代碼與項目組織
+
+[返回目錄](README.md)
+
+本章討論在頭文件、翻譯單元(translation unit)、構建結構層面最常見的組織性錯誤。它們往往不會立刻報錯,而是以「重複定義」「鏈接失敗」「初始化順序玄學 bug」的形式在後期爆發。
+
+---
+
+### #1 頭文件缺少 include guard / `#pragma once`
+
+**現象 / 錯誤示例**
+
+```cpp
+// widget.h —— 沒有任何防重複包含機制
+struct Widget {
+    int id;
+};
+
+// a.h
+#include "widget.h"
+// b.h
+#include "widget.h"
+
+// main.cpp
+#include "a.h"
+#include "b.h"   // 報錯：struct Widget 被重複定義
+```
+
+**為什麼錯**
+
+同一個翻譯單元裡若兩次展開了 `Widget` 的定義,就違反了單一定義規則(One Definition Rule, ODR),編譯器直接報「redefinition」。頭文件被間接包含多次是常態,因此每個頭文件都必須自我保護。
+
+**正確做法**
+
+```cpp
+// widget.h —— 方式一：include guard
+#ifndef WIDGET_H
+#define WIDGET_H
+struct Widget {
+    int id;
+};
+#endif  // WIDGET_H
+
+// widget.h —— 方式二：pragma once（幾乎所有主流編譯器都支持）
+#pragma once
+struct Widget {
+    int id;
+};
+```
+
+`#pragma once` 更簡潔且不會因宏名衝突而失效;include guard 更可移植。二選一,但每個頭文件都必須有。
+
+**適用標準**：C++98 遺留(所有版本)。`#pragma once` 是廣泛支持的非標準擴展。
+
+**相關準則**：SF.8
+
+---
+
+### #2 在頭文件中定義非 inline 函數導致重複定義
+
+**現象 / 錯誤示例**
+
+```cpp
+// util.h
+int add(int a, int b) {   // 非 inline 的函數定義放在頭文件裡
+    return a + b;
+}
+
+// a.cpp 與 b.cpp 都 #include "util.h"
+// 鏈接時報錯：multiple definition of `add(int, int)`
+```
+
+**為什麼錯**
+
+頭文件會被每個包含它的 .cpp 各自編譯成一份 `add` 的定義,鏈接期出現多個同名外部符號,違反 ODR。注意這是**鏈接錯誤**而非編譯錯誤,因此更隱蔽。
+
+**正確做法**
+
+```cpp
+// 方式一：頭文件裡只放聲明，定義放到某個 .cpp
+// util.h
+int add(int a, int b);       // 聲明
+
+// util.cpp
+int add(int a, int b) { return a + b; }
+
+// 方式二：若確實想放頭文件，標為 inline（C++17 起變量也可 inline）
+// util.h
+inline int add(int a, int b) { return a + b; }
+```
+
+`inline` 允許同一函數在多個翻譯單元出現相同定義。模板、`constexpr` 函數天然具有 inline 語義。
+
+**適用標準**：C++98 遺留;`inline` 變量為 C++17。
+
+**相關準則**：SF.2
+
+---
+
+### #3 在頭文件中使用 `using namespace std;`
+
+**現象 / 錯誤示例**
+
+```cpp
+// mylib.h
+#include <string>
+using namespace std;   // 把整個 std 注入到每個包含者的全局命名空間
+
+// user.cpp
+#include "mylib.h"
+int count = 0;         // 可能與 std::count 算法產生歧義/意外
+```
+
+**為什麼錯**
+
+頭文件裡的 `using namespace std;` 會「污染」所有包含它的翻譯單元,使調用方在毫不知情的情況下引入大量名字,可能造成命名衝突或悄悄改變重載解析結果。這類 bug 極難定位。
+
+**正確做法**
+
+```cpp
+// 頭文件中始終寫全限定名
+// mylib.h
+#include <string>
+std::string greet(const std::string& name);
+
+// using namespace 只允許出現在 .cpp 的函數作用域內，且盡量縮小範圍
+// user.cpp
+void f() {
+    using std::string;   // 只引入需要的名字
+    string s = "hi";
+}
+```
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：SF.7
+
+---
+
+### #4 模板定義放在 .cpp 中導致鏈接錯誤
+
+**現象 / 錯誤示例**
+
+```cpp
+// stack.h
+template <typename T>
+class Stack {
+public:
+    void push(const T& v);   // 只聲明
+};
+
+// stack.cpp
+template <typename T>
+void Stack<T>::push(const T& v) { /* ... */ }   // 定義放在 .cpp
+
+// main.cpp
+#include "stack.h"
+Stack<int> s;
+s.push(1);   // 鏈接錯誤：undefined reference to Stack<int>::push
+```
+
+**為什麼錯**
+
+模板不是代碼,而是「生成代碼的配方」。編譯 `main.cpp` 時編譯器需要看到 `push` 的**完整定義**才能為 `Stack<int>` 實例化;但定義在 `stack.cpp` 裡,`main.cpp` 看不到,於是符號缺失。
+
+**正確做法**
+
+```cpp
+// 方式一（最常用）：把模板定義直接寫在頭文件中
+// stack.h
+template <typename T>
+class Stack {
+public:
+    void push(const T& v) { /* ... */ }   // 定義就在頭文件
+};
+
+// 方式二：若堅持分離，在 .cpp 末尾做顯式實例化（僅適合已知類型集合）
+// stack.cpp
+template void Stack<int>::push(const int&);
+```
+
+**適用標準**：C++98 遺留(所有版本)。參見 [#61](ch07-templates.md#61-顯式實例化缺失導致鏈接錯誤)。
+
+**相關準則**：無(屬編譯模型約束)
+
+---
+
+### #5 跨翻譯單元的全局對象初始化順序問題
+
+**現象 / 錯誤示例**
+
+```cpp
+// a.cpp
+#include "logger.h"
+Logger g_logger;            // 全局對象 A
+
+// b.cpp
+extern Logger g_logger;
+struct Registrar {
+    Registrar() { g_logger.log("init"); }  // 依賴 g_logger 已構造
+};
+Registrar g_reg;            // 全局對象 B —— 可能先於 g_logger 構造
+```
+
+**為什麼錯**
+
+不同翻譯單元中的具有靜態存儲期的全局對象,其構造順序是**未指定的**(static initialization order fiasco)。若 `g_reg` 先於 `g_logger` 構造,就會使用一個尚未初始化的對象,行為未定義。
+
+**正確做法**
+
+```cpp
+// 用「首次使用時構造」的局部靜態對象（Meyers Singleton）
+// logger.h
+inline Logger& logger() {
+    static Logger instance;   // 首次調用時才構造，線程安全（C++11 起）
+    return instance;
+}
+
+// b.cpp
+struct Registrar {
+    Registrar() { logger().log("init"); }
+};
+```
+
+函數內的局部 `static` 對象在**首次執行到該聲明時**才初始化,從根本上消除了跨 TU 的順序依賴;C++11 起該初始化還是線程安全的。
+
+**適用標準**：C++11(局部靜態初始化的線程安全保證)。
+
+**相關準則**：I.22
+
+---
+
+### #6 聲明變量卻被解析為函數（most vexing parse）
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+
+struct Timer {
+    Timer() {}
+};
+
+void f() {
+    Timer t();   // 你以為定義了對象 t，實際聲明了一個「返回 Timer 的無參函數 t」
+    // t 根本不是對象，後續對 t 的成員訪問都編譯失敗
+}
+```
+
+**為什麼錯**
+
+C++ 的解析規則規定:凡是**能被解析為函數聲明**的語句,就優先解析為函數聲明(most vexing parse)。`Timer t();` 與「函數聲明」在語法上無法區分,於是被當成函數原型,而非默認構造一個對象。
+
+**正確做法**
+
+```cpp
+void f() {
+    Timer t;          // 正確：默認構造對象（無括號）
+    Timer t2{};       // C++11 起：花括號初始化，絕不會被誤解析為函數
+    auto t3 = Timer(); // 也可行
+}
+```
+
+優先使用花括號初始化 `{}`,它是消除 most vexing parse 的通用手段。
+
+**適用標準**：花括號初始化為 C++11;問題本身是 C++98 遺留。
+
+**相關準則**：ES.23</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 2 章 基本類型與轉換</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 2 章 內容</span>
+            <button class="copy-btn" data-target="ch2">📋 複製</button>
+          </div>
+          <pre id="ch2"># 第 2 章 基本類型與轉換
+
+[返回目錄](README.md)
+
+C++ 的內建類型帶著 C 的歷史包袱:有符號/無符號、隱式轉換、整型提升、未定義的溢出行為。本章的錯誤看似「基礎」,卻是安全漏洞與玄學 bug 的高發區。
+
+---
+
+### #7 有符號 / 無符號混用比較
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+void f(const std::vector<int>& v) {
+    for (int i = 0; i <= v.size() - 1; ++i) {  // v.size() 是無符號
+        // 當 v 為空時，v.size()-1 回繞成極大的無符號數，循環幾乎無限執行
+    }
+}
+```
+
+**為什麼錯**
+
+比較 `int` 與 `size_t` 時,有符號數被隱式轉換為無符號數。`v.size() - 1` 在 `size()==0` 時不是 `-1` 而是 `SIZE_MAX`,循環條件恆真。這不是 UB,但結果幾乎肯定不是你想要的。
+
+**正確做法**
+
+```cpp
+#include <vector>
+void f(const std::vector<int>& v) {
+    for (std::size_t i = 0; i < v.size(); ++i) { /* ... */ }  // 統一無符號，用 <
+    // 或直接用範圍 for，避免索引運算
+    for (int x : v) { (void)x; }
+}
+```
+
+統一比較雙方的符號性;能用範圍 `for` 就別手寫索引。開啟 `-Wsign-compare` 讓編譯器幫你抓。
+
+**適用標準**：C++98 遺留(範圍 for 為 C++11)。
+
+**相關準則**：ES.100、ES.102
+
+---
+
+### #8 有符號整型溢出是未定義行為
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <climits>
+int f(int x) {
+    return x + 1;   // 當 x == INT_MAX 時，x+1 是未定義行為(UB)
+}
+
+bool check(int a, int b) {
+    return a + b > a;   // 想檢測溢出，但溢出本身已是 UB，編譯器可能直接優化掉
+}
+```
+
+**為什麼錯**
+
+**有符號整型溢出是未定義行為(UB)**,不是「回繞」。編譯器可據此假設溢出永不發生,從而把 `a + b > a` 優化成 `b > 0`,讓你的「溢出檢測」失效。無符號溢出才有定義(按模 2ⁿ 回繞)。
+
+**正確做法**
+
+```cpp
+#include <cstdint>
+#include <limits>
+
+// C++20：標準庫直接提供安全比較/運算
+// 手寫溢出前檢查
+bool add_overflows(int a, int b) {
+    if (b > 0 && a > std::numeric_limits<int>::max() - b) return true;
+    if (b < 0 && a < std::numeric_limits<int>::min() - b) return true;
+    return false;
+}
+
+// 或用編譯器內建：__builtin_add_overflow（GCC/Clang），C++26 <numeric> 有 add_sat 等
+```
+
+**適用標準**：C++11(`numeric_limits`);飽和運算 `add_sat` 為 C++26。
+
+**相關準則**：ES.103、ES.104
+
+---
+
+### #9 隱式窄化轉換丟失數據
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    double d = 3.99;
+    int n = d;          // 靜默截斷為 3，無警告（傳統初始化）
+
+    long big = 300;
+    char c = big;       // 靜默窄化，值溢出 char 範圍，實現定義/回繞
+}
+```
+
+**為什麼錯**
+
+傳統的拷貝初始化允許隱式窄化轉換(narrowing conversion),靜默丟失精度或數值範圍,是數據損壞和安全問題的常見來源。
+
+**正確做法**
+
+```cpp
+void f() {
+    double d = 3.99;
+    int n{static_cast<int>(d)};   // 明確表達「我知道要截斷」
+
+    // 花括號初始化會拒絕窄化，把隱患變成編譯錯誤
+    // int m{d};   // 錯誤：narrowing conversion，編譯不過（好事）
+
+    int m = static_cast<int>(d);  // 需要轉換時，顯式 static_cast
+}
+```
+
+用花括號初始化 `{}` 讓窄化在編譯期被拒絕;確需轉換時用顯式 `static_cast` 表達意圖。
+
+**適用標準**：花括號初始化的窄化檢查為 C++11。
+
+**相關準則**：ES.46、ES.23
+
+---
+
+### #10 用 `==` 比較浮點數
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <cmath>
+bool f() {
+    double a = 0.1 + 0.2;
+    return a == 0.3;   // 返回 false！0.1+0.2 != 0.3（二進制浮點表示誤差）
+}
+```
+
+**為什麼錯**
+
+`0.1`、`0.2`、`0.3` 都無法用二進制浮點精確表示,`0.1 + 0.2` 的結果與 `0.3` 存在微小誤差,`==` 判等失敗。直接比較浮點數幾乎總是錯的。
+
+**正確做法**
+
+```cpp
+#include <cmath>
+#include <algorithm>
+
+bool nearly_equal(double a, double b, double eps = 1e-9) {
+    // 結合絕對與相對容差，適應大小不同的數值
+    double diff = std::fabs(a - b);
+    if (diff <= eps) return true;
+    return diff <= eps * std::max(std::fabs(a), std::fabs(b));
+}
+```
+
+用帶容差(epsilon)的近似比較;容差需結合場景選擇,單純的固定絕對值在大數時會失效。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：ES.100(數值一致性)
+
+---
+
+### #11 用浮點表示貨幣金額
+
+**現象 / 錯誤示例**
+
+```cpp
+double price = 19.99;
+double total = 0.0;
+for (int i = 0; i < 100; ++i) total += price;  // 累積浮點誤差
+// total 可能是 1998.9999999999... 而不是 1999.00
+```
+
+**為什麼錯**
+
+金額需要精確的十進制運算,而 `double` 是二進制浮點,無法精確表示大多數十進制小數。累加會放大誤差,導致對賬、結算出錯。
+
+**正確做法**
+
+```cpp
+#include <cstdint>
+// 用最小貨幣單位（分）以整數存儲
+std::int64_t price_cents = 1999;      // 19.99 元 = 1999 分
+std::int64_t total_cents = 0;
+for (int i = 0; i < 100; ++i) total_cents += price_cents;  // 精確
+// 展示時再格式化為「元.分」
+```
+
+用整數存最小貨幣單位(分),或使用定點/十進制庫。永遠不要用 `float`/`double` 存錢。
+
+**適用標準**：C++11(`cstdint`)。
+
+**相關準則**：無(領域約束)
+
+---
+
+### #12 假設 `char` 有符號或無符號
+
+**現象 / 錯誤示例**
+
+```cpp
+char c = 0xFF;          // 在 char 為有符號的平台上，這是 -1
+if (c == 0xFF) {        // 比較時 c 被提升為 int(-1)，0xFF 是 255，永不相等
+    // 走不到這裡
+}
+
+#include <cctype>
+void bad(char c) {
+    std::isspace(c);    // 若 c 為負且非 EOF，傳給 isspace 是 UB
+}
+```
+
+**為什麼錯**
+
+`char` 是否有符號是**實現定義**的(取決於平台/編譯器)。把 `char` 當作能存 0–255 的字節,或直接把可能為負的 `char` 傳給 `<cctype>` 函數,會引發比較錯誤甚至 UB。
+
+**正確做法**
+
+```cpp
+#include <cctype>
+#include <cstdint>
+
+std::uint8_t b = 0xFF;                 // 明確要「字節」時用 unsigned char / uint8_t
+
+void ok(char c) {
+    // 傳給 cctype 函數前，先轉成 unsigned char 再轉 int
+    if (std::isspace(static_cast<unsigned char>(c))) { /* ... */ }
+}
+```
+
+需要字節語義時用 `unsigned char` / `std::uint8_t`;調用 `<cctype>` 前先 `static_cast<unsigned char>`。
+
+**適用標準**：C++98 遺留(`cstdint` 為 C++11)。
+
+**相關準則**：無
+
+---
+
+### #13 位移超過位寬是未定義行為
+
+**現象 / 錯誤示例**
+
+```cpp
+unsigned f(unsigned x, int n) {
+    return x << n;   // 當 n >= 32（對 32 位 unsigned）或 n < 0 時是 UB
+}
+
+int g() {
+    int v = 1;
+    return v << 31;  // 移入符號位/超範圍，UB（對 32 位 int）
+}
+```
+
+**為什麼錯**
+
+移位計數 `n` 若為負、或大於等於操作數的位寬,是**未定義行為(UB)**。對有符號數,若結果無法用其類型表示也可能是 UB。這類代碼在不同平台/優化等級下表現迥異。
+
+**正確做法**
+
+```cpp
+#include <climits>
+unsigned f(unsigned x, int n) {
+    if (n < 0 || n >= static_cast<int>(sizeof(unsigned) * CHAR_BIT))
+        return 0;               // 先約束移位計數
+    return x << n;
+}
+// 需要循環移位時，用 C++20 <bit> 的 std::rotl / std::rotr
+```
+
+移位前確保計數在 `[0, 位寬)` 內;有符號數盡量改用無符號做位運算。
+
+**適用標準**：C++98 遺留;`std::rotl`/`std::rotr` 為 C++20。
+
+**相關準則**：ES.103
+
+---
+
+### #14 `int` 與 `size_t` 混用導致回繞
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+int find_pos(const std::string& s, char c) {
+    for (int i = 0; i < static_cast<int>(s.size()); ++i)
+        if (s[i] == c) return i;
+    return -1;
+}
+
+void caller(const std::string& s) {
+    int pos = find_pos(s, 'x');
+    std::size_t idx = pos;       // pos 為 -1 時，idx 變成 SIZE_MAX
+    if (idx < s.size()) { /* 邏輯錯亂 */ }
+}
+```
+
+**為什麼錯**
+
+`size_t` 是無符號類型。把可能為負的 `int`(如 `-1`「未找到」)賦給 `size_t` 會回繞成極大值,後續的索引/長度判斷全部錯亂。混用有符號與無符號是索引 bug 的重災區。
+
+**正確做法**
+
+```cpp
+#include <string>
+// 沿用標準庫約定：用 size_type 與 npos 表達「未找到」
+std::string::size_type find_pos(const std::string& s, char c) {
+    auto p = s.find(c);
+    return p;                    // 未找到時返回 std::string::npos
+}
+
+void caller(const std::string& s) {
+    if (auto p = find_pos(s, 'x'); p != std::string::npos) { /* 命中 */ }
+}
+```
+
+索引/長度統一用 `size_t`(或容器的 `size_type`),用 `npos` 而非 `-1` 表示「無」。
+
+**適用標準**：`if` 初始化語句為 C++17;其餘 C++98 遺留。
+
+**相關準則**：ES.107
+
+---
+
+### #15 誤用 `auto` 丟失引用 / const
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <map>
+#include <string>
+void f(std::map<std::string, int>& m) {
+    for (auto entry : m) {        // auto 推導為 value_type，逐個拷貝鍵值對
+        entry.second = 0;         // 改的是副本，m 原封不動
+    }
+
+    auto& first = m.begin()->first;  // first 是 const（map 的 key 不可變），OK
+    // 但下面這種：
+    const int x = 42;
+    auto y = x;                   // y 是 int，丟掉了 const（有時是想要的，有時不是）
+}
+```
+
+**為什麼錯**
+
+`auto` 默認按值推導,會**剝離引用與頂層 const**,導致本想引用/修改原對象卻操作了副本;既浪費拷貝又邏輯出錯。
+
+**正確做法**
+
+```cpp
+#include <map>
+#include <string>
+void f(std::map<std::string, int>& m) {
+    for (auto& entry : m) {       // 引用，能就地修改且避免拷貝
+        entry.second = 0;
+    }
+    for (const auto& entry : m) { // 只讀遍歷，明確 const 引用
+        (void)entry;
+    }
+}
+```
+
+遍歷/綁定已有對象時,根據意圖使用 `auto&` 或 `const auto&`,只在確實需要獨立副本時用裸 `auto`。
+
+**適用標準**：C++11(`auto` 與範圍 for)。
+
+**相關準則**：ES.11、ES.71</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 3 章 內存管理與 RAII</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 3 章 內容</span>
+            <button class="copy-btn" data-target="ch3">📋 複製</button>
+          </div>
+          <pre id="ch3"># 第 3 章 記憶體管理與 RAII
+
+[返回目錄](README.md)
+
+C++ 把記憶體控制權完全交給開發者,強大但危險。本章的錯誤直接對應線上最難查的一類缺陷:洩漏、崩潰、記憶體損壞。核心解藥只有一個詞——RAII(Resource Acquisition Is Initialization,資源獲取即初始化)。本章講「裸記憶體」層面的問題,所有權與智能指針的選擇見 [第 4 章](ch04-ownership.md)。
+
+---
+
+### #16 `new` 後忘記 `delete` 造成洩漏
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    int* p = new int(42);
+    // ... 使用 p ...
+    // 忘記 delete p; —— 記憶體洩漏
+}
+```
+
+**為什麼錯**
+
+`new` 分配的堆記憶體必須顯式 `delete`,否則這塊記憶體永遠無法歸還。長期運行的服務裡,洩漏會累積直至耗盡記憶體而崩潰。手動配對 `new/delete` 極易在早退、異常等路徑上漏掉。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    auto p = std::make_unique<int>(42);   // 離開作用域自動釋放
+    // ... 使用 *p ...
+}                                          // 無需手動 delete
+```
+
+用 `std::unique_ptr`/`std::make_unique` 讓釋放隨作用域自動發生。應用代碼裡幾乎不該再出現裸 `new`。
+
+**適用標準**：`unique_ptr` 為 C++11;`make_unique` 為 C++14。
+
+**相關準則**：R.11、C.149
+
+---
+
+### #17 `new[]` 用 `delete` 釋放是未定義行為
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    int* arr = new int[10];
+    delete arr;         // 未定義行為(UB)：new[] 必須配 delete[]
+}
+```
+
+**為什麼錯**
+
+`new[]` 與 `new`、`delete[]` 與 `delete` 是兩套配對機制。用 `delete` 釋放數組(或反之)是**未定義行為(UB)**,可能只釋放首元素、破壞堆結構或崩潰。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <memory>
+void f() {
+    std::vector<int> arr(10);              // 首選：容器管理動態數組
+    auto p = std::make_unique<int[]>(10);  // 需要裸數組語義時用數組版 unique_ptr
+}
+```
+
+優先使用 `std::vector`;確需動態數組用 `std::unique_ptr<T[]>`。基本不要手寫 `new[]`/`delete[]`。
+
+**適用標準**：`unique_ptr<T[]>` 為 C++11;`make_unique<T[]>` 為 C++14。
+
+**相關準則**：R.13、ES.65
+
+---
+
+### #18 重複 `delete` 造成雙重釋放
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    int* p = new int(1);
+    delete p;
+    delete p;   // 雙重釋放(double free)，未定義行為，常導致堆損壞/崩潰
+}
+```
+
+**為什麼錯**
+
+對同一塊已釋放的記憶體再次 `delete` 是**未定義行為(UB)**,破壞堆管理結構,是可被利用的安全漏洞來源。常發生在多處持有同一裸指針、所有權不清時。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    auto p = std::make_unique<int>(1);   // 獨佔所有權，釋放責任唯一且自動
+}                                         // 只會釋放一次
+```
+
+用智能指針明確唯一所有權,從根源杜絕多次釋放。參見 [#25](ch03-memory-raii.md#25-delete-後不置空指針)。
+
+**適用標準**：C++11/14。
+
+**相關準則**：R.11
+
+---
+
+### #19 懸垂指針 use-after-free
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+int* g_ptr = nullptr;
+void f() {
+    std::vector<int> v{1, 2, 3};
+    g_ptr = &v[0];         // 指向 v 的內部存儲
+}                          // v 析構，g_ptr 懸垂
+void use() {
+    *g_ptr = 5;            // use-after-free，未定義行為
+}
+```
+
+**為什麼錯**
+
+對象釋放後,指向它的指針成為**懸垂指針(dangling pointer)**,再訪問即 use-after-free,是**未定義行為(UB)**,也是最常見的安全漏洞類別之一。
+
+**正確做法**
+
+```cpp
+#include <vector>
+// 讓指針的生命週期不超過被指對象；需要跨作用域持有時，改為持有所有權
+struct Holder {
+    std::vector<int> data;         // 持有對象本身，而非它的地址
+};
+```
+
+不要保存比被指對象活得更久的裸指針/引用;需要延長生命週期時,持有對象(或用 `shared_ptr` 共享所有權),而不是持有地址。參見 [#81](ch09-concurrency.md#81-線程按引用捕獲局部變量導致懸垂)、[#94](ch11-standard-library.md#94-string_view--span-懸垂)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：ES.65、Lifetime 規則
+
+---
+
+### #20 使用未初始化的指針
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    int* p;          // 未初始化，值不確定（野指針）
+    if (some_cond()) p = new int(1);
+    *p = 5;          // 若 some_cond() 為假，p 是垃圾值，解引用是 UB
+    delete p;
+}
+```
+
+**為什麼錯**
+
+未初始化的局部指針含有不確定值,解引用是**未定義行為(UB)**。同理未初始化的普通變量讀取也是 UB。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    std::unique_ptr<int> p;          // 默認構造為空，狀態確定
+    if (some_cond()) p = std::make_unique<int>(1);
+    if (p) *p = 5;                   // 使用前判空
+}
+```
+
+聲明即初始化(至少置 `nullptr`);優先使用默認構造為空的智能指針,使用前判空。
+
+**適用標準**：C++11/14。
+
+**相關準則**：ES.20、ES.21
+
+---
+
+### #21 返回棧上對象的地址或引用
+
+**現象 / 錯誤示例**
+
+```cpp
+const int& f() {
+    int local = 42;
+    return local;      // 返回局部變量引用；函數返回後 local 銷毀
+}                      // 調用者拿到懸垂引用，讀取是 UB
+
+const char* name() {
+    char buf[] = "hello";
+    return buf;        // 同理，返回棧數組指針
+}
+```
+
+**為什麼錯**
+
+局部對象在函數返回時銷毀,返回其地址/引用會得到**懸垂引用/指針**,訪問是**未定義行為(UB)**。編譯器通常會警告(`-Wreturn-local-addr`),但不總是。
+
+**正確做法**
+
+```cpp
+#include <string>
+std::string name() {
+    return "hello";    // 按值返回；移動/NRVO 保證高效
+}
+
+int f() {
+    int local = 42;
+    return local;      // 按值返回基本類型，安全
+}
+```
+
+按值返回(依賴移動語義與返回值優化,幾乎無額外成本);需要長期存在的對象由調用方持有所有權。
+
+**適用標準**：C++98 遺留(移動語義為 C++11)。
+
+**相關準則**：F.43
+
+---
+
+### #22 異常路徑下手動 `delete` 洩漏
+
+**現象 / 錯誤示例**
+
+```cpp
+void process() {
+    int* p = new int[100];
+    do_work(p);        // 若 do_work 拋異常，下面的 delete[] 被跳過 —— 洩漏
+    delete[] p;
+}
+```
+
+**為什麼錯**
+
+手動 `new`/`delete` 之間若發生異常(或提前 `return`),釋放語句被跳過,造成洩漏。異常安全下,手寫清理幾乎不可能覆蓋所有退出路徑。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <memory>
+void process() {
+    std::vector<int> buf(100);        // 異常時析構自動釋放
+    do_work(buf.data());
+    // 或 auto p = std::make_unique<int[]>(100);
+}
+```
+
+用 RAII 對象(容器/智能指針)持有資源,任何退出路徑(包括異常)都會觸發析構清理。參見 [第 10 章](ch10-error-handling.md)異常安全。
+
+**適用標準**：C++11/14。
+
+**相關準則**：E.6、R.1
+
+---
+
+### #23 用裸 `new/delete` 而非 RAII
+
+**現象 / 錯誤示例**
+
+```cpp
+class Connection {
+    Socket* sock_;
+public:
+    Connection() { sock_ = new Socket(); }
+    ~Connection() { delete sock_; }        // 需手動管理，且要自己處理拷貝語義
+    // 忘了禁用/正確實現拷貝 → 雙重釋放（見 #26）
+};
+```
+
+**為什麼錯**
+
+裸指針成員迫使你手寫析構、拷貝、移動,任何一處遺漏都會洩漏或雙重釋放。這是「Rule of 3/5」問題的根源(見 [#26](ch04-ownership.md#26-違反-rule-of-035))。
+
+**正確做法**
+
+```cpp
+#include <memory>
+class Connection {
+    std::unique_ptr<Socket> sock_ = std::make_unique<Socket>();
+public:
+    // 無需寫析構；拷貝被自動禁用、移動自動生成（Rule of Zero）
+};
+```
+
+用智能指針/容器作為成員,遵循「Rule of Zero」:不寫任何特殊成員函數,讓編譯器與 RAII 類型代勞。
+
+**適用標準**：C++11/14。
+
+**相關準則**：C.20(Rule of Zero)、R.1
+
+---
+
+### #24 過度堆分配與記憶體碎片
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+#include <vector>
+void hot_loop() {
+    std::vector<std::unique_ptr<int>> v;
+    for (int i = 0; i < 1'000'000; ++i)
+        v.push_back(std::make_unique<int>(i));  // 每個 int 單獨堆分配，緩存不友好
+}
+```
+
+**為什麼錯**
+
+對大量小對象各自堆分配,既有分配器開銷,又造成記憶體碎片、破壞緩存局部性,性能遠差於連續存儲。堆分配不是「免費」的。
+
+**正確做法**
+
+```cpp
+#include <vector>
+void hot_loop() {
+    std::vector<int> v;
+    v.reserve(1'000'000);          // 一次分配連續記憶體
+    for (int i = 0; i < 1'000'000; ++i)
+        v.push_back(i);            // 值內聯存儲，緩存友好
+}
+```
+
+優先值語義與連續容器;能棧分配就別堆分配。參見 [#101](ch12-performance.md#101-忽視緩存局部性與數據佈局)。
+
+**適用標準**：C++11(`vector::reserve` 為 C++98,數字分隔符字面量為 C++14)。
+
+**相關準則**：Per.11、R.5
+
+---
+
+### #25 `delete` 後不置空指針
+
+**現象 / 錯誤示例**
+
+```cpp
+void f(bool again) {
+    int* p = new int(1);
+    delete p;              // p 現在懸垂，但值仍指向原地址
+    if (again) {
+        delete p;          // 雙重釋放（若被再次觸達）
+    }
+    // 或後續誤 *p —— use-after-free
+}
+```
+
+**為什麼錯**
+
+`delete` 只釋放記憶體,不改變指針值。懸垂的裸指針若被再次 `delete` 或解引用,都是**未定義行為(UB)**。「`delete` 後置 `nullptr`」是緩解手段(對 `nullptr` 再 `delete` 是安全的空操作),但治標不治本。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    auto p = std::make_unique<int>(1);
+    p.reset();             // 釋放並把內部指針置空，再用即為空
+    if (p) { /* 不會進入 */ }
+}
+// 若不得不用裸指針：delete p; p = nullptr;
+```
+
+根治辦法是用智能指針(`reset()` 釋放後自動置空);萬不得已用裸指針時,`delete` 後立即 `= nullptr`。
+
+**適用標準**：C++11/14。
+
+**相關準則**：ES.65、R.11</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 4 章 資源與所有權</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 4 章 內容</span>
+            <button class="copy-btn" data-target="ch4">📋 複製</button>
+          </div>
+          <pre id="ch4"># 第 4 章 資源與所有權
+
+[返回目錄](README.md)
+
+記憶體管理的本質是**所有權(ownership)**問題:誰負責釋放、何時釋放、能否共享。裸指針本身不區分「擁有」還是「借用」,一切混亂由此而來。本章講如何用智能指針和值語義把所有權表達清楚。
+
+---
+
+### #26 違反 Rule of 0/3/5
+
+**現象 / 錯誤示例**
+
+```cpp
+class Buffer {
+    char* data_;
+    std::size_t size_;
+public:
+    Buffer(std::size_t n) : data_(new char[n]), size_(n) {}
+    ~Buffer() { delete[] data_; }
+    // 定義了析構卻沒定義拷貝構造/賦值：
+    // 默認拷貝是淺拷貝 → 兩個對象持有同一指針 → 雙重釋放
+};
+```
+
+**為什麼錯**
+
+若一個類自定義了析構、拷貝或移動中的任意一個,通常意味著它管理資源,那麼其餘幾個也需要正確處理(**Rule of Three/Five**)。只寫析構卻依賴默認拷貝,會得到淺拷貝 + 雙重釋放。
+
+**正確做法**
+
+```cpp
+#include <vector>
+class Buffer {
+    std::vector<char> data_;        // 讓成員自己管理資源
+public:
+    explicit Buffer(std::size_t n) : data_(n) {}
+    // 不寫析構/拷貝/移動：Rule of Zero，全部由 vector 正確提供
+};
+```
+
+首選 **Rule of Zero**:用 RAII 成員,不寫任何特殊函數。若必須管理原始資源,則完整實現五個特殊成員(或顯式 `= default`/`= delete`)。
+
+**適用標準**：C++11(移動語義引入 Rule of Five)。
+
+**相關準則**：C.20、C.21
+
+---
+
+### #27 拷貝 `unique_ptr`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+void sink(std::unique_ptr<int> p);
+
+void f() {
+    auto p = std::make_unique<int>(1);
+    sink(p);          // 編譯錯誤：unique_ptr 不可拷貝（獨佔所有權）
+}
+```
+
+**為什麼錯**
+
+`unique_ptr` 表達**獨佔所有權**,故意禁用拷貝。想把它傳給別處,你需要的是**轉移所有權**,而不是複製。
+
+**正確做法**
+
+```cpp
+#include <memory>
+#include <utility>
+void sink(std::unique_ptr<int> p);
+void observe(int* p);          // 借用：用裸指針/引用表達「不擁有」
+
+void f() {
+    auto p = std::make_unique<int>(1);
+    observe(p.get());          // 只借用，不轉移
+    sink(std::move(p));        // 顯式轉移所有權，之後 p 為空
+}
+```
+
+用 `std::move` 轉移所有權;只是「借用」時傳裸指針或引用。
+
+**適用標準**：C++11/14。
+
+**相關準則**：R.32、R.33
+
+---
+
+### #28 裸指針與智能指針混用所有權
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+void f() {
+    int* raw = new int(1);
+    std::shared_ptr<int> sp1(raw);
+    std::shared_ptr<int> sp2(raw);   // 兩個獨立控制塊，各自以為獨佔 → 雙重釋放
+}
+```
+
+**為什麼錯**
+
+從**同一個裸指針**分別構造多個 `shared_ptr`,會創建各自獨立的引用計數(控制塊),互不知曉,最終各自釋放一次,造成雙重釋放。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    auto sp1 = std::make_shared<int>(1);   // 一次創建，唯一控制塊
+    std::shared_ptr<int> sp2 = sp1;         // 共享同一控制塊，引用計數變 2
+}
+```
+
+用 `make_shared` 創建,並通過**拷貝已有的 shared_ptr** 來共享,絕不從裸指針二次構造。
+
+**適用標準**：C++11。
+
+**相關準則**：R.22、R.24
+
+---
+
+### #29 把 `shared_ptr` 當默認指針類型
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+// 明明是獨佔/局部所有權，卻處處 shared_ptr
+std::shared_ptr<int> compute() {
+    return std::make_shared<int>(42);   // 引用計數原子操作開銷、語義含糊
+}
+```
+
+**為什麼錯**
+
+`shared_ptr` 帶來引用計數(且計數是原子操作,有併發開銷)和「共享所有權」的語義。把它當默認指針會掩蓋真實的所有權關係,還平白增加開銷。多數場景其實是獨佔或借用。
+
+**正確做法**
+
+```cpp
+#include <memory>
+std::unique_ptr<int> compute() {          // 獨佔所有權用 unique_ptr
+    return std::make_unique<int>(42);
+}
+// 只有確實需要多方共享生命週期時，才用 shared_ptr
+```
+
+默認用 `unique_ptr` 表達獨佔;裸指針/引用表達借用;僅在真正共享生命週期時才用 `shared_ptr`。
+
+**適用標準**：C++11/14。
+
+**相關準則**：R.20、R.21
+
+---
+
+### #30 `shared_ptr` 循環引用未用 `weak_ptr`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+struct Node {
+    std::shared_ptr<Node> next;
+    std::shared_ptr<Node> prev;   // 雙向都 shared → 互相持有 → 引用計數永不歸零
+};
+void f() {
+    auto a = std::make_shared<Node>();
+    auto b = std::make_shared<Node>();
+    a->next = b;
+    b->prev = a;                  // a、b 互相強引用，離開作用域後都不會析構 → 洩漏
+}
+```
+
+**為什麼錯**
+
+兩個對象通過 `shared_ptr` 互相強引用時,引用計數無法歸零,誰都不會被釋放,形成**引用環導致的洩漏**。
+
+**正確做法**
+
+```cpp
+#include <memory>
+struct Node {
+    std::shared_ptr<Node> next;   // 一個方向強引用（擁有）
+    std::weak_ptr<Node> prev;     // 反向用 weak_ptr（不增加計數）
+};
+```
+
+打破環:把其中一個方向改為 `weak_ptr`(表達「觀察但不擁有」),使用時 `lock()` 提升為 `shared_ptr` 並判空。
+
+**適用標準**：C++11。
+
+**相關準則**：R.24
+
+---
+
+### #31 工廠函數返回裸擁有指針
+
+**現象 / 錯誤示例**
+
+```cpp
+Widget* createWidget() {         // 返回裸指針，調用者不知是否要負責 delete
+    return new Widget();
+}
+void f() {
+    Widget* w = createWidget();
+    // 忘記 delete → 洩漏；或誤 delete 兩次 → 崩潰
+}
+```
+
+**為什麼錯**
+
+返回裸的「擁有指針」把釋放責任丟給調用者,卻不在類型上表達出來,極易洩漏或雙重釋放。
+
+**正確做法**
+
+```cpp
+#include <memory>
+std::unique_ptr<Widget> createWidget() {   // 類型即文檔：所有權轉移給調用者
+    return std::make_unique<Widget>();
+}
+void f() {
+    auto w = createWidget();               // 自動釋放
+}
+```
+
+工廠函數返回 `unique_ptr`(或 `shared_ptr`),用類型明確所有權轉移。
+
+**適用標準**：C++11/14。
+
+**相關準則**：R.3、F.26
+
+---
+
+### #32 對 `unique_ptr` 管理的記憶體再 `delete`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+void f() {
+    auto p = std::make_unique<int>(1);
+    delete p.get();   // 錯誤：手動 delete 了 unique_ptr 擁有的記憶體
+}                     // p 析構時再次 delete → 雙重釋放
+```
+
+**為什麼錯**
+
+`p.get()` 返回的是**借用指針**,所有權仍屬於 `unique_ptr`。手動 `delete` 它之後,`unique_ptr` 析構時會再次釋放,雙重釋放。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void f() {
+    auto p = std::make_unique<int>(1);
+    p.reset();        // 需要提前釋放就用 reset()，讓智能指針自己來
+}
+```
+
+永遠不要 `delete` 智能指針 `get()` 出來的裸指針;需要提前釋放用 `reset()`。
+
+**適用標準**：C++11/14。
+
+**相關準則**：R.11、R.33
+
+---
+
+### #33 用 `new` 動態分配 STL 容器
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int>* v = new std::vector<int>();  // 容器本身還要手動管理 → 多此一舉
+    v->push_back(1);
+    delete v;                                       // 又要記得釋放
+}
+```
+
+**為什麼錯**
+
+STL 容器自身已是 RAII 類型,內部數據在堆上自動管理。再用 `new` 把容器本身放堆上,等於給一個已經自管理的東西又套一層手動管理,徒增洩漏風險。
+
+**正確做法**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int> v;    // 直接值語義，棧上對象，內部數據在堆
+    v.push_back(1);
+}                          // 自動清理
+```
+
+容器直接按值使用;確需堆上共享時用 `make_shared<std::vector<int>>()`,而非裸 `new`。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：R.5、C.149
+
+---
+
+### #34 所有權不清晰：誰負責釋放
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Cache {
+    Widget* w;             // 這個 w 是 Cache 擁有的，還是借用別處的？無從判斷
+};
+void register_widget(Widget* w);   // 函數會保存並接管 w 嗎？看不出來
+```
+
+**為什麼錯**
+
+裸指針不表達所有權。「這個指針我要不要 delete」全靠註釋和口口相傳,團隊協作中必然出錯——要麼都不釋放(洩漏),要麼都釋放(雙重釋放)。
+
+**正確做法**
+
+```cpp
+#include <memory>
+struct Cache {
+    std::shared_ptr<Widget> owned;   // 明確：Cache 共享所有權
+    Widget* observed = nullptr;      // 明確：僅借用，不負責釋放
+};
+void register_widget(std::unique_ptr<Widget> w);   // 明確：接管所有權
+void use_widget(const Widget& w);                  // 明確：只借用
+```
+
+用類型編碼所有權:`unique_ptr`/`shared_ptr` = 擁有,裸指針/引用 = 借用。讓「誰釋放」一目了然。
+
+**適用標準**：C++11。
+
+**相關準則**：R.3、R.4、F.7
+
+---
+
+### #35 不用 `make_shared` / `make_unique`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+void sink(std::shared_ptr<Widget>, int);
+int may_throw();
+
+void f() {
+    // 參數求值順序未指定：可能先 new Widget，再調 may_throw() 拋異常 → Widget 洩漏
+    sink(std::shared_ptr<Widget>(new Widget()), may_throw());
+}
+```
+
+**為什麼錯**
+
+用 `new` 直接構造智能指針,在與其他可能拋異常的表達式並列時,存在**異常安全漏洞**(對象已 new 但還沒託管給智能指針時拋異常就洩漏)。此外 `make_shared` 還能將對象與控制塊一次分配,更高效。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void sink(std::shared_ptr<Widget>, int);
+int may_throw();
+
+void f() {
+    sink(std::make_shared<Widget>(), may_throw());   // 分配與託管原子完成，異常安全
+}
+```
+
+一律用 `make_shared`/`make_unique`,既異常安全又高效。
+
+**適用標準**：`make_shared` 為 C++11,`make_unique` 為 C++14(C++17 收緊了求值順序但仍推薦 make 系列)。
+
+**相關準則**：R.22、R.23
+
+---
+
+### #36 用 `this` 構造 shared_ptr 產生第二個控制塊
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <memory>
+#include <vector>
+
+struct Session {
+    std::shared_ptr<Session> self() {
+        return std::shared_ptr<Session>(this);   // 錯誤：從裸 this 新建控制塊
+    }
+};
+
+void f() {
+    auto s = std::make_shared<Session>();   // 控制塊 A（管理 s）
+    auto dup = s->self();                    // 控制塊 B（又管理同一對象）
+}   // A、B 各釋放一次 → 雙重釋放 / 崩潰
+```
+
+**為什麼錯**
+
+對象已被外部的 `shared_ptr` 管理(控制塊 A)。在成員函數裡用 `this` 再構造一個 `shared_ptr`,會創建**第二個獨立控制塊 B**,兩個控制塊都認為自己獨佔該對象,最終各釋放一次,造成**雙重釋放**。
+
+**正確做法**
+
+```cpp
+#include <memory>
+
+struct Session : std::enable_shared_from_this<Session> {
+    std::shared_ptr<Session> self() {
+        return shared_from_this();   // 復用已有控制塊，引用計數正確 +1
+    }
+    // 注意：不能在構造函數中調用 shared_from_this()——
+    // 此刻還沒有任何 shared_ptr 管理該對象，會拋 std::bad_weak_ptr。
+};
+
+void f() {
+    auto s = std::make_shared<Session>();   // 必須由 shared_ptr 持有
+    auto dup = s->self();                    // 與 s 共享同一控制塊
+}
+```
+
+讓類繼承 `std::enable_shared_from_this<T>`,在成員函數裡用 `shared_from_this()` 獲取共享同一控制塊的 `shared_ptr`。前提是該對象**已經**由某個 `shared_ptr` 管理;**不要在構造函數中調用**它(此時尚無 `shared_ptr`,會拋 `std::bad_weak_ptr`)。回調/異步場景下的 lambda 捕獲 `this` 懸垂問題參見 [#82](ch09-concurrency.md#82-逃逸的-lambda-按引用--this-捕獲導致懸垂)。
+
+**適用標準**：C++11。
+
+**相關準則**：R.24、C.149</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 5 章 移動語義與值類別</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 5 章 內容</span>
+            <button class="copy-btn" data-target="ch5">📋 複製</button>
+          </div>
+          <pre id="ch5"># 第 5 章 移動語義與值類別
+
+[返回目錄](README.md)
+
+移動語義(move semantics)是現代 C++ 性能的基石,但它引入了 rvalue、lvalue、轉發引用、moved-from 狀態等一系列微妙概念。用錯不會立刻崩潰,卻會帶來性能倒退、邏輯錯誤或懸垂。
+
+---
+
+### #37 使用已被 move 的對象
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <utility>
+void f() {
+    std::string s = "hello";
+    std::string t = std::move(s);   // s 的內容被「竊取」到 t
+    std::cout << s.size();          // s 處於「有效但未指定」狀態，值不可依賴
+}
+```
+
+**為什麼錯**
+
+`std::move` 只是把對象轉成 rvalue,允許其資源被竊取。被移動後的對象處於**有效但未指定(valid but unspecified)**狀態:它能被安全析構或重新賦值,但**讀取其值是邏輯錯誤**(不是 UB,但結果不可依賴)。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <utility>
+void f() {
+    std::string s = "hello";
+    std::string t = std::move(s);   // move 之後
+    s = "reused";                   // 只能重新賦值或析構
+    std::cout << s.size();          // 現在 s 有確定的值
+}
+```
+
+move 之後,對 moved-from 對象只做「重新賦值」或「銷毀」,不要讀取其原值。
+
+**適用標準**：C++11。
+
+**相關準則**：ES.56、C.64
+
+---
+
+### #38 move 構造 / 賦值未標 `noexcept`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+struct Widget {
+    std::vector<int> data;
+    Widget(Widget&& other) : data(std::move(other.data)) {}  // 沒標 noexcept
+};
+// std::vector<Widget> 擴容時，因為移動可能拋異常，會退化為「拷貝」而非「移動」
+```
+
+**為什麼錯**
+
+`std::vector` 等容器在擴容時,只有當元素的移動構造為 `noexcept` 才會用移動(否則為保證強異常安全會退化為拷貝)。漏標 `noexcept` 會讓本該高效的移動**靜默變成昂貴的拷貝**,且沒有任何警告。
+
+**正確做法**
+
+```cpp
+#include <vector>
+struct Widget {
+    std::vector<int> data;
+    Widget(Widget&& other) noexcept : data(std::move(other.data)) {}
+    Widget& operator=(Widget&& other) noexcept {
+        data = std::move(other.data);
+        return *this;
+    }
+};
+```
+
+移動構造和移動賦值應**始終標 `noexcept`**(它們本就不該拋異常)。參見 [#87](ch10-error-handling.md#87-從-move-操作拋異常)。
+
+**適用標準**：C++11。
+
+**相關準則**：C.66、E.16
+
+---
+
+### #39 對返回值濫用 `std::move` 抑制 NRVO
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <utility>
+std::vector<int> make() {
+    std::vector<int> v(1000);
+    return std::move(v);   // 畫蛇添足：反而阻止了具名返回值優化(NRVO)
+}
+```
+
+**為什麼錯**
+
+對返回的**局部具名變量**,編譯器可以做具名返回值優化(NRVO),直接在調用方的位置構造,連移動都省了。而顯式 `std::move` 會把返回表達式變成 rvalue 引用,**抑制 NRVO**,退化為一次移動,反而更慢。
+
+**正確做法**
+
+```cpp
+#include <vector>
+std::vector<int> make() {
+    std::vector<int> v(1000);
+    return v;          // 直接返回具名變量：NRVO 生效，零拷貝零移動
+}
+```
+
+返回局部變量時**直接 `return v;`**,讓編譯器做 (N)RVO。僅當返回類型與變量類型不同、或返回的是只能移動的形參時才需要顯式 move。
+
+**適用標準**：C++11(RVO/NRVO,C++17 起部分 RVO 強制)。
+
+**相關準則**：F.48
+
+---
+
+### #40 對 `const` 對象 `std::move` 靜默退化為拷貝
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <vector>
+#include <utility>
+void f(const std::string s) {
+    std::vector<std::string> v;
+    v.push_back(std::move(s));   // s 是 const，move 後仍匹配拷貝構造 → 悄悄拷貝
+}
+```
+
+**為什麼錯**
+
+移動需要修改源對象(竊取其資源),但 `const` 對象不可修改。對 `const` 對象 `std::move` 得到的是 `const T&&`,無法匹配移動構造(其參數是 `T&&`),於是**靜默回退到拷貝構造**,且不報錯。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <vector>
+#include <utility>
+void f(std::string s) {          // 去掉 const，或直接按值接收
+    std::vector<std::string> v;
+    v.push_back(std::move(s));    // 真正的移動
+}
+```
+
+想要移動的對象不要聲明為 `const`。若參數確實需要 const,那就接受它只能被拷貝的事實。
+
+**適用標準**：C++11。
+
+**相關準則**：ES.56、F.18
+
+---
+
+### #41 實現了移動構造卻漏了移動賦值
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <utility>
+struct Widget {
+    int* p;
+    Widget(Widget&& o) noexcept : p(o.p) { o.p = nullptr; }  // 只寫了移動構造
+    // 漏了 operator=(Widget&&)
+};
+void f(Widget& a, Widget&& b) {
+    a = std::move(b);   // 沒有移動賦值 → 若拷貝賦值也未定義/被隱式刪除，行為出錯
+}
+```
+
+**為什麼錯**
+
+移動構造與移動賦值是兩個獨立的特殊成員函數。只實現其一,另一個可能被隱式刪除或退化,導致 `a = std::move(b)` 走了非預期路徑。Rule of Five 要求一起考慮。
+
+**正確做法**
+
+```cpp
+#include <vector>
+struct Widget {
+    std::vector<int> data;      // Rule of Zero：移動構造與移動賦值都自動正確生成
+};
+// 若必須手寫，則五個特殊成員一起提供（或 = default / = delete）
+```
+
+優先 Rule of Zero;必須手寫時,移動構造與移動賦值成對出現,並考慮其餘特殊成員。參見 [#26](ch04-ownership.md#26-違反-rule-of-035)。
+
+**適用標準**：C++11。
+
+**相關準則**：C.21、C.66
+
+---
+
+### #42 移動後未重置源對象狀態
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Buffer {
+    char* data_;
+    Buffer(Buffer&& o) noexcept : data_(o.data_) {
+        // 忘記把 o.data_ 置空
+    }
+    ~Buffer() { delete[] data_; }
+};
+// 移動後源對象和目標對象持有同一指針 → 雙重釋放
+```
+
+**為什麼錯**
+
+手寫移動構造時,若只「複製」了資源句柄卻沒把源對象的句柄置為空/無害值,源對象析構時會再次釋放同一資源,造成雙重釋放或 use-after-free。
+
+**正確做法**
+
+```cpp
+#include <utility>
+struct Buffer {
+    char* data_ = nullptr;
+    Buffer(Buffer&& o) noexcept : data_(std::exchange(o.data_, nullptr)) {}
+    ~Buffer() { delete[] data_; }
+};
+```
+
+竊取資源後必須把源對象置於**可安全析構**的狀態;`std::exchange` 能一步完成「取值 + 置空」。當然,最好還是用 RAII 成員避免手寫。
+
+**適用標準**：`std::exchange` 為 C++14;移動語義為 C++11。
+
+**相關準則**：C.64
+
+---
+
+### #43 按值傳參與完美轉發混淆
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <vector>
+#include <utility>
+class Widget {
+    std::vector<std::string> names_;
+public:
+    void addName(const std::string& n) { names_.push_back(n); }        // 總是拷貝
+    void addName(std::string&& n) { names_.push_back(std::move(n)); }  // 重複實現
+};
+```
+
+**為什麼錯**
+
+為了同時高效處理左值和右值而寫兩個重載,代碼重複;而誤用「萬能引用/轉發引用」又可能吞掉不該匹配的類型。很多人分不清「按值 + move」與「轉發引用」各自的適用場景。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <vector>
+#include <utility>
+class Widget {
+    std::vector<std::string> names_;
+public:
+    void addName(std::string n) {         // 按值接收：左值觸發拷貝，右值觸發移動
+        names_.push_back(std::move(n));   // 之後統一 move 進容器
+    }
+};
+```
+
+對「拿來存起來」的參數,**按值接收再 `std::move`** 通常最簡潔高效;只有在需要保持參數的精確類型(泛型轉發)時才用轉發引用 + `std::forward`。參見 [#44](ch05-move-semantics.md#44-stdmove-與-stdforward-誤用)。
+
+**適用標準**：C++11。
+
+**相關準則**：F.15、F.18
+
+---
+
+### #44 `std::move` 與 `std::forward` 誤用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <utility>
+template <typename T>
+void wrapper(T&& arg) {           // T&& 是轉發引用
+    process(std::move(arg));      // 錯誤：無條件 move，會把左值也「竊取」掉
+}
+```
+
+**為什麼錯**
+
+在轉發引用上下文中,`arg` 可能綁定到左值。用 `std::move` 會無條件把它當右值,可能意外竊取調用方仍要使用的左值。`std::forward` 才能**按原值類別**轉發。反之,對確定的右值/局部值用 `forward` 也是概念混亂。
+
+**正確做法**
+
+```cpp
+#include <utility>
+template <typename T>
+void wrapper(T&& arg) {
+    process(std::forward<T>(arg));  // 左值轉發為左值，右值轉發為右值
+}
+```
+
+記憶口訣:**轉發引用(`T&&` 模板)用 `std::forward`;確定的右值引用/局部對象用 `std::move`。**
+
+**適用標準**：C++11。
+
+**相關準則**：F.19、ES.56
+
+---
+
+### #45 對 moved-from 狀態假設過強
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <utility>
+std::string take(std::string s) {
+    std::string result = std::move(s);
+    // 假設 s 一定變成空字符串 —— 標準不保證具體值！
+    if (s.empty()) { /* 依賴這個假設寫邏輯 */ }
+    return result;
+}
+```
+
+**為什麼錯**
+
+標準只保證 moved-from 對象「有效但未指定」,**不保證具體值**(如 `std::string` 被移動後不一定是空串)。依賴某個特定的 moved-from 值來寫邏輯,在不同實現/優化下會出錯。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <utility>
+std::string take(std::string s) {
+    std::string result = std::move(s);
+    // 不讀取 moved-from 的 s；如需復用，先明確賦值
+    s.clear();                      // 想要空串就顯式清空
+    return result;
+}
+```
+
+不要假設 moved-from 對象的具體值;若後續要用它,先顯式賦一個確定值。若你自己的類型對 moved-from 狀態有約定,務必寫進註釋。
+
+**適用標準**：C++11。
+
+**相關準則**：C.64、ES.56</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 第二部分 ==================== -->
+    <h2 class="section-title" style="font-size: 20px; color: var(--text-dim); margin-top: 32px; margin-bottom: 16px; border-bottom: none;">第二部分：類型系統與泛型</h2>
+
+    <details>
+      <summary><span>第 6 章 類、對象與繼承</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 6 章 內容</span>
+            <button class="copy-btn" data-target="ch6">📋 複製</button>
+          </div>
+          <pre id="ch6"># 第 6 章 類、對象與繼承
+
+[返回目錄](README.md)
+
+類的設計涉及構造、析構、拷貝、多態等一系列規則,任何一處誤解都可能導致資源洩漏、切片、UB 或意外的隱式轉換。本章聚焦面向對象層面的經典陷阱。
+
+---
+
+### #46 基類缺少虛析構函數
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Base {
+    ~Base() {}                       // 非虛析構
+};
+struct Derived : Base {
+    int* p = new int[100];
+    ~Derived() { delete[] p; }
+};
+void f() {
+    Base* b = new Derived();
+    delete b;                        // 只調用 ~Base()，~Derived() 不執行 → 洩漏/UB
+}
+```
+
+**為什麼錯**
+
+通過基類指針 `delete` 派生對象時,若基類析構函數**非虛**,只會調用基類析構,派生類的析構被跳過——這是**未定義行為(UB)**,並導致派生類資源洩漏。
+
+**正確做法**
+
+```cpp
+struct Base {
+    virtual ~Base() = default;       // 多態基類必須有虛析構
+};
+struct Derived : Base {
+    // ...
+    ~Derived() override = default;
+};
+```
+
+**打算通過基類指針多態刪除的基類,析構函數必須為 `virtual`。** 若不打算多態刪除,則考慮用 `protected` 非虛析構禁止之。
+
+**適用標準**：C++98 遺留(`= default` 為 C++11)。
+
+**相關準則**：C.35、C.127
+
+---
+
+### #47 在構造 / 析構中調用虛函數
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <iostream>
+struct Base {
+    Base() { init(); }               // 構造期調用虛函數
+    virtual void init() { std::cout << "Base::init\n"; }
+};
+struct Derived : Base {
+    void init() override { std::cout << "Derived::init\n"; }
+};
+// Derived d; 輸出的是 "Base::init"，而非期望的 "Derived::init"
+```
+
+**為什麼錯**
+
+在基類構造/析構期間,對象的**動態類型還是基類**(派生部分尚未構造/已析構)。此時調用虛函數**只會解析到當前類的版本**,不會分派到派生類,常與直覺相悖。
+
+**正確做法**
+
+```cpp
+#include <iostream>
+struct Base {
+    Base() = default;
+    void start() { init(); }         // 構造完成後，由外部顯式調用
+    virtual void init() { std::cout << "Base::init\n"; }
+};
+struct Derived : Base {
+    void init() override { std::cout << "Derived::init\n"; }
+};
+// Derived d; d.start();  → "Derived::init"
+```
+
+不要在構造/析構裡依賴虛分派;把這類初始化挪到構造完成後的獨立函數中調用(兩階段初始化)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.82
+
+---
+
+### #48 對象切片（object slicing）
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Shape { virtual double area() const { return 0; } };
+struct Circle : Shape {
+    double r;
+    double area() const override { return 3.14159 * r * r; }
+};
+void f() {
+    Circle c{ {}, 2.0 };
+    Shape s = c;            // 切片：只拷貝 Shape 部分，Circle 的 r 與虛表信息丟失
+    s.area();               // 調用 Shape::area()，返回 0，而非圓面積
+}
+```
+
+**為什麼錯**
+
+把派生對象**按值**賦給基類對象,只會拷貝基類子對象部分,派生部分被「切掉」(**object slicing**),多態行為也隨之丟失。
+
+**正確做法**
+
+```cpp
+#include <memory>
+void byRef(const Shape& s) { s.area(); }      // 按引用/指針保留多態
+
+void f() {
+    Circle c{ {}, 2.0 };
+    byRef(c);                                  // 正確多態
+    std::unique_ptr<Shape> p = std::make_unique<Circle>();  // 或用指針容器
+}
+```
+
+多態對象一律通過**引用或指針**(含智能指針)傳遞和存儲,絕不按值。
+
+**適用標準**：C++98 遺留(智能指針為 C++11)。
+
+**相關準則**：C.145、ES.63
+
+---
+
+### #49 在構造 / 析構中調用純虛函數是 UB
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Base {
+    Base() { compute(); }            // 構造期調用純虛函數 → 未定義行為
+    virtual void compute() = 0;      // 純虛
+};
+```
+
+**為什麼錯**
+
+在構造/析構期間,虛分派只會解析到當前(基)類的版本;而純虛函數在基類中**沒有實現**,此時調用它是**未定義行為(UB)**,通常表現為運行時崩潰(pure virtual method called)。
+
+**正確做法**
+
+```cpp
+struct Base {
+    Base() = default;                // 構造函數不調用純虛
+    void run() { compute(); }        // 構造完成後再調用
+    virtual void compute() = 0;
+    virtual ~Base() = default;
+};
+```
+
+絕不在構造/析構中調用純虛函數;把依賴派生實現的邏輯放到對象完全構造後。參見 [#47](ch06-classes-inheritance.md#47-在構造--析構中調用虛函數)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.82
+
+---
+
+### #50 隱藏而非重寫（缺 `override`）
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Base {
+    virtual void draw(int layer) const {}
+};
+struct Derived : Base {
+    void draw(int layer) {}          // 漏了 const：這是「隱藏」不是「重寫」
+};
+// 通過 Base& 調用 draw 時，走的是 Base::draw，而非期望的 Derived::draw
+```
+
+**為什麼錯**
+
+派生類函數若簽名與基類虛函數**不完全一致**(const 限定、參數類型等),不會構成重寫(override),而是**隱藏(hiding)**了基類函數或另立新函數。沒有 `override` 關鍵字時編譯器不會報錯,多態失效。
+
+**正確做法**
+
+```cpp
+struct Base {
+    virtual void draw(int layer) const {}
+};
+struct Derived : Base {
+    void draw(int layer) const override {}  // override 讓簽名不匹配時編譯報錯
+};
+```
+
+所有意圖重寫的函數都加 `override`;編譯器會在簽名不匹配時報錯,把隱蔽的運行期 bug 變成編譯錯誤。
+
+**適用標準**：`override` 為 C++11。
+
+**相關準則**：C.128
+
+---
+
+### #51 拷貝構造中的淺拷貝
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Buffer {
+    char* data_;
+    std::size_t n_;
+    Buffer(std::size_t n) : data_(new char[n]), n_(n) {}
+    ~Buffer() { delete[] data_; }
+    // 使用默認拷貝構造 → 淺拷貝：兩個對象共享同一 data_
+};
+void f() {
+    Buffer a(10);
+    Buffer b = a;    // b.data_ == a.data_ → 析構時雙重釋放
+}
+```
+
+**為什麼錯**
+
+管理裸資源的類若使用默認(淺)拷貝,多個對象會共享同一資源指針,析構時各釋放一次,造成雙重釋放。這是 Rule of Three 的經典觸發場景。
+
+**正確做法**
+
+```cpp
+#include <vector>
+struct Buffer {
+    std::vector<char> data_;         // Rule of Zero：vector 自帶正確的深拷貝
+    explicit Buffer(std::size_t n) : data_(n) {}
+};
+// 若必須手寫：實現深拷貝的拷貝構造與拷貝賦值（並考慮移動）
+```
+
+優先使用能正確深拷貝的 RAII 成員(Rule of Zero);必須手寫時實現深拷貝並配齊 Rule of Three/Five。參見 [#26](ch04-ownership.md#26-違反-rule-of-035)。
+
+**適用標準**：C++98 遺留(`vector` 所有版本)。
+
+**相關準則**：C.20、C.60
+
+---
+
+### #52 成員初始化順序與聲明順序不一致
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Widget {
+    int b_;
+    int a_;
+    Widget(int x) : a_(x), b_(a_ + 1) {}  // 初始化列表寫的順序是 a_、b_
+    // 但成員按「聲明順序」初始化：先 b_（此時 a_ 尚未初始化！）再 a_
+    // b_ 被一個未初始化的 a_ 計算，結果是垃圾值
+};
+```
+
+**為什麼錯**
+
+成員的初始化順序**由聲明順序決定**,而非初始化列表中書寫的順序。若初始化列表順序與聲明順序不一致且存在依賴,就會用到尚未初始化的成員。
+
+**正確做法**
+
+```cpp
+struct Widget {
+    int a_;
+    int b_;
+    Widget(int x) : a_(x), b_(a_ + 1) {}  // 聲明順序 a_、b_，與依賴一致，正確
+};
+```
+
+讓**初始化列表的順序與成員聲明順序一致**;開啟 `-Wreorder` 讓編譯器提醒。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.47
+
+---
+
+### #53 未處理自賦值
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Buffer {
+    char* data_;
+    std::size_t n_;
+    Buffer& operator=(const Buffer& o) {
+        delete[] data_;                    // 若 &o == this，這裡已把自己的數據刪了
+        data_ = new char[o.n_];
+        std::copy(o.data_, o.data_ + o.n_, data_);  // 讀的是已釋放的記憶體 → UB
+        n_ = o.n_;
+        return *this;
+    }
+};
+```
+
+**為什麼錯**
+
+手寫拷貝賦值若不處理 `a = a` 這種自賦值,可能先釋放自身資源,再從(其實是同一塊)已釋放的資源裡拷貝,導致 use-after-free。
+
+**正確做法**
+
+```cpp
+#include <algorithm>
+struct Buffer {
+    char* data_;
+    std::size_t n_;
+    // copy-and-swap：天然自賦值安全且異常安全
+    Buffer& operator=(Buffer o) {          // 按值接收（拷貝或移動）
+        std::swap(data_, o.data_);
+        std::swap(n_, o.n_);
+        return *this;
+    }
+};
+```
+
+優先使用 **copy-and-swap** 慣用法(天然自賦值安全、異常安全);或最好用 Rule of Zero 讓編譯器生成正確的賦值。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.62、C.65
+
+---
+
+### #54 單參數構造函數未加 `explicit`
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Meters {
+    double v;
+    Meters(double x) : v(x) {}       // 非 explicit → 允許隱式轉換
+};
+void travel(Meters m);
+void f() {
+    travel(3.0);                     // double 被隱式轉成 Meters，可能並非本意
+}
+```
+
+**為什麼錯**
+
+單參數(或可用單參數調用)的構造函數會成為**隱式轉換**通道,讓類型安全形同虛設,產生意料之外的轉換和重載解析。
+
+**正確做法**
+
+```cpp
+struct Meters {
+    double v;
+    explicit Meters(double x) : v(x) {}  // 禁止隱式轉換
+};
+void travel(Meters m);
+void f() {
+    // travel(3.0);          // 現在編譯錯誤，暴露了本意不清的調用
+    travel(Meters{3.0});     // 必須顯式構造
+}
+```
+
+給單參數構造函數(以及可能歧義的轉換運算符)加 `explicit`,除非你確實想要隱式轉換。
+
+**適用標準**：C++98 遺留(`explicit` 對轉換運算符為 C++11)。
+
+**相關準則**：C.46
+
+---
+
+### #55 以值方式按基類傳遞派生對象
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Animal { virtual const char* sound() const { return "?"; } };
+struct Dog : Animal { const char* sound() const override { return "woof"; } };
+
+void describe(Animal a) {            // 按值接收基類 → 切片
+    a.sound();                       // 永遠是 Animal::sound()
+}
+void f() {
+    Dog d;
+    describe(d);                     // d 被切片成 Animal
+}
+```
+
+**為什麼錯**
+
+按值傳基類參數會觸發對象切片(見 [#48](ch06-classes-inheritance.md#48-對象切片object-slicing)),丟失派生部分與多態。這是切片最常見的誘因——函數簽名寫錯了。
+
+**正確做法**
+
+```cpp
+struct Animal { virtual const char* sound() const { return "?"; } };
+struct Dog : Animal { const char* sound() const override { return "woof"; } };
+
+void describe(const Animal& a) {     // 按 const 引用接收，保留多態
+    a.sound();                       // 正確分派到 Dog::sound()
+}
+```
+
+多態類型的函數參數一律用 `const T&` 或指針,絕不按值。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.145、F.16</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 7 章 模板與泛型</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 7 章 內容</span>
+            <button class="copy-btn" data-target="ch7">📋 複製</button>
+          </div>
+          <pre id="ch7"># 第 7 章 模板與泛型
+
+[返回目錄](README.md)
+
+模板是 C++ 最強大也最容易「勸退」的特性。它的兩階段名字查找、依賴名、ADL、實例化模型都與直覺不同,錯誤信息更是出了名的難讀。本章挑選最常見的模板陷阱。
+
+---
+
+### #56 忘記 `typename` / `template` 消歧
+
+**現象 / 錯誤示例**
+
+```cpp
+template <typename T>
+void f() {
+    T::value_type x;          // 編譯器不知道 T::value_type 是類型還是靜態成員
+    // 報錯：need 'typename' before 'T::value_type'
+}
+```
+
+**為什麼錯**
+
+對**依賴名**(依賴模板參數的名字),編譯器默認假設它是**值**而非類型。若它其實是嵌套類型,必須用 `typename` 顯式告知;嵌套模板則需要 `template` 關鍵字消歧。
+
+**正確做法**
+
+```cpp
+template <typename T>
+void f() {
+    typename T::value_type x;         // 明確 value_type 是類型
+    (void)x;
+}
+
+template <typename T>
+void g(T t) {
+    t.template get<int>();            // 依賴的成員模板要加 template 消歧
+}
+```
+
+依賴類型名前加 `typename`,依賴成員模板前加 `template`。(C++20 在部分上下文放寬了 `typename` 的要求。)
+
+**適用標準**：C++98 遺留(C++20 放寬部分場景)。
+
+**相關準則**：無(語言規則)
+
+---
+
+### #57 ADL 引入意外重載
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <utility>
+namespace lib {
+    struct Widget {};
+    void swap(Widget&, Widget&);      // lib 命名空間裡也有 swap
+}
+template <typename T>
+void f(T& a, T& b) {
+    std::swap(a, b);                  // 強制用 std::swap，繞過了 lib::swap 的定製
+}
+```
+
+**為什麼錯**
+
+參數依賴查找(Argument-Dependent Lookup, ADL)會把實參所在命名空間的函數納入候選。全限定 `std::swap` 會**屏蔽**用戶為其類型定製的 `swap`,失去優化;反之,不加限定又可能因 ADL 引入意料之外的重載。
+
+**正確做法**
+
+```cpp
+#include <utility>
+template <typename T>
+void f(T& a, T& b) {
+    using std::swap;      // 引入 std::swap 作為回退
+    swap(a, b);           // 非限定調用：優先 ADL 找到用戶定製的 swap，否則用 std::swap
+}
+```
+
+對 `swap`、`begin`、`end` 等定製點,使用「`using std::swap;` + 非限定調用」的慣用法,兼顧定製與回退。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：C.83、C.165
+
+---
+
+### #58 該用 concepts 卻硬寫 `enable_if`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <type_traits>
+// C++20 之前的寫法：晦澀、錯誤信息糟糕
+template <typename T,
+                   typename = std::enable_if_t<std::is_integral<T>::value>>
+void process(T v) { /* ... */ }
+```
+
+**為什麼錯**
+
+`std::enable_if` 依賴 SFINAE,語法晦澀、意圖不清、編譯錯誤信息冗長難懂。在支持 C++20 的項目裡仍然堆砌 `enable_if` 是一種「時代錯位」。
+
+**正確做法**
+
+```cpp
+#include <concepts>
+// C++20：concepts 直接、可讀、錯誤信息清晰
+template <std::integral T>
+void process(T v) { /* ... */ }
+
+// 或用 requires 子句
+template <typename T>
+requires std::integral<T>
+void process2(T v) { /* ... */ }
+```
+
+在 C++20 及以上,用 concepts / `requires` 表達約束;僅在必須兼容舊標準時才退回 `enable_if`。
+
+**適用標準**：concepts 為 C++20;`enable_if` 為 C++11/14。
+
+**相關準則**：T.10、T.20
+
+---
+
+### #59 轉發引用與 `const&` 重載歧義
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+void log(const std::string& s);          // 重載 1
+template <typename T> void log(T&& s);   // 重載 2：轉發引用，幾乎匹配一切
+
+void f() {
+    std::string s = "x";
+    log(s);          // 轉發引用重載 2 是更精確匹配（T=std::string&），意外勝出
+}
+```
+
+**為什麼錯**
+
+轉發引用 `T&&` 會貪婪地匹配幾乎所有實參,常常比精心設計的 `const&` 重載更「精確」,從而意外勝出,劫持本應走另一重載的調用。它還會吞掉派生類到基類的轉換等場景。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <type_traits>
+#include <concepts>
+
+void log(const std::string& s);
+
+// 用約束限制轉發引用重載的適用範圍
+template <typename T>
+requires (!std::same_as<std::remove_cvref_t<T>, std::string>)
+void log(T&& s);
+```
+
+給轉發引用重載加約束(concepts / `enable_if`),把它限制在真正想處理的類型上;或乾脆避免讓轉發引用與普通重載共存。
+
+**適用標準**：轉發引用為 C++11;`remove_cvref_t`、`same_as` 為 C++20。
+
+**相關準則**：F.19、T.24
+
+---
+
+### #60 模板約束缺失導致錯誤信息難讀
+
+**現象 / 錯誤示例**
+
+```cpp
+template <typename It>
+auto sum(It first, It last) {
+    typename It::value_type total{};   // 若傳入裸指針，It::value_type 不存在
+    for (; first != last; ++first) total += *first;
+    return total;
+}
+// 傳裸指針時，報錯發生在模板「深處」，幾十行天書般的錯誤
+```
+
+**為什麼錯**
+
+無約束的模板在傳入不滿足隱含要求的類型時,錯誤發生在實例化的深層,信息冗長、指向模糊,極難定位真正的問題(是調用方傳錯了類型)。
+
+**正確做法**
+
+```cpp
+#include <iterator>
+#include <concepts>
+
+template <std::input_iterator It>
+auto sum(It first, It last) {
+    std::iter_value_t<It> total{};     // 用標準 traits 而非假設 It::value_type
+    for (; first != last; ++first) total += *first;
+    return total;
+}
+// 傳入不滿足 input_iterator 的類型時，錯誤信息直接指出「不滿足約束」
+```
+
+用 concepts 在**接口處**表達要求,讓不滿足約束的調用在調用點就清晰報錯;並用標準 traits(如 `iter_value_t`)代替對成員的硬假設。
+
+**適用標準**：concepts / `iter_value_t` 為 C++20。
+
+**相關準則**：T.10、T.48
+
+---
+
+### #61 顯式實例化缺失導致鏈接錯誤
+
+**現象 / 錯誤示例**
+
+```cpp
+// matrix.h
+template <typename T> class Matrix { public: void invert(); };
+// matrix.cpp
+template <typename T> void Matrix<T>::invert() { /* 複雜實現 */ }
+// 沒有任何顯式實例化
+// user.cpp: Matrix<double> m; m.invert(); → 鏈接錯誤 undefined reference
+```
+
+**為什麼錯**
+
+若把模板定義放在 .cpp(為了隱藏實現或加速編譯),而使用處所在的 TU 看不到該定義,編譯器無法實例化,鏈接期符號缺失。參見 [#4](ch01-organization.md#4-模板定義放在-cpp-中導致鏈接錯誤)。
+
+**正確做法**
+
+```cpp
+// 方式一（首選）：模板定義放頭文件，任何 TU 都能實例化
+// 方式二：在 matrix.cpp 末尾顯式實例化已知類型
+template class Matrix<double>;
+template class Matrix<float>;
+// 只有這幾種類型可用，但編譯更快、實現可隱藏
+```
+
+一般把模板定義放頭文件;若確需分離編譯,在定義所在的 .cpp 裡對**確定的類型集合**做顯式實例化。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：無(編譯模型)
+
+---
+
+### #62 誤解依賴名的查找規則
+
+**現象 / 錯誤示例**
+
+```cpp
+template <typename T>
+struct Derived : T {
+    void f() {
+        helper();          // 想調用基類 T 的 helper()，但編譯器找不到
+        // 報錯：'helper' was not declared in this scope
+    }
+};
+```
+
+**為什麼錯**
+
+在模板中,**非依賴名**在模板定義時查找,此時基類 `T` 未知,故基類成員 `helper` 不在查找範圍內(兩階段名字查找)。編譯器不會自動去依賴基類裡找非限定名。
+
+**正確做法**
+
+```cpp
+template <typename T>
+struct Derived : T {
+    void f() {
+        this->helper();        // 用 this-> 使其成為依賴名，延遲到實例化時查找
+        // 或 T::helper();
+    }
+};
+```
+
+訪問依賴基類的成員時,用 `this->` 或 `T::` 限定,把名字變成依賴名,在實例化階段才查找。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：無(語言規則)
+
+---
+
+### #63 可變參數模板遞歸展開寫錯
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <iostream>
+// 缺少遞歸終止的基例，或基例簽名不匹配 → 無限遞歸/編譯錯誤
+template <typename T, typename... Rest>
+void print(T first, Rest... rest) {
+    std::cout << first << ' ';
+    print(rest...);            // 當 rest 為空時，沒有匹配的 print() 重載
+}
+```
+
+**為什麼錯**
+
+參數包(parameter pack)遞歸展開必須有**終止基例**,且基例簽名要能匹配「包為空」的情況。漏寫或寫錯基例會導致編譯錯誤或無意義的實例化。
+
+**正確做法**
+
+```cpp
+#include <iostream>
+// 方式一：提供基例
+void print() { std::cout << '\n'; }
+template <typename T, typename... Rest>
+void print(T first, Rest... rest) {
+    std::cout << first << ' ';
+    print(rest...);
+}
+
+// 方式二（C++17）：折疊表達式，無需遞歸和基例
+template <typename... Args>
+void print2(const Args&... args) {
+    ((std::cout << args << ' '), ...);   // 折疊表達式
+    std::cout << '\n';
+}
+```
+
+遞歸展開務必配好終止基例;C++17 起優先使用**折疊表達式(fold expression)**,更簡潔且無需基例。
+
+**適用標準**：可變參數模板為 C++11;折疊表達式為 C++17。
+
+**相關準則**：T.100
+
+---
+
+### #64 模板代碼膨脹
+
+**現象 / 錯誤示例**
+
+```cpp
+template <typename T, int N>
+class Array {
+    T data_[N];
+    void heavyLogic() { /* 大量與 N 無關的代碼 */ }  // 每個 <T,N> 組合都複製一份
+};
+// Array<int,10>、Array<int,20>、Array<int,30>... 各生成一份 heavyLogic → 二進制膨脹
+```
+
+**為什麼錯**
+
+每個不同的模板實參組合都會實例化出一份獨立代碼。若把與模板參數**無關**的邏輯也放進模板,會為每個實例複製一份,導致二進制體積膨脹、指令緩存壓力增大。
+
+**正確做法**
+
+```cpp
+namespace detail {
+    void heavyLogicImpl(void* data, int n);   // 與類型無關的實現，只編譯一次
+}
+template <typename T, int N>
+class Array {
+    T data_[N];
+    void heavyLogic() { detail::heavyLogicImpl(data_, N); }  // 薄封裝轉發
+};
+```
+
+把與模板參數無關的公共邏輯抽到**非模板**的實現函數中,模板只保留薄薄的類型相關封裝,減少重複實例化。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：T.62、T.61</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 8 章 標準庫容器與算法</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 8 章 內容</span>
+            <button class="copy-btn" data-target="ch8">📋 複製</button>
+          </div>
+          <pre id="ch8"># 第 8 章 標準庫容器與算法
+
+[返回目錄](README.md)
+
+STL 容器和算法極大提升了生產力,但也埋著一批「用法正確才安全」的陷阱:迭代器失效、越界不檢查、算法誤用。本章逐一拆解。
+
+---
+
+### #65 迭代器失效後繼續使用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int> v{1, 2, 3, 4};
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        if (*it % 2 == 0)
+            v.erase(it);      // erase 後 it 失效，++it 是未定義行為
+    }
+}
+```
+
+**為什麼錯**
+
+`vector::erase` 會使被刪元素及其之後的迭代器**失效**。繼續 `++it` 或解引用失效迭代器是**未定義行為(UB)**。不同容器的失效規則各異,但「失效後繼續用」一律是錯。
+
+**正確做法**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int> v{1, 2, 3, 4};
+    for (auto it = v.begin(); it != v.end(); ) {
+        if (*it % 2 == 0) it = v.erase(it);   // erase 返回下一個有效迭代器
+        else ++it;
+    }
+    // 或直接用 std::erase(v, ...)（C++20）見 #69
+}
+```
+
+`erase` 會返回下一個有效迭代器,用它更新循環變量;或使用 C++20 的 `std::erase`/`std::erase_if`。
+
+**適用標準**：C++98 遺留(`erase` 返回迭代器對關聯容器為 C++11)。
+
+**相關準則**：ES.107、SL.con.2
+
+---
+
+### #66 遍歷 `vector` 時改變其大小
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int> v{1, 2, 3};
+    for (int x : v) {
+        if (x == 2) v.push_back(x);   // push_back 可能觸發重分配 → 所有迭代器失效
+    }                                  // 範圍 for 底層的迭代器隨之失效 → UB
+}
+```
+
+**為什麼錯**
+
+範圍 `for` 在開始時緩存了 `begin()`/`end()`。循環體內 `push_back` 若引發容量增長(重分配),整個底層緩衝區搬家,緩存的迭代器全部失效,後續訪問是**未定義行為(UB)**。
+
+**正確做法**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<int> v{1, 2, 3};
+    std::vector<int> toAdd;
+    for (int x : v)
+        if (x == 2) toAdd.push_back(x);   // 收集要新增的，遍歷中不改 v
+    v.insert(v.end(), toAdd.begin(), toAdd.end());
+}
+```
+
+遍歷期間不要改變容器大小;把新增/刪除項先收集起來,遍歷結束後統一處理。或預先 `reserve` 並用索引遍歷(仍需謹慎)。
+
+**適用標準**：C++11(範圍 for)。
+
+**相關準則**：ES.107
+
+---
+
+### #67 `operator[]` 越界不做邊界檢查
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+int f(const std::vector<int>& v) {
+    return v[v.size()];   // 越界訪問，未定義行為（不拋異常、不檢查）
+}
+```
+
+**為什麼錯**
+
+`std::vector`/`std::array` 的 `operator[]` **不做邊界檢查**,越界訪問是**未定義行為(UB)**,可能讀到垃圾、崩潰或成為安全漏洞。它不像某些語言那樣拋異常。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <stdexcept>
+int f(const std::vector<int>& v, std::size_t i) {
+    return v.at(i);       // at() 越界時拋 std::out_of_range，可控
+    // 或在訪問前顯式檢查 i < v.size()
+}
+```
+
+需要邊界安全時用 `at()`(越界拋異常);或在 `operator[]` 前自行確保索引有效。調試期可用帶檢查的標準庫實現(如 `_GLIBCXX_ASSERTIONS`)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：ES.107、SL.con.3
+
+---
+
+### #68 `map::operator[]` 意外插入默認值
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <map>
+#include <string>
+int getCount(std::map<std::string, int>& m, const std::string& key) {
+    return m[key];        // 若 key 不存在，會「插入」一個默認值 0，並返回它
+}                          // 只是想查詢，卻悄悄改了 map；且對 const map 無法編譯
+```
+
+**為什麼錯**
+
+`std::map::operator[]` 在鍵不存在時會**默認構造並插入**一個值。用它做「查詢」會產生意外的插入(改變容器、增大記憶體、破壞統計),而且不能用於 `const map`。
+
+**正確做法**
+
+```cpp
+#include <map>
+#include <string>
+int getCount(const std::map<std::string, int>& m, const std::string& key) {
+    auto it = m.find(key);
+    return it != m.end() ? it->second : 0;   // 只查詢，不插入
+}
+// C++20：m.contains(key) 判斷是否存在
+```
+
+只讀查詢用 `find`/`contains`;只有確實想「不存在則插入」時才用 `operator[]`。
+
+**適用標準**：`contains` 為 C++20;其餘 C++98 遺留。
+
+**相關準則**：SL.con.3
+
+---
+
+### #69 `erase-remove` 慣用法誤用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <algorithm>
+void f(std::vector<int>& v) {
+    std::remove(v.begin(), v.end(), 42);   // remove 不真正刪除元素！
+    // 只是把「保留的元素」前移，返回新邏輯末尾；容器 size 不變，尾部是殘留值
+}
+```
+
+**為什麼錯**
+
+`std::remove` 不能改變容器大小(算法不持有容器),它只把要保留的元素移到前面並返回新的邏輯末尾迭代器,尾部殘留舊值。只調 `remove` 不 `erase`,元素並未真正刪除。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <algorithm>
+void f(std::vector<int>& v) {
+    // C++98/11/14/17：erase-remove 慣用法
+    v.erase(std::remove(v.begin(), v.end(), 42), v.end());
+
+    // C++20：一步到位
+    std::erase(v, 42);
+}
+```
+
+`remove` 必須配合容器的 `erase` 才能真正刪除(erase-remove 慣用法);C++20 起直接用 `std::erase`/`std::erase_if`。
+
+**適用標準**：erase-remove 為 C++98 遺留;`std::erase` 為 C++20。
+
+**相關準則**：SL.con.2
+
+---
+
+### #70 `std::vector<bool>` 特化陷阱
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+void f() {
+    std::vector<bool> v{true, false, true};
+    auto& ref = v[0];       // 錯誤：v[0] 返回的是代理對象，不是真正的 bool&
+    bool* p = &v[0];        // 錯誤：無法取到 bool 的地址（元素是位壓縮存儲）
+}
+```
+
+**為什麼錯**
+
+`std::vector<bool>` 是一個**特化**,為省空間按位壓縮存儲,`operator[]` 返回的是**代理對象(proxy)**而非 `bool&`。因此不能取地址、不能綁定 `bool&`,與普通容器行為不一致,常令泛型代碼出錯。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <deque>
+#include <cstdint>
+void f() {
+    std::deque<bool> d{true, false};        // 或用 vector<char>/vector<uint8_t>
+    std::vector<std::uint8_t> flags{1, 0};  // 需要真正的元素引用/地址時
+    bool val = flags[0];
+}
+```
+
+需要正常的元素語義(引用、取地址、泛型一致性)時,改用 `std::deque<bool>`、`std::vector<char>` 或 `std::vector<std::uint8_t>`。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：SL.con.1
+
+---
+
+### #71 傳遞失效的 `end()`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <algorithm>
+void f(std::vector<int>& v) {
+    auto last = v.end();
+    v.push_back(99);                 // 可能重分配 → last 失效
+    std::find(v.begin(), last, 5);   // 用了失效的 last，UB
+}
+```
+
+**為什麼錯**
+
+保存下來的 `end()`(或任何迭代器)在容器被修改(尤其是重分配)後可能失效,之後再用於算法是**未定義行為(UB)**。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <algorithm>
+void f(std::vector<int>& v) {
+    v.push_back(99);
+    std::find(v.begin(), v.end(), 5);   // 每次都取最新的 begin()/end()
+}
+```
+
+不要緩存跨越「可能修改容器」操作的迭代器;在算法調用點現取 `begin()`/`end()`。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：ES.107
+
+---
+
+### #72 算法謂詞有副作用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <algorithm>
+int counter = 0;
+void f(std::vector<int>& v) {
+    // 謂詞修改外部狀態：std::remove_if 可能多次調用/拷貝謂詞，副作用次數不可靠
+    std::remove_if(v.begin(), v.end(), [](int x) { ++counter; return x < 0; });
+}
+```
+
+**為什麼錯**
+
+標準算法可能**多次拷貝**謂詞對象、以未指定的次數/順序調用它。帶副作用(修改外部狀態、依賴調用次數)的謂詞會產生不可靠的結果。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <algorithm>
+void f(std::vector<int>& v) {
+    // 謂詞保持無副作用、純函數
+    auto isNeg = [](int x) { return x < 0; };
+    long removed = std::count_if(v.begin(), v.end(), isNeg);  // 需要計數就單獨算
+    std::erase_if(v, isNeg);                                   // C++20
+    (void)removed;
+}
+```
+
+傳給算法的謂詞應為**無副作用的純函數**;需要副作用(如計數)時用專門的算法(`count_if`)或顯式循環。
+
+**適用標準**：`erase_if` 為 C++20;其餘 C++98 遺留。
+
+**相關準則**：SL.con、F.10
+
+---
+
+### #73 缺少 `reserve` 導致多次重分配
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+std::vector<int> build(int n) {
+    std::vector<int> v;
+    for (int i = 0; i < n; ++i)
+        v.push_back(i);        // 已知總量卻不 reserve → 多次重分配 + 元素搬移
+    return v;
+}
+```
+
+**為什麼錯**
+
+`vector` 容量不足時按倍數增長並搬移全部元素。已知最終大小卻不預留容量,會產生多次重分配和拷貝/移動,浪費時間且可能引發不必要的迭代器失效。
+
+**正確做法**
+
+```cpp
+#include <vector>
+std::vector<int> build(int n) {
+    std::vector<int> v;
+    v.reserve(n);              // 一次分配足夠容量
+    for (int i = 0; i < n; ++i)
+        v.push_back(i);
+    return v;
+}
+```
+
+已知或可估算元素數量時,先 `reserve`。參見 [#100](ch12-performance.md#100-循環內-string--重複分配)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：Per.7、SL.con
+
+---
+
+### #74 `emplace_back` 與 `push_back` 誤用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <string>
+void f() {
+    std::vector<std::string> v;
+    v.emplace_back("hello");        // 好：原地構造，避免臨時對象
+    std::string s = "world";
+    v.emplace_back(std::move(s));   // 好
+
+    std::vector<int> nums;
+    nums.emplace_back(3);           // 與 push_back(3) 無差別，別迷信 emplace 更快
+
+    // 誤區：emplace_back 會繞過 explicit 構造，可能引入本不該允許的構造
+}
+```
+
+**為什麼錯**
+
+`emplace_back` 用參數**原地構造**元素,對「需要構造臨時對象再拷貝」的場景更省;但對已是目標類型的值,它與 `push_back` 無差別。此外 `emplace_back` 會調用可能是 `explicit` 的構造函數,偶爾引入不期望的隱式構造。盲目全用 `emplace_back` 並非總更優、也可能降低可讀性。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <string>
+void f() {
+    std::vector<std::string> v;
+    v.emplace_back("hello");        // 從構造參數建元素：用 emplace_back
+    std::string s = "world";
+    v.push_back(std::move(s));      // 已有對象、語義清晰：用 push_back + move
+}
+```
+
+「用構造參數就地建對象」時用 `emplace_back`;「已有一個對象要放進去」時用 `push_back`,可讀性更好。不要因為「聽說 emplace 更快」就無腦替換。
+
+**適用標準**：`emplace_back` 為 C++11。
+
+**相關準則**：SL.con</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 第三部分 ==================== -->
+    <h2 class="section-title" style="font-size: 20px; color: var(--text-dim); margin-top: 32px; margin-bottom: 16px; border-bottom: none;">第三部分：併發與錯誤處理</h2>
+
+    <details>
+      <summary><span>第 9 章 併發</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 9 章 內容</span>
+            <button class="copy-btn" data-target="ch9">📋 複製</button>
+          </div>
+          <pre id="ch9"># 第 9 章 併發
+
+[返回目錄](README.md)
+
+併發 bug 是最難復現、最難調試的一類:它們依賴時序,常在壓力測試或線上才暴露。核心原則是——**併發 bug 靠設計預防,而非靠加鎖事後補救**。本章覆蓋數據競爭、同步、生命週期與線程管理的常見錯誤。其中 [#81](#81-線程按引用捕獲局部變量導致懸垂)、[#82](#82-逃逸的-lambda-按引用--this-捕獲導致懸垂) 是實戰中極高頻的懸垂問題。
+
+---
+
+### #75 共享數據無同步的數據競爭
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <thread>
+int counter = 0;
+void worker() {
+    for (int i = 0; i < 100000; ++i) ++counter;   // 多線程無保護地讀改寫同一變量
+}
+void f() {
+    std::thread t1(worker), t2(worker);
+    t1.join(); t2.join();
+    // counter 結果不確定，且這是數據競爭 → 未定義行為
+}
+```
+
+**為什麼錯**
+
+多個線程在無同步的情況下訪問同一非原子對象、且至少一個是寫,構成**數據競爭(data race)**,是**未定義行為(UB)**。結果不僅是「數值不對」,而是整個程序行為未定義。
+
+**正確做法**
+
+```cpp
+#include <thread>
+#include <atomic>
+std::atomic<int> counter{0};
+void worker() {
+    for (int i = 0; i < 100000; ++i)
+        counter.fetch_add(1, std::memory_order_relaxed);   // 原子遞增
+}
+```
+
+用 `std::atomic` 或互斥量 `std::mutex` 保護共享數據;最好的辦法是**盡量不共享可變狀態**。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.2、CP.3
+
+---
+
+### #76 只保護寫不保護讀
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <mutex>
+#include <string>
+std::mutex m;
+std::string shared;
+void write(const std::string& s) {
+    std::lock_guard<std::mutex> lk(m);
+    shared = s;                 // 寫有鎖
+}
+std::string read() {
+    return shared;              // 讀沒鎖 → 與 write 併發時仍是數據競爭
+}
+```
+
+**為什麼錯**
+
+數據競爭的定義要求**所有**併發訪問(包括只讀)都被同步,只要有一個寫。只鎖寫、不鎖讀,讀與寫併發時依然是數據競爭、依然是 UB。
+
+**正確做法**
+
+```cpp
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+std::shared_mutex m;
+std::string shared;
+void write(const std::string& s) {
+    std::unique_lock lk(m);            // 寫：獨佔鎖
+    shared = s;
+}
+std::string read() {
+    std::shared_lock lk(m);            // 讀：共享鎖（多個讀可併發）
+    return shared;
+}
+```
+
+讀也必須在鎖保護下進行;讀多寫少時用 `std::shared_mutex`(讀寫鎖)兼顧正確與性能。
+
+**適用標準**：`shared_mutex` 為 C++17(`shared_timed_mutex` 為 C++14);類模板實參推導為 C++17。
+
+**相關準則**：CP.3
+
+---
+
+### #77 原子變量與非原子訪問混用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <atomic>
+std::atomic<bool> ready{false};
+int data = 0;                    // 普通變量
+
+void producer() {
+    data = 42;                   // 非原子寫
+    ready = true;                // 原子寫
+}
+void consumer() {
+    while (!ready) {}
+    // 期望這裡 data 一定是 42，但默認 memory order 下，
+    // 若混用不當仍可能讀到舊的 data（取決於 order 語義）
+}
+```
+
+**為什麼錯**
+
+對同一邏輯數據,一部分用原子、一部分用普通變量訪問,或對原子變量既做原子又做非原子訪問,會破壞內存序保證,產生難以察覺的可見性問題。
+
+**正確做法**
+
+```cpp
+#include <atomic>
+std::atomic<bool> ready{false};
+int data = 0;
+
+void producer() {
+    data = 42;
+    ready.store(true, std::memory_order_release);   // release：之前的寫對 acquire 可見
+}
+void consumer() {
+    while (!ready.load(std::memory_order_acquire)) {}
+    // acquire 之後，能正確看到 producer 在 release 之前的 data = 42
+}
+```
+
+用配對的 acquire/release 建立「happens-before」關係;不要對同一數據混用原子與非原子訪問。參見 [#78](#78-誤解-memory-order)。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.20、CP.100
+
+---
+
+### #78 誤解 memory order
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <atomic>
+std::atomic<int> x{0}, y{0};
+void t1() {
+    x.store(1, std::memory_order_relaxed);   // relaxed 不保證與其他變量的順序
+    y.store(1, std::memory_order_relaxed);
+}
+// 另一線程可能看到 y==1 但 x==0，與直覺相悖
+```
+
+**為什麼錯**
+
+`memory_order_relaxed` 只保證單個原子變量自身的原子性,**不建立跨變量的順序或可見性**。誤以為「原子就自動有序」是併發中最常見的深坑,會導致極難復現的亂序 bug。
+
+**正確做法**
+
+```cpp
+#include <atomic>
+std::atomic<int> x{0}, y{0};
+void t1() {
+    x.store(1, std::memory_order_release);
+    y.store(1, std::memory_order_release);
+}
+// 不確定時，使用默認的 memory_order_seq_cst（順序一致），最易推理
+```
+
+除非你能證明更弱的序正確且必要,否則**使用默認的 `memory_order_seq_cst`**;`relaxed` 只用於確實不需要跨變量順序的場景(如純計數器)。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.100、CP.101
+
+---
+
+### #79 鎖順序不一致導致死鎖
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <mutex>
+std::mutex a, b;
+void t1() {
+    std::lock_guard<std::mutex> la(a);
+    std::lock_guard<std::mutex> lb(b);   // t1: 先 a 後 b
+}
+void t2() {
+    std::lock_guard<std::mutex> lb(b);
+    std::lock_guard<std::mutex> la(a);   // t2: 先 b 後 a → 與 t1 交叉即死鎖
+}
+```
+
+**為什麼錯**
+
+兩個線程以**相反順序**獲取兩把鎖時,可能各持一把、互相等待對方,形成**死鎖(deadlock)**。
+
+**正確做法**
+
+```cpp
+#include <mutex>
+std::mutex a, b;
+void t1() {
+    std::scoped_lock lk(a, b);   // 一次性鎖多把鎖，內部避免死鎖（C++17）
+}
+void t2() {
+    std::scoped_lock lk(a, b);   // 順序無所謂，scoped_lock 保證不死鎖
+}
+```
+
+用 `std::scoped_lock`(C++17)一次性獲取多把鎖(內部用免死鎖算法);或在全局約定**固定的加鎖順序**。
+
+**適用標準**：`scoped_lock` 為 C++17;`std::lock` 為 C++11。
+
+**相關準則**：CP.20、CP.21
+
+---
+
+### #80 忘記 `join` / `detach` 導致 `std::terminate`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <thread>
+void f() {
+    std::thread t([]{ /* work */ });
+    // 忘記 t.join() 或 t.detach()
+}   // t 析構時仍 joinable → 調用 std::terminate() 直接終止程序
+```
+
+**為什麼錯**
+
+`std::thread` 析構時若仍處於 `joinable` 狀態(既沒 `join` 也沒 `detach`),會調用 `std::terminate()` 終止整個程序。這是為了避免「線程還在跑,資源卻沒了」的更隱蔽錯誤。
+
+**正確做法**
+
+```cpp
+#include <thread>
+void f() {
+    std::thread t([]{ /* work */ });
+    t.join();               // 等待其結束
+}
+
+// C++20：std::jthread 析構時自動 join，無需手動管理
+#include <thread>
+void g() {
+    std::jthread t([]{ /* work */ });   // 離開作用域自動 join
+}
+```
+
+每個 `std::thread` 都必須在析構前 `join` 或 `detach`;C++20 起優先使用 `std::jthread`(RAII,自動 join,還支持協作式取消)。
+
+**適用標準**：`std::thread` 為 C++11;`std::jthread` 為 C++20。
+
+**相關準則**：CP.25、CP.26
+
+---
+
+### #81 線程按引用捕獲局部變量導致懸垂
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <thread>
+#include <string>
+std::thread startWork() {
+    std::string local = "config";
+    std::thread t([&local] {          // 按引用捕獲局部變量
+        use(local);                   // 線程運行時，startWork 早已返回，local 已銷毀
+    });
+    return t;                          // t 逃逸出作用域，local 卻隨 startWork 銷毀
+}
+```
+
+**為什麼錯**
+
+線程(或 `std::async` 任務)的執行與創建它的作用域**異步**。若 lambda **按引用捕獲**了局部變量,而該局部在線程真正運行前就已銷毀,線程讀到的是**懸垂引用**,是 use-after-free、**未定義行為(UB)**。
+
+**正確做法**
+
+```cpp
+#include <thread>
+#include <string>
+std::thread startWork() {
+    std::string local = "config";
+    std::thread t([local] {           // 按值捕獲，線程持有自己的副本
+        use(local);
+    });
+    return t;
+}
+```
+
+傳給線程/異步任務的 lambda **按值捕獲**需要的數據(或捕獲 `shared_ptr` 共享所有權),不要按引用捕獲生命週期短於線程的對象。參見 [#19](ch03-memory-raii.md#19-懸垂指針-use-after-free)。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.31、F.53
+
+---
+
+### #82 逃逸的 lambda 按引用 / `this` 捕獲導致懸垂
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <functional>
+#include <vector>
+#include <string>
+
+struct Button {
+    std::string label = "OK";
+    std::function<void()> onClick;
+    void setup(std::vector<std::function<void()>>& callbacks) {
+        onClick = [this] {                 // 按 this 捕獲（等價於捕獲裸指針）
+            std::cout << label;            // 回調觸發時若 Button 已析構 → 懸垂
+        };
+        callbacks.push_back([&] {          // [&] 按引用捕獲局部/成員
+            std::cout << label;            // 存入 callbacks 後逃逸出 setup 作用域
+        });
+    }
+};
+```
+
+**為什麼錯**
+
+當 lambda 被存入回調、容器、定時器、事件循環等**比它的捕獲對象活得更久**的地方(即「逃逸」),按引用 `[&]` 或按 `this` 捕獲都只是保存了地址/裸指針。等回調真正觸發時,被捕獲的對象可能已析構,訪問即**懸垂引用/指針**,是 use-after-free、**未定義行為(UB)**。按 `this` 捕獲尤其隱蔽——它捕獲的是裸 `this` 指針,對象銷毀後回調仍持有它。
+
+**正確做法**
+
+```cpp
+#include <functional>
+#include <memory>
+#include <string>
+
+struct Button : std::enable_shared_from_this<Button> {
+    std::string label = "OK";
+    std::function<void()> onClick;
+    void setup() {
+        // 方式一：按值捕獲需要的數據
+        std::string cap = label;
+        onClick = [cap] { std::cout << cap; };
+
+        // 方式二：捕獲 weak_ptr，回調時提升並判存活（對象由 shared_ptr 管理時）
+        std::weak_ptr<Button> weak = weak_from_this();
+        onClick = [weak] {
+            if (auto self = weak.lock()) std::cout << self->label;  // 存活才訪問
+        };
+    }
+};
+```
+
+會逃逸的 lambda:優先**按值捕獲**所需數據;需要訪問對象自身時捕獲 `shared_ptr`/`weak_ptr`(用 `weak_ptr` + `lock()` 避免延長生命週期又能安全判活),或藉助 `enable_shared_from_this`(見 [#36](ch04-ownership.md#36-用-this-構造-shared_ptr-產生第二個控制塊))。C++20 可用 `[=, this]` 顯式表達按值捕獲 this 副本的意圖。絕不在逃逸的 lambda 裡用 `[&]` 捕獲短命對象。
+
+**適用標準**：C++11(`weak_from_this` 為 C++17;顯式 `[=, this]` 為 C++20)。
+
+**相關準則**：F.53、CP.31
+
+---
+
+### #83 條件變量虛假喚醒未循環判斷
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <condition_variable>
+#include <mutex>
+std::mutex m;
+std::condition_variable cv;
+bool ready = false;
+void wait_for_ready() {
+    std::unique_lock<std::mutex> lk(m);
+    if (!ready) cv.wait(lk);     // 用 if：虛假喚醒時會誤以為條件已滿足
+    // ...
+}
+```
+
+**為什麼錯**
+
+條件變量可能發生**虛假喚醒(spurious wakeup)**——在條件並未滿足時被喚醒。用 `if` 判斷一次就往下走,會在條件仍不滿足時錯誤地繼續執行。
+
+**正確做法**
+
+```cpp
+#include <condition_variable>
+#include <mutex>
+std::mutex m;
+std::condition_variable cv;
+bool ready = false;
+void wait_for_ready() {
+    std::unique_lock<std::mutex> lk(m);
+    cv.wait(lk, [] { return ready; });   // 帶謂詞的 wait：內部循環判斷，防虛假喚醒
+}
+```
+
+始終用**帶謂詞的 `wait`**(等價於 `while (!pred()) cv.wait(lk);`),它會循環檢查條件,自動處理虛假喚醒。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.42
+
+---
+
+### #84 在析構中做阻塞 I/O
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Connection {
+    ~Connection() {
+        sendGoodbye();       // 析構裡做網絡/磁盤等阻塞 I/O
+        flushToDisk();       // 可能拋異常 → 從析構拋出 → std::terminate
+    }
+};
+```
+
+**為什麼錯**
+
+析構函數應快速、不拋異常。在析構裡做阻塞 I/O 會:拖慢棧展開、在異常傳播中卡住、若 I/O 拋異常還會從析構拋出而觸發 `std::terminate`(見 [#86](ch10-error-handling.md#86-析構函數拋異常))。
+
+**正確做法**
+
+```cpp
+struct Connection {
+    void close() {           // 提供顯式的、可失敗可報告的關閉方法
+        sendGoodbye();
+        flushToDisk();
+    }
+    ~Connection() noexcept {
+        try { /* 僅做無害的本地資源釋放 */ } catch (...) {}   // 不拋出
+    }
+};
+```
+
+把可能阻塞/失敗的收尾操作放到**顯式的 `close()`/`shutdown()`** 方法裡,讓調用方能處理錯誤;析構只做快速、`noexcept` 的本地清理。
+
+**適用標準**：C++11(`noexcept`)。
+
+**相關準則**：C.36、E.16
+
+---
+
+### #85 試圖拷貝或移動 `mutex` / `atomic`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <mutex>
+struct Registry {
+    std::mutex m;
+    // ...
+};
+void f(Registry r);        // 按值傳參 → 試圖拷貝 Registry → 拷貝其中的 mutex
+// 編譯錯誤：std::mutex 的拷貝構造被刪除
+```
+
+**為什麼錯**
+
+`std::mutex`、`std::atomic`、`std::condition_variable` 等同步原語**不可拷貝、不可移動**(拷貝一把「鎖」在語義上毫無意義)。含有它們的類默認也變得不可拷貝/移動,按值傳遞會編譯失敗,或誘使你寫出錯誤的手動拷貝。
+
+**正確做法**
+
+```cpp
+#include <mutex>
+struct Registry {
+    std::mutex m;
+};
+void f(Registry& r);       // 按引用傳遞含同步原語的對象
+
+// 若類確實需要可拷貝，同步原語不應作為「值」的一部分被拷貝，
+// 而應在拷貝時各自持有獨立的鎖（自定義拷貝，鎖保護數據但不拷貝鎖本身）
+```
+
+含同步原語的對象按引用(或指針/智能指針)傳遞,不要按值;若類需要可拷貝語義,自定義拷貝操作,只拷貝被保護的數據、各自新建鎖。
+
+**適用標準**：C++11。
+
+**相關準則**：CP.20、C.20</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 10 章 錯誤處理</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 10 章 內容</span>
+            <button class="copy-btn" data-target="ch10">📋 複製</button>
+          </div>
+          <pre id="ch10"># 第 10 章 錯誤處理
+
+[返回目錄](README.md)
+
+C++ 有異常、錯誤碼、`std::optional`/`std::expected` 等多種錯誤處理機制。用錯機制、破壞異常安全、或在錯誤的地方拋異常,都會帶來資源洩漏、程序終止或難以維護的代碼。
+
+---
+
+### #86 析構函數拋異常
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Writer {
+    ~Writer() {
+        flush();          // flush 可能拋異常；析構默認 noexcept → 拋出即 std::terminate
+    }
+};
+void f() {
+    Writer w;
+    throw std::runtime_error("x");   // 棧展開中若 w 析構再拋異常 → 直接終止程序
+}
+```
+
+**為什麼錯**
+
+C++11 起析構函數默認是 `noexcept`。從析構拋異常會調用 `std::terminate()`。更糟的是,若異常正在傳播、棧展開過程中某對象析構又拋異常,同樣會直接終止程序。
+
+**正確做法**
+
+```cpp
+struct Writer {
+    void close() { flush(); }        // 可能失敗的收尾放到顯式方法，讓調用方處理
+    ~Writer() noexcept {
+        try { flush(); } catch (...) { /* 記錄日誌，絕不外拋 */ }
+    }
+};
+```
+
+析構函數絕不拋異常;可能失敗的清理放到顯式的 `close()` 方法;析構裡若必須做,就 `try/catch` 吞掉並記錄。參見 [#84](ch09-concurrency.md#84-在析構中做阻塞-io)。
+
+**適用標準**：C++11(析構默認 `noexcept`)。
+
+**相關準則**：C.36、E.16
+
+---
+
+### #87 從 move 操作拋異常
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+struct Widget {
+    std::vector<int> data;
+    Widget(Widget&& o) {              // 未標 noexcept，且實現裡可能拋
+        data = o.data;                // 用了拷貝而非移動，可能拋 bad_alloc
+    }
+};
+// std::vector<Widget> 擴容時無法安全使用移動 → 退化為拷貝，性能大損
+```
+
+**為什麼錯**
+
+若移動操作可能拋異常,標準容器在擴容等場景無法提供強異常安全保證,會**退化為拷貝**(見 [#38](ch05-move-semantics.md#38-move-構造--賦值未標-noexcept))。而一個真正的移動本不該分配/拋異常。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <utility>
+struct Widget {
+    std::vector<int> data;
+    Widget(Widget&& o) noexcept : data(std::move(o.data)) {}   // 真移動，不拋
+    Widget& operator=(Widget&& o) noexcept {
+        data = std::move(o.data);
+        return *this;
+    }
+};
+```
+
+移動操作應實現為**真正的資源轉移**(不分配、不拋)並標 `noexcept`。
+
+**適用標準**：C++11。
+
+**相關準則**：C.66、E.16
+
+---
+
+### #88 忽略返回的錯誤碼
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <cstdio>
+void f() {
+    FILE* fp = std::fopen("data.txt", "r");
+    // 沒檢查 fp 是否為 nullptr（打開失敗）
+    char buf[100];
+    std::fread(buf, 1, 100, fp);   // fp 為空 → 崩潰；或忽略 fread 的返回值
+}
+```
+
+**為什麼錯**
+
+C 風格 API 和部分 C++ API 通過返回值/錯誤碼報告失敗。忽略這些返回值會讓錯誤被靜默吞掉,程序在錯誤狀態下繼續運行,最終以更難定位的方式崩潰。
+
+**正確做法**
+
+```cpp
+#include <cstdio>
+#include <system_error>
+void f() {
+    FILE* fp = std::fopen("data.txt", "r");
+    if (!fp) throw std::system_error(errno, std::generic_category(), "open failed");
+    // ... 檢查每個 I/O 調用的返回值 ...
+    std::fclose(fp);
+}
+
+// 現代做法：用 [[nodiscard]] 標註不可忽略的返回值，讓編譯器警告
+[[nodiscard]] int compute();
+```
+
+檢查每個可能失敗的返回值;給重要的返回值加 `[[nodiscard]]`,讓「忽略返回值」變成編譯警告。優先使用 RAII 封裝 C 資源。
+
+**適用標準**：`[[nodiscard]]` 為 C++17;其餘 C++98 遺留。
+
+**相關準則**：E.2、F.20
+
+---
+
+### #89 `catch(...)` 吞掉異常
+
+**現象 / 錯誤示例**
+
+```cpp
+void f() {
+    try {
+        doWork();
+    } catch (...) {
+        // 什麼都不做，異常被徹底吞掉 → 問題被掩蓋，無從排查
+    }
+}
+```
+
+**為什麼錯**
+
+`catch(...)` 捕獲一切卻不處理、不記錄、不重拋,會把真正的錯誤完全隱藏,程序帶著損壞的狀態繼續運行,是最難排查的一類 bug 來源。
+
+**正確做法**
+
+```cpp
+#include <stdexcept>
+#include <iostream>
+void f() {
+    try {
+        doWork();
+    } catch (const std::exception& e) {
+        std::cerr << "error: " << e.what() << '\n';   // 至少記錄
+        throw;                                         // 需要時重拋，別靜默吞掉
+    }
+}
+```
+
+只捕獲你能真正處理的異常;`catch(...)` 若使用,至少要記錄日誌,通常還應重拋(`throw;`)。絕不空 `catch` 吞異常。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：E.15、E.17
+
+---
+
+### #90 非異常安全的資源獲取順序
+
+**現象 / 錯誤示例**
+
+```cpp
+struct Resource { Resource(); };
+struct Manager {
+    Resource* a;
+    Resource* b;
+    Manager() {
+        a = new Resource();
+        b = new Resource();   // 若這裡拋異常，a 已分配但 Manager 未構造完 → 析構不會調用 → 洩漏
+    }
+    ~Manager() { delete a; delete b; }
+};
+```
+
+**為什麼錯**
+
+構造函數拋異常時,該對象**未完成構造**,其析構函數**不會被調用**。因此構造中途已分配的裸資源(如 `a`)會洩漏——析構裡的 `delete a` 永遠執行不到。
+
+**正確做法**
+
+```cpp
+#include <memory>
+struct Resource { Resource(); };
+struct Manager {
+    std::unique_ptr<Resource> a = std::make_unique<Resource>();
+    std::unique_ptr<Resource> b = std::make_unique<Resource>();
+    // 若 b 構造拋異常，已構造的成員 a 會被自動析構（成員的逆序析構） → 不洩漏
+};
+```
+
+用 RAII 成員:構造中途拋異常時,**已完成構造的成員會被自動逆序析構**,無需手寫析構、天然異常安全。參見 [#22](ch03-memory-raii.md#22-異常路徑下手動-delete-洩漏)。
+
+**適用標準**：C++11/14。
+
+**相關準則**：E.6、C.41
+
+---
+
+### #91 用異常處理正常控制流
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <stdexcept>
+#include <map>
+#include <string>
+int lookup(const std::map<std::string, int>& m, const std::string& k) {
+    try {
+        return m.at(k);              // 把「鍵不存在」當異常處理
+    } catch (const std::out_of_range&) {
+        return -1;                   // 每次未命中都拋+catch，代價高
+    }
+}
+```
+
+**為什麼錯**
+
+異常適用於**異常/罕見**情況,拋出和棧展開代價較高。把「查找未命中」這類**預期內的正常分支**用異常處理,既慢又晦澀,違背異常的設計初衷。
+
+**正確做法**
+
+```cpp
+#include <map>
+#include <optional>
+#include <string>
+std::optional<int> lookup(const std::map<std::string, int>& m, const std::string& k) {
+    auto it = m.find(k);
+    if (it == m.end()) return std::nullopt;   // 正常返回「無」，不拋異常
+    return it->second;
+}
+```
+
+預期內的「失敗/缺失」用返回值表達(`std::optional`、`std::expected`、錯誤碼);異常留給真正異常的情況。
+
+**適用標準**：`optional` 為 C++17;`expected` 為 C++23。
+
+**相關準則**：E.3
+
+---
+
+### #92 `noexcept` 標註不當
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+int compute(std::vector<int>& v) noexcept {   // 聲稱不拋
+    v.reserve(1000000000);                     // 可能拋 std::bad_alloc / length_error
+    return v.size();                           // 一旦拋出 → 直接 std::terminate
+}
+```
+
+**為什麼錯**
+
+`noexcept` 是一種承諾:此函數不會拋異常。若標了 `noexcept` 卻實際拋出,程序直接 `std::terminate()`,沒有挽回餘地。給可能拋異常的函數亂標 `noexcept` 埋下了終止程序的地雷。
+
+**正確做法**
+
+```cpp
+#include <vector>
+// 只對「真正保證不拋」的函數標 noexcept：移動操作、swap、析構、簡單訪問器等
+struct Widget {
+    int x;
+    int get() const noexcept { return x; }          // 確實不拋
+    void swap(Widget& o) noexcept { std::swap(x, o.x); }
+};
+
+int compute(std::vector<int>& v) {                  // 可能拋就不標 noexcept
+    v.reserve(1000);
+    return static_cast<int>(v.size());
+}
+```
+
+只給**確實不會拋**的函數(移動、`swap`、析構、平凡訪問器)標 `noexcept`;不確定就不標。錯誤的 `noexcept` 比不標更危險。
+
+**適用標準**：C++11。
+
+**相關準則**：E.12、C.66
+
+---
+
+### #93 跨模塊邊界拋異常
+
+**現象 / 錯誤示例**
+
+```cpp
+// 在動態庫(.so/.dll)的導出邊界直接拋 C++ 異常
+extern "C" int plugin_process(const char* data);   // C 接口
+int plugin_process(const char* data) {
+    if (!data) throw std::invalid_argument("null");  // 跨 ABI/語言邊界拋異常
+    // 調用方是 C 或用不同編譯器/運行時編譯的模塊 → 未定義行為/崩潰
+    return 0;
+}
+```
+
+**為什麼錯**
+
+C++ 異常依賴具體的 ABI 和運行時。跨越 DLL/SO 邊界、`extern "C"` 接口、或不同編譯器/運行時構建的模塊拋異常,異常無法被正確捕獲或展開,導致**未定義行為**或崩潰。
+
+**正確做法**
+
+```cpp
+#include <stdexcept>
+extern "C" int plugin_process(const char* data) noexcept {   // 邊界處不外拋
+    try {
+        if (!data) return -1;        // 用錯誤碼跨邊界報告
+        // ... 內部可用異常 ...
+        return 0;
+    } catch (...) {
+        return -2;                   // 把異常轉換成錯誤碼，絕不越過邊界
+    }
+}
+```
+
+在模塊/ABI 邊界處用 `try/catch` 把異常轉換成錯誤碼或狀態返回;不要讓 C++ 異常穿越 `extern "C"` 或動態庫邊界。
+
+**適用標準**：C++11(`noexcept`);問題本身 C++98 遺留。
+
+**相關準則**：E.31</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 第四部分 ==================== -->
+    <h2 class="section-title" style="font-size: 20px; color: var(--text-dim); margin-top: 32px; margin-bottom: 16px; border-bottom: none;">第四部分：標準庫、性能與系統編程</h2>
+
+    <details>
+      <summary><span>第 11 章 標準庫與 API 使用</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 11 章 內容</span>
+            <button class="copy-btn" data-target="ch11">📋 複製</button>
+          </div>
+          <pre id="ch11"># 第 11 章 標準庫與 API 使用
+
+[返回目錄](README.md)
+
+現代 C++ 標準庫提供了 `string_view`、`span`、`chrono`、隨機數引擎等強大工具,但它們各有「用法契約」。誤用往往表現為懸垂、單位錯誤或性能問題。
+
+---
+
+### #94 `string_view` / `span` 懸垂
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string_view>
+#include <string>
+std::string_view getName() {
+    std::string name = "Alice";
+    return name;              // name 是局部對象，返回後銷毀 → string_view 懸垂
+}                             // 調用者拿到指向已銷毀存儲的 view
+
+std::string_view sv = std::string("temp");   // 綁定到臨時對象 → 語句結束即懸垂
+```
+
+**為什麼錯**
+
+`std::string_view` 和 `std::span` 是**非擁有(non-owning)**的視圖,只保存指針 + 長度,不延長被觀察對象的生命週期。若底層字符串/數組已銷毀(局部變量返回、綁定臨時量),視圖即**懸垂**,訪問是 use-after-free、**未定義行為(UB)**。
+
+**正確做法**
+
+```cpp
+#include <string_view>
+#include <string>
+std::string getName() {
+    return "Alice";          // 需要返回/存儲時，返回擁有型 std::string
+}
+
+void use(std::string_view sv);   // 作為函數「入參」時用 string_view 很合適（只借用）
+void caller() {
+    std::string s = "Alice";
+    use(s);                  // s 在調用期間存活，安全
+}
+```
+
+`string_view`/`span` 只用作**函數參數**(生命週期短於實參);需要**存儲或返回**時,持有擁有型對象(`std::string`/`std::vector`)。絕不讓視圖綁定臨時量或局部變量。參見 [#19](ch03-memory-raii.md#19-懸垂指針-use-after-free)。
+
+**適用標準**：`string_view` 為 C++17;`span` 為 C++20。
+
+**相關準則**：F.24、Lifetime 規則
+
+---
+
+### #95 `c_str()` 生命週期問題
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <cstring>
+const char* getCStr() {
+    std::string s = "hello";
+    return s.c_str();        // s 析構後，返回的指針懸垂
+}
+
+const char* p = (std::string("a") + "b").c_str();   // 臨時 string 已銷毀 → 懸垂
+```
+
+**為什麼錯**
+
+`std::string::c_str()` 返回指向字符串**內部存儲**的指針,其有效期不超過該字符串對象(且下次修改字符串也會失效)。把它返回、或從臨時 string 上取,都會得到懸垂指針。
+
+**正確做法**
+
+```cpp
+#include <string>
+std::string getStr() {
+    return "hello";          // 返回 string 本身，讓調用者管理生命週期
+}
+void useC(const char* p);
+void caller() {
+    std::string s = "hello";
+    useC(s.c_str());         // s 在調用期間存活，c_str() 有效
+}
+```
+
+`c_str()` 的結果只在源字符串存活且未被修改期間有效;需要傳給 C API 時,確保源 `std::string` 在整個調用期間存活。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：F.24、SL.str.2
+
+---
+
+### #96 `std::chrono` 單位混用
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <chrono>
+#include <thread>
+void wait(long timeout) {                     // timeout 到底是秒、毫秒還是微秒？
+    std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
+    // 調用方以為傳的是秒，實際按毫秒處理 → 時間差 1000 倍
+}
+```
+
+**為什麼錯**
+
+用裸整數表示時間,單位信息丟失,調用方和實現方對單位的理解一旦不一致,就產生數量級的時間錯誤。這類 bug 在超時、限速邏輯裡危害極大。
+
+**正確做法**
+
+```cpp
+#include <chrono>
+#include <thread>
+// 用帶單位的 chrono 類型作為接口，編譯期強制單位正確
+void wait(std::chrono::milliseconds timeout) {
+    std::this_thread::sleep_for(timeout);
+}
+void caller() {
+    using namespace std::chrono_literals;
+    wait(500ms);             // 明確 500 毫秒
+    wait(2s);                // 2 秒自動轉換為毫秒，類型安全
+    // wait(500);            // 編譯錯誤：裸整數不能隱式轉成 milliseconds（好事）
+}
+```
+
+接口用 `std::chrono::duration` 類型(如 `milliseconds`)而非裸整數;不同單位之間由 `chrono` 自動、安全地轉換。C++14 起可用 `500ms`、`2s` 等字面量。
+
+**適用標準**：`chrono` 為 C++11;時間字面量為 C++14。
+
+**相關準則**：無(類型安全實踐)
+
+---
+
+### #97 誤用 C 的 `rand()`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <cstdlib>
+int roll() {
+    return rand() % 6 + 1;   // 多個問題：質量差、% 引入偏差、未播種或播種不當
+}
+```
+
+**為什麼錯**
+
+C 的 `rand()` 隨機質量差、週期短;`rand() % n` 會引入**模偏差**(分布不均勻);而且它不是線程安全的、全局狀態。用它做任何需要均勻/高質量隨機的場景都不合適。
+
+**正確做法**
+
+```cpp
+#include <random>
+int roll() {
+    static thread_local std::mt19937 gen{std::random_device{}()};  // 每線程獨立、正確播種
+    std::uniform_int_distribution<int> dist(1, 6);                 // 無模偏差的均勻分布
+    return dist(gen);
+}
+```
+
+用 `<random>`:引擎(如 `std::mt19937`)+ 分布(如 `uniform_int_distribution`),用 `std::random_device` 播種,引擎按線程持有(`thread_local`)。不要用 `rand()` 和 `% n`。
+
+**適用標準**：`<random>` 為 C++11。
+
+**相關準則**：無(標準庫實踐)
+
+---
+
+### #98 `std::endl` 頻繁刷新
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <iostream>
+void dump(const int* a, int n) {
+    for (int i = 0; i < n; ++i)
+        std::cout << a[i] << std::endl;   // 每行都強制 flush → 大量系統調用，很慢
+}
+```
+
+**為什麼錯**
+
+`std::endl` 不只是換行,它還**強制刷新(flush)**輸出緩衝區。在循環裡頻繁使用會觸發大量系統調用,嚴重拖慢 I/O 性能,而多數場景並不需要每行都刷新。
+
+**正確做法**
+
+```cpp
+#include <iostream>
+void dump(const int* a, int n) {
+    for (int i = 0; i < n; ++i)
+        std::cout << a[i] << '\n';        // 只換行，不刷新，讓緩衝區自然工作
+    std::cout << std::flush;              // 確需刷新時，末尾顯式 flush 一次
+}
+```
+
+用 `'\n'` 換行;僅在確實需要保證輸出落地時(如交互提示、程序退出前)顯式 `std::flush` 或 `std::endl`。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：Per.1(避免不必要開銷)</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 12 章 性能與優化</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 12 章 內容</span>
+            <button class="copy-btn" data-target="ch12">📋 複製</button>
+          </div>
+          <pre id="ch12"># 第 12 章 性能與優化
+
+[返回目錄](README.md)
+
+C++ 以性能著稱,但「寫得快」需要理解拷貝、分配、緩存等成本。本章的原則是:先保證正確與清晰,再基於**測量**做優化——但同時避免那些無謂的、隨手就能消除的浪費。
+
+---
+
+### #99 不必要的拷貝
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <string>
+void process(std::vector<std::string> data) {   // 按值傳大對象 → 每次調用都整體拷貝
+    for (std::string s : data) {                 // 逐元素拷貝
+        use(s);
+    }
+}
+```
+
+**為什麼錯**
+
+按值傳遞大對象(容器、字符串)會觸發昂貴的深拷貝;在循環裡按值取元素同樣逐個拷貝。這些拷貝往往完全沒必要,是最常見的性能浪費。
+
+**正確做法**
+
+```cpp
+#include <vector>
+#include <string>
+void process(const std::vector<std::string>& data) {   // 只讀入參用 const 引用
+    for (const std::string& s : data) {                 // 引用遍歷，零拷貝
+        use(s);
+    }
+}
+```
+
+只讀的大對象參數用 `const T&`;遍歷用 `const auto&`/`const T&`。只有確實需要獨立副本(會修改、要存起來)時才按值。參見 [#15](ch02-fundamental-types.md#15-誤用-auto-丟失引用--const)、[#43](ch05-move-semantics.md#43-按值傳參與完美轉發混淆)。
+
+**適用標準**：C++98 遺留(範圍 for 為 C++11)。
+
+**相關準則**：F.16、Per.11
+
+---
+
+### #100 循環內 `string +=` 重複分配
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <string>
+#include <vector>
+std::string join(const std::vector<std::string>& parts) {
+    std::string result;
+    for (const auto& p : parts)
+        result += p;         // 每次 += 可能觸發重分配 + 拷貝已有內容 → O(n²) 最壞
+    return result;
+}
+```
+
+**為什麼錯**
+
+字符串/容器在容量不足時按倍數增長並搬移已有內容。在循環裡不斷追加而不預留容量,可能反覆重分配,最壞退化為二次方複雜度。
+
+**正確做法**
+
+```cpp
+#include <string>
+#include <vector>
+#include <numeric>
+std::string join(const std::vector<std::string>& parts) {
+    std::size_t total = 0;
+    for (const auto& p : parts) total += p.size();
+    std::string result;
+    result.reserve(total);          // 一次預留足夠容量
+    for (const auto& p : parts) result += p;   // 不再重分配
+    return result;
+}
+```
+
+已知或可估算最終大小時先 `reserve`。參見 [#73](ch08-stl.md#73-缺少-reserve-導致多次重分配)。
+
+**適用標準**：C++98 遺留(所有版本)。
+
+**相關準則**：Per.7、Per.19
+
+---
+
+### #101 忽視緩存局部性與數據佈局
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <vector>
+#include <memory>
+struct Particle { float x, y, z; /* ...更多字段... */ };
+
+// 指針數組：每個元素散落在堆各處，遍歷時緩存頻繁未命中
+std::vector<std::unique_ptr<Particle>> particles;
+void update() {
+    for (auto& p : particles) p->x += 1.0f;   // 每次跳到不同的堆地址
+}
+```
+
+**為什麼錯**
+
+現代 CPU 的性能高度依賴緩存。數據分散在堆各處(指針間接、鏈式結構)會導致大量緩存未命中,遍歷性能遠低於連續存儲。這類問題在數據密集的熱點循環裡尤為明顯。
+
+**正確做法**
+
+```cpp
+#include <vector>
+struct Particle { float x, y, z; };
+
+std::vector<Particle> particles;      // 連續存儲，遍歷緩存友好
+void update() {
+    for (auto& p : particles) p.x += 1.0f;   // 順序訪問，命中緩存
+}
+// 更進一步：熱點場景可考慮 SoA（結構體數組 → 數組的結構體）提升向量化
+```
+
+熱點數據用連續容器(`std::vector`)按值存儲;避免不必要的指針間接;必要時按訪問模式重新組織數據佈局(如 SoA)。但——先測量再優化(見 [#102](#102-未-profiling-的過早優化))。
+
+**適用標準**：C++11(智能指針示例);原則與版本無關。
+
+**相關準則**：Per.11、Per.19
+
+---
+
+### #102 未 profiling 的過早優化
+
+**現象 / 錯誤示例**
+
+```cpp
+// 憑直覺「優化」：把清晰的代碼改寫成晦澀的位運算/手工展開循環，
+// 卻沒有測量證明這裡是瓶頸，也沒驗證優化真的更快
+int slow_but_clear(int x) { return x * 2; }
+int "optimized"(int x) { return x << 1; }   // 編譯器本就會做，改寫只降低可讀性
+```
+
+**為什麼錯**
+
+在沒有 profiling 數據的情況下憑猜測優化,往往:優化了非瓶頸(無收益)、犧牲了可讀性和正確性、甚至比編譯器自動優化更差。「過早優化是萬惡之源」。
+
+**正確做法**
+
+```cpp
+// 1. 先寫清晰、正確的代碼
+// 2. 用 profiler（perf、Instruments、VTune 等）測量，找到真正的熱點
+// 3. 只針對熱點、基於基準測試（如 Google Benchmark）優化，並驗證收益
+// 4. 保留可讀版本作為對照
+int compute(int x) { return x * 2; }   // 清晰即可，交給編譯器 -O2 優化
+```
+
+流程:**先正確清晰 → 測量定位熱點 → 針對性優化並用基準驗證收益**。相信編譯器的常規優化,不要用可讀性換取想像中的性能。
+
+**適用標準**：與版本無關(工程實踐)。
+
+**相關準則**：Per.1、Per.2、Per.3</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary><span>第 13 章 系統編程與 Linux I/O</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">第 13 章 內容</span>
+            <button class="copy-btn" data-target="ch13">📋 複製</button>
+          </div>
+          <pre id="ch13"># 第 13 章 系統編程與 Linux I/O（平台相關）
+
+[返回目錄](README.md)
+
+> **本章為 Linux 平台相關內容,並非可移植的標準 C++。** 本章代碼依賴 `<sys/epoll.h>` 等 Linux 系統頭文件與內核接口(`epoll` 需 Linux 2.6+)。之所以納入本書,是因為 `epoll` 誤用是 Linux 網絡服務中極高頻、極難查的 bug 來源。若你的代碼需要跨平台,請使用抽象層(如 libevent、Boost.Asio)而非直接調用這些接口。
+
+`epoll` 是 Linux 高性能 I/O 多路復用的核心。它的邊緣觸發模式、fd 生命週期、以及 `data.ptr` 的手工管理,都是踩坑重災區。
+
+---
+
+### #103 epoll ET 模式未循環讀到 `EAGAIN`
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <sys/epoll.h>
+#include <unistd.h>
+// 以邊緣觸發(EPOLLET)註冊 fd
+void on_readable(int fd) {
+    char buf[4096];
+    ssize_t n = read(fd, buf, sizeof(buf));   // 只讀一次
+    handle(buf, n);
+    // 若內核緩衝區裡還有更多數據，ET 模式下不會再次通知 →
+    // 剩餘數據「卡」在緩衝區，事件丟失 / 連接看起來「假死」
+}
+```
+
+**為什麼錯**
+
+**邊緣觸發(edge-triggered, `EPOLLET`)** 只在狀態**發生變化**時通知一次。若一次 `read` 沒把內核緩衝區讀空,ET 不會再次觸發該 fd 的可讀事件,剩餘數據將一直滯留,表現為請求處理不完整、連接飢餓或假死。
+
+**正確做法**
+
+```cpp
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <cerrno>
+void on_readable(int fd) {
+    char buf[4096];
+    while (true) {
+        ssize_t n = read(fd, buf, sizeof(buf));
+        if (n > 0) {
+            handle(buf, n);
+        } else if (n == 0) {
+            close_connection(fd);        // 對端關閉
+            break;
+        } else {  // n < 0
+            if (errno == EAGAIN || errno == EWOULDBLOCK) break;  // 已讀空，正常退出
+            if (errno == EINTR) continue;                        // 被信號打斷，重試
+            handle_error(fd);
+            break;
+        }
+    }
+}
+```
+
+ET 模式下必須**循環讀取直到 `read` 返回 `EAGAIN`/`EWOULDBLOCK`**(表示緩衝區已讀空);寫事件同理循環寫到 `EAGAIN`。前提是 fd 設為非阻塞(`O_NONBLOCK`),否則循環會阻塞。水平觸發(level-triggered)模式則無此要求,但需注意及時處理以免反覆通知。
+
+**適用標準**：C++11 及以上語法;**Linux 平台相關**(`<sys/epoll.h>`,epoll 需 Linux 2.6+,`EPOLLET`)。
+
+**相關準則**：無(平台 API 使用)
+
+---
+
+### #104 `epoll_ctl` 與 `close(fd)` 的競態
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <sys/epoll.h>
+#include <unistd.h>
+void drop_connection(int epfd, int fd) {
+    close(fd);          // 先關閉 fd
+    // 忘記（或來不及）從 epoll 刪除；且 fd 號可能立即被新連接復用
+    // 此後 epoll 仍關聯著這個 fd 號，事件被投遞到「錯誤的對象」
+}
+```
+
+**為什麼錯**
+
+`close(fd)` 會把該 fd 號釋放回系統,可能**立即被新打開的 fd 復用**。若在 `close` 之前沒有 `epoll_ctl(EPOLL_CTL_DEL)`,epoll 內部仍關聯著這個 fd 號;當號被復用後,針對舊連接的事件會被錯誤地投遞到新連接對象上,造成數據錯亂、崩潰或安全問題。(注意:epoll 關聯的是底層「文件描述」,`dup` 出的副本仍在時行為更複雜。)
+
+**正確做法**
+
+```cpp
+#include <sys/epoll.h>
+#include <unistd.h>
+void drop_connection(int epfd, int fd) {
+    epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);   // 先從 epoll 註銷
+    close(fd);                                      // 再關閉 fd
+}
+```
+
+**順序至關重要:先 `EPOLL_CTL_DEL`,再 `close(fd)`。** 單線程下這樣即可;多線程(一個線程 `epoll_wait`、另一個關 fd)還需額外同步,避免 `epoll_wait` 已返回舊 fd 的事件後、你才處理時 fd 已被復用——常見做法是用「關閉意圖標記 + 由事件循環線程統一關閉」。
+
+**適用標準**：C++11 及以上語法;**Linux 平台相關**(`<sys/epoll.h>`、`<unistd.h>`)。
+
+**相關準則**：無(平台 API 使用)
+
+---
+
+### #105 `epoll_event.data.ptr` 懸垂
+
+**現象 / 錯誤示例**
+
+```cpp
+#include <sys/epoll.h>
+struct Conn { int fd; /* ... */ };
+
+void add(int epfd, Conn* c) {
+    epoll_event ev{};
+    ev.events = EPOLLIN;
+    ev.data.ptr = c;                       // 關聯裸指針
+    epoll_ctl(epfd, EPOLL_CTL_ADD, c->fd, &ev);
+}
+void loop(int epfd, epoll_event* events, int n) {
+    for (int i = 0; i < n; ++i) {
+        auto* c = static_cast<Conn*>(events[i].data.ptr);
+        c->handle();       // 若這個 Conn 早已被 delete，則懸垂指針 → use-after-free
+    }
+}
+```
+
+**為什麼錯**
+
+`epoll_event.data.ptr` 常用來關聯「連接對象」的指針。但 epoll 只是原樣保存這個裸指針,**不管理其生命週期**。若對象在事件到達前已被銷毀(如連接在別處被關閉並 `delete`),事件循環拿到的就是**懸垂指針**,解引用是 use-after-free、未定義行為。這與 [#19](ch03-memory-raii.md#19-懸垂指針-use-after-free)、[#82](ch09-concurrency.md#82-逃逸的-lambda-按引用--this-捕獲導致懸垂) 是同一類生命週期問題。
+
+**正確做法**
+
+```cpp
+#include <sys/epoll.h>
+#include <unordered_map>
+#include <memory>
+
+// 方式一：用「所有者容器」持有對象，data.ptr/data.fd 只作索引，
+//         刪除時保證「先 EPOLL_CTL_DEL 再銷毀對象」（見 #104）
+struct Reactor {
+    int epfd;
+    std::unordered_map<int, std::unique_ptr<Conn>> conns;   // fd -> 擁有的連接
+
+    void remove(int fd) {
+        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);   // 先註銷事件
+        conns.erase(fd);                                // 再銷毀對象
+    }
+    void loop(epoll_event* events, int n) {
+        for (int i = 0; i < n; ++i) {
+            int fd = events[i].data.fd;                 // 用 fd 作索引，而非裸指針
+            auto it = conns.find(fd);
+            if (it != conns.end()) it->second->handle(); // 存活才處理
+        }
+    }
+};
+```
+
+明確 `data.ptr` 指向對象的所有權與銷毀時機:讓一個「所有者容器」持有對象,`data`(存 fd 或索引)只做查找;銷毀對象前**先 `EPOLL_CTL_DEL`**(見 [#104](#104-epoll_ctl-與-closefd-的競態)),並在事件循環裡查表確認對象仍存活後再訪問。切勿把裸指針存進 `data.ptr` 後又在別處隨意 `delete`。
+
+**適用標準**：C++11 及以上語法;**Linux 平台相關**(`<sys/epoll.h>`)。
+
+**相關準則**：無(平台 API 使用),生命週期原則參見 R.3、F.7</pre>
+        </div>
+      </div>
+    </details>
+
+  </main>
+
+  <!-- 右側面板：快速提醒 -->
+  <aside class="refpanel" id="refpanel">
+    <div class="refpanel-header">
+      <span class="refpanel-title">考場急救指南</span>
+      <button class="refpanel-collapse-btn" id="collapseBtn" title="收合／展開">收合 ›</button>
+    </div>
+    <div class="refpanel-body">
+      <h3>🚑 如何使用這本百科？</h3>
+      <p>1. 當 AI 卡住、瞎掰，或你發現程式碼行為詭異時。</p>
+      <p>2. 先在最上方的橘色區塊點「📋 複製」（語言轉換警告）。</p>
+      <p>3. 根據下方對照表，展開對應的章節，點擊該章節的「📋 複製」。</p>
+      <p>4. 把「警告詞」+「章節內容」+「你的爛 Code」一起貼給 AI。</p>
+
+      <h3>🔍 症狀與章節對照表</h3>
+      <table class="ref-table">
+        <thead>
+        <tr><th>你遇到的狀況</th><th>建議去查哪章</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>編譯不過、語法錯誤、找不到標頭檔</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 1 章</span> 代碼組織</td></tr>
+        <tr><td>數字算錯、整數溢出、無限迴圈</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 2 章</span> 基本類型</td></tr>
+        <tr><td>程式崩潰(Segfault)、記憶體位址亂跳</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 3 章</span> 記憶體管理</td></tr>
+        <tr><td>重複釋放(Double free)、懸垂指針</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 4 章</span> 資源所有權</td></tr>
+        <tr><td>不知道物件解構、指標沒設 nullptr</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 5 章</span> 移動語義</td></tr>
+        <tr><td>繼承出錯、多型沒生效、物件被切片</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 6 章</span> 類與繼承</td></tr>
+        <tr><td>模板語法錯誤、泛型編譯不過</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 7 章</span> 模板與泛型</td></tr>
+        <tr><td>陣列越界、迭代器失效、STL 誤用</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 8 章</span> 標準庫容器</td></tr>
+        <tr><td>多執行緒死結、資料競爭、結果不穩</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 9 章</span> 併發</td></tr>
+        <tr><td>拋異常沒人接、資源洩漏、程式終止</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 10 章</span> 錯誤處理</td></tr>
+        <tr><td>API 用錯、字串處理怪怪的</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 11 章</span> 標準庫 API</td></tr>
+        <tr><td>程式跑很慢、吃太多記憶體 (TLE)</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 12 章</span> 性能優化</td></tr>
+        <tr><td>系統呼叫失敗、Linux I/O 卡住</td><td class="cat"><span style="color: #ff7b72; font-weight: bold;">第 13 章</span> 系統編程</td></tr>
+        </tbody>
+      </table>
+
+      <h3>🔥 終極絕招：讓 AI 自己查</h3>
+      <div class="note" style="background: rgba(217, 119, 6, 0.15); border-left-color: #d97706; color: #fcd34d;">
+        如果你<strong>完全不知道</strong>是哪一類問題，請把「📖 前言與導讀」的內容（裡面有 105 條目錄）全部複製，連同你的 Code 丟給 AI，並跟它說：<br><br>
+        <em>「這是 C++ 常見錯誤目錄，我的 C 語言程式碼有 Bug，請你根據目錄，判斷我的程式碼最可能中了哪一條？並用純 C 語言幫我修復。」</em>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  // ==================== 複製功能 ====================
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast() {
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      // 阻止點擊按鈕時觸發 details 的展開/收合
+      e.preventDefault(); 
+      e.stopPropagation();
+      
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (!targetEl) return;
+      
+      // 如果內容是空的或只有佔位符，給個提醒
+      if (targetEl.textContent.trim() === '[請填入文字]' || targetEl.textContent.trim() === '') {
+        alert('請先填入文字！');
+        return;
+      }
+
+      copyText(targetEl.textContent);
+      const original = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+
+  // ==================== 右側收合 ====================
+  const layout = document.getElementById('layout');
+  const collapseBtn = document.getElementById('collapseBtn');
+
+  const stored = localStorage.getItem('refpanelCollapsed');
+  if (stored === '1') {
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  }
+
+  collapseBtn.addEventListener('click', () => {
+    layout.classList.toggle('panel-collapsed');
+    const collapsed = layout.classList.contains('panel-collapsed');
+    collapseBtn.textContent = collapsed ? '‹ 展開' : '收合 ›';
+    localStorage.setItem('refpanelCollapsed', collapsed ? '1' : '0');
+    if (window.innerWidth <= 1024) {
+      document.getElementById('refpanel').classList.toggle('open', !collapsed);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth > 1024) return;
+    const refpanel = document.getElementById('refpanel');
+    if (!refpanel.classList.contains('open')) return;
+    if (refpanel.contains(e.target) || collapseBtn.contains(e.target)) return;
+    refpanel.classList.remove('open');
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  });
+</script>
+</body>
+</html>

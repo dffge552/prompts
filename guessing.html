@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猜題專區 — 考場技術預測與陷阱</title>
+<style>
+  :root {
+    --bg: #1a1d23;
+    --sidebar-bg: #14171c;
+    --panel-bg: #23272f;
+    --pre-bg: #12151a;
+    --border: #2e333d;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    --accent: #4f9cf9;
+    --accent-dim: #2c5a94;
+    --success: #4caf7d;
+    --warn-bg: #4a3f13;
+    --warn-border: #b8962e;
+    --warn-text: #ffe08a;
+    --danger-bg: #3a1e1e;
+    --danger-border: #c85a5a;
+    --danger-text: #ffb8b8;
+    --purple: #a78bfa;
+    --sidebar-w: 220px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  /* 左側欄 */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w); background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 {
+    font-size: 16px; color: var(--text-dim);
+    margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+  }
+  .sidebar h2 {
+    font-size: 13px; color: #6b7280; margin: 20px 8px 6px;
+    letter-spacing: 1px; font-weight: 600; text-transform: uppercase;
+  }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0;
+    border-radius: 8px; color: var(--text-dim); text-decoration: none;
+    font-size: 15px; transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+  /* 主內容 */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1; padding: 28px 40px 80px;
+    max-width: 1000px;
+  }
+  .page-title {
+    font-size: 30px; font-weight: 700; margin: 0 0 8px;
+    padding-bottom: 12px; border-bottom: 2px solid var(--border);
+  }
+  .page-subtitle {
+    color: var(--text-dim); font-size: 16px; margin: 0 0 24px;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--border);
+  }
+
+  /* 折疊區塊 */
+  details {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  details[open] {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  summary {
+    padding: 16px 20px; font-size: 18px; font-weight: 700;
+    color: var(--accent); cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1e2229; transition: background 0.15s;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { background: #23272f; }
+  summary .arrow { font-size: 14px; color: var(--text-dim); transition: transform 0.3s; }
+  details[open] summary .arrow { transform: rotate(180deg); }
+
+  .detail-body { border-top: 1px solid var(--border); }
+
+  .block { margin: 0; }
+  .block-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: #12151a;
+  }
+  .block-title { font-size: 15px; font-weight: 600; color: var(--text-dim); }
+  .copy-btn {
+    padding: 6px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 14px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+  .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+
+  pre {
+    margin: 0; padding: 20px; background: var(--pre-bg);
+    font-family: "SF Mono", "Consolas", "Menlo", "Courier New", monospace;
+    font-size: 14.5px; line-height: 1.7; color: #d4d8de;
+    white-space: pre-wrap; word-wrap: break-word;
+    max-height: 500px; overflow-y: auto;
+  }
+
+  /* 提示框 */
+  .warn-box {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-border);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--warn-text); font-size: 16px; line-height: 1.7;
+  }
+  .warn-box strong { color: #fff; }
+  .danger-box {
+    background: var(--danger-bg); border-left: 4px solid var(--danger-border);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--danger-text); font-size: 16px; line-height: 1.7;
+  }
+  .danger-box strong { color: #fff; }
+  .note-box {
+    background: #1e2229; border-left: 4px solid var(--accent);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--text); font-size: 16px; line-height: 1.7;
+  }
+  .note-box strong { color: var(--accent); }
+  .purple-box {
+    background: rgba(167,139,250,0.1); border-left: 4px solid var(--purple);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: #ddd6fe; font-size: 16px; line-height: 1.7;
+  }
+  .purple-box strong { color: #fff; }
+
+  /* 題目卡片三欄：題目/錯誤/正確 */
+  .q-card { padding: 0 20px 20px; }
+  .q-section { margin-top: 16px; }
+  .q-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 3px 10px; border-radius: 4px; margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .q-label.q { background: rgba(79,156,249,0.2); color: #93c5fd; }
+  .q-label.bad { background: rgba(200,90,90,0.2); color: #fca5a5; }
+  .q-label.good { background: rgba(76,175,125,0.2); color: #86efac; }
+  .q-label.why { background: rgba(167,139,250,0.2); color: #ddd6fe; }
+
+  .q-text {
+    padding: 12px 16px; background: #1a1e25; border-radius: 8px;
+    font-size: 16px; line-height: 1.7; border-left: 3px solid var(--border);
+  }
+  .q-text.bad { border-left-color: var(--danger-border); }
+  .q-text.good { border-left-color: var(--success); }
+  .q-text.why { border-left-color: var(--purple); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff;
+    padding: 12px 28px; border-radius: 10px;
+    font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 窄螢幕 */
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item active" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+
+        <h2>🎲 猜題專區</h2>
+        <a class="nav-item" href="#survival">🚨 學長生存指南</a>
+        <a class="nav-item" href="#bitpack">📦 位元打包</a>
+        <a class="nav-item" href="#rate">🔧 頻率排查</a>
+        <a class="nav-item" href="#bisect">🔍 二分搜 Debug</a>
+        <a class="nav-item" href="#oj">🐙 OJ 提交策略</a>
+        <a class="nav-item" href="#ime">💬 考場 LLM 操作</a>
+        <a class="nav-item" href="#qos">📡 QoS 靜默失敗</a>
+        <a class="nav-item" href="#dma-align">🚚 DMA 對齊/時機</a>
+        <a class="nav-item" href="#pio-autopull">⚙️ PIO autopull</a>
+        <a class="nav-item" href="#getbits">🔢 getBits/rotate</a>
+        <a class="nav-item" href="#watchdog">🐕 Watchdog</a>
+        <a class="nav-item" href="#sleep">😴 Sleep modes</a>
+        <a class="nav-item" href="#api-traps">⚠️ API 規格坑點</a>
+    </aside>
+  <!-- 主內容 -->
+  <main class="main">
+    <h1 class="page-title">🎲 猜題專區</h1>
+    <p class="page-subtitle">
+      從「技術本質會錯的位置」推導出的考題預測。每個區塊格式：<br>
+      🎯 可能題目 → ❌ 錯誤示範 → ✅ 正確寫法 → 💡 為什麼
+    </p>
+
+    <!-- ==================== 1. 學長生存指南 ==================== -->
+    <details id="survival" open style="border-color: #ef4444;">
+      <summary style="color: #fca5a5; background: rgba(239,68,68,0.1);">
+        <span>🚨 學長血淚實戰生存指南（考前必讀）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #ef4444; background: rgba(239,68,68,0.15); color: #fecaca;">
+          <strong>🔥 物理限制與防禦：</strong><br>
+          1. <strong>考場沒有中文輸入法</strong> ➔ 千萬不要嘗試安裝！打開「Google 翻譯」網頁，使用滑鼠點擊虛擬注音鍵盤打字，再複製貼上給 AI。<br>
+          2. <strong>可以複製貼上</strong> ➔ 請放心使用 C-V 大法搬運程式碼，這是學長認證的穩定作法。
+        </div>
+        <div class="danger-box" style="border-left-color: #f59e0b; background: rgba(245,158,11,0.15); color: #fcd34d;">
+          <strong>🛑 IO 傳輸與硬體「燒機」陷阱（極度致命）：</strong><br>
+          學長名言：「通常 IO 是瓶頸，運算不是瓶頸，改演算法沒用。」<br>
+          • <strong>症狀</strong>：程式沒報錯，但資料一直掉包，或跑一段時間直接崩潰（燒機）。<br>
+          • <strong>解法 1（位元壓縮）</strong>：將多次小資料（如 bool 或小整數）使用位元運算打包進一個 32-bit 整數中，減少傳輸次數。<br>
+          • <strong>解法 2（降頻）</strong>：尋找專案內的 <code>config.json</code> 或 <code>config.yaml</code>，把 <code>frequency</code> 或 <code>rate</code> 參數調低。<br>
+          • <strong>解法 3（手動二分搜）</strong>：若無設定檔，找到控制迴圈，將 <code>sleep</code> 時間放大（例如 1ms 改 10ms），測試是否還會掉包。
+        </div>
+        <div class="note-box" style="border-left-color: #3b82f6; background: rgba(59,130,246,0.1);">
+          <strong>🐙 GitLab 提交與評測地獄：</strong><br>
+          1. <strong>不要搞複雜的版本控制</strong>：請直接用 C-V 大法，不要亂 merge 浪費時間。<br>
+          2. <strong>一次只能跑一個 task</strong>：重複提交會把前一個評測「取消」。<br>
+          3. <strong>本地測試是關鍵</strong>：因為後期 Judge 會大塞車（pending 10 幾分鐘），請務必先在「本地端」測試到完美無誤，再 commit 並 push，一次拿分！<br>
+          4. <strong>Git 帳密</strong>：如果 push 卡住，直接問 AI 怎麼設定 <code>git config --global credential.helper store</code>。
+        </div>
+        <div class="block" style="margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+          <div class="block-header">
+            <span class="block-title">💡 考場遇到突發狀況的「求救 Prompt」</span>
+            <button class="copy-btn" data-target="code-survival">📋 複製</button>
+          </div>
+          <pre id="code-survival">【系統緊急求救：IO 掉包 / 燒機 / CI 失敗】
+我遇到了以下問題：[描述現象，例如：程式沒報錯，但資料一直漏，或 GitLab 卡住不跑]。
+請參考以下已知考場限制：
+1. 如果懷疑是 IO 傳輸量太大導致硬體崩潰，請告訴我如何使用位元運算壓縮資料，或去哪裡找設定檔調低頻率。
+2. 如果這是 GitLab 評測問題，請告訴我正確的 commit 流程，並確保我不會因為重複提交而被取消資格。
+請只給我解決方向與要修改的程式碼片段（不超過 15 行），不要給我完整重寫的檔案。</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 2. 位元打包 ==================== -->
+    <details id="bitpack" style="border-color: #8b5cf6;">
+      <summary style="color: #c4b5fd; background: rgba(139,92,246,0.1);">
+        <span>📦 位元打包（Bit-Packing，IO 瓶頸救星）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="purple-box">
+          <strong>學長名言：</strong>「通常 IO 是瓶頸，運算不是瓶頸，改演算法沒用。」<br>
+          <strong>考點：</strong>多次小資料（bool、小整數）→ 用位元運算打包進一個 32-bit，減少傳輸次數。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">把 8 個 bool 打包進 uint8_t / 從 uint32_t 拆出多個欄位</span>
+            <button class="copy-btn" data-target="code-bitpack">📋 複製</button>
+          </div>
+          <pre id="code-bitpack">#include &lt;stdint.h&gt;
+#include &lt;stdio.h&gt;
+
+// === 打包：8 個 bool → 1 個 uint8_t ===
+uint8_t pack_bools(const uint8_t flags[8]) {
+    uint8_t packed = 0;
+    for (int i = 0; i &lt; 8; i++) {
+        if (flags[i]) packed |= (1u &lt;&lt; i);
+    }
+    return packed;
+}
+
+// === 拆包：1 個 uint8_t → 8 個 bool ===
+void unpack_bools(uint8_t packed, uint8_t out[8]) {
+    for (int i = 0; i &lt; 8; i++) {
+        out[i] = (packed &gt;&gt; i) &amp; 1u;
+    }
+}
+
+// === 進階：多個欄位塞進 32-bit（每個欄位固定寬度）===
+// 格式：[31:24] id(8) | [23:16] type(8) | [15:8] len(8) | [7:0] flags(8)
+uint32_t pack_header(uint8_t id, uint8_t type, uint8_t len, uint8_t flags) {
+    return ((uint32_t)id &lt;&lt; 24) | ((uint32_t)type &lt;&lt; 16)
+         | ((uint32_t)len &lt;&lt; 8) | (uint32_t)flags;
+}
+
+uint8_t get_id(uint32_t h)    { return (h &gt;&gt; 24) &amp; 0xFF; }
+uint8_t get_type(uint32_t h)  { return (h &gt;&gt; 16) &amp; 0xFF; }
+uint8_t get_len(uint32_t h)   { return (h &gt;&gt; 8)  &amp; 0xFF; }
+uint8_t get_flags(uint32_t h) { return  h        &amp; 0xFF; }
+
+int main() {
+    uint8_t flags[8] = {1,0,1,1,0,0,1,0};
+    uint8_t packed = pack_bools(flags);
+    printf("packed = 0x%02X\n", packed); // 0x4D
+
+    uint8_t out[8];
+    unpack_bools(packed, out);
+    printf("unpack: ");
+    for (int i = 0; i &lt; 8; i++) printf("%d ", out[i]);
+    printf("\n");
+
+    uint32_t h = pack_header(0x12, 0x34, 0x08, 0xA5);
+    printf("header = 0x%08X, id=0x%02X, type=0x%02X, len=%u, flags=0x%02X\n",
+           h, get_id(h), get_type(h), get_len(h), get_flags(h));
+    return 0;
+}</pre>
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目</span>
+            <div class="q-text">
+              「給你 1000 筆 bool 資料要透過慢速 IO 傳輸，請設計打包格式並寫出 pack/unpack 函式，說明為何能減少傳輸量。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              8 個 bool 原本 8 bytes，打包後 1 byte，<strong>IO 量降為 1/8</strong>。
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 3. 頻率排查 ==================== -->
+    <details id="rate" style="border-color: #f59e0b;">
+      <summary style="color: #fcd34d; background: rgba(245,158,11,0.1);">
+        <span>🔧 設定檔排查與頻率調整（IO 掉包第一嫌疑）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>症狀：</strong>程式沒報錯，但資料一直掉包或跑久崩潰（燒機）。<br>
+          <strong>第一嫌疑：</strong>頻率太高，IO 或硬體吃不消。<strong>先找設定檔，不要急著改程式邏輯。</strong>
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">排查 SOP：設定檔 → 迴圈 sleep → 二分搜</span>
+            <button class="copy-btn" data-target="code-rate">📋 複製</button>
+          </div>
+          <pre id="code-rate">【IO 掉包 / 燒機 排查 SOP】
+
+Step 1. 找設定檔（優先，改設定不改程式）
+   $ find . -name "*.json" -o -name "*.yaml" -o -name "*.yml" -o -name "*.toml" -o -name "*.cfg"
+   $ grep -rn "frequency\|rate\|freq\|interval\|period\|hz" --include="*.json" --include="*.yaml" .
+   找到後把 frequency / rate 調低（例如 1000 → 100），重跑看是否還掉包。
+
+Step 2. 找控制迴圈，放大 sleep
+   在程式裡 grep "sleep\|usleep\|nanosleep\|delay\|std::this_thread::sleep"，
+   把 sleep 時間放大 10 倍（1ms → 10ms），測試是否還會掉包。
+
+Step 3. 手動二分搜（找不到設定檔時）
+   把「每秒傳 N 筆」的 N 逐步砍半：N → N/2 → N/4 ...
+   直到不掉包為止，那個 N 就是硬體能吃下的上限。
+
+Step 4. 若以上都沒用 → 才懷疑「單筆資料太大」
+   改用位元打包（見「位元打包」區塊）把多筆小資料合併成一個大封包。</pre>
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目</span>
+            <div class="q-text">
+              「程式在本地跑沒事，在評測環境掉包。請列出至少 3 個排查方向。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              ① 找 config 調低 frequency/rate ② 放大迴圈 sleep ③ 位元打包減少單次傳輸量 ④ 檢查 buffer 大小是否 overflow。
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 4. 二分搜 Debug ==================== -->
+    <details id="bisect" style="border-color: #06b6d4;">
+      <summary style="color: #67e8f9; background: rgba(6,182,212,0.1);">
+        <span>🔍 通用二分搜 Debug 法（範圍砍半，快速定位）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #06b6d4;">
+          <strong>核心思想：</strong>不知道哪裡錯時，把「可能出錯的範圍」砍半，看問題還在不在，重複 log₂(N) 次就能定位。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">四種二分搜場景</span>
+            <button class="copy-btn" data-target="code-bisect">📋 複製</button>
+          </div>
+          <pre id="code-bisect">【場景 A：資料掉包，找「硬體能吃下的最大頻率」】
+  low = 1, high = 10000 (筆/秒)
+  while (low &lt; high) {
+      mid = (low + high + 1) / 2;
+      if (test_at_rate(mid) == OK) low = mid;   // mid 可以
+      else high = mid - 1;                       // mid 太多
+  }
+  printf("硬體上限 = %d 筆/秒\n", low);
+
+【場景 B：程式崩潰，找「哪一行開始錯」】
+  在程式碼中段插 printf 印出關鍵變數，
+  若中段之前的值正確 → 錯誤在後半；否則在前半。
+  重複縮小範圍，通常 5~10 次就能定位到行。
+
+【場景 C：效能太慢，找「哪個函式是瓶頸」】
+  在 main 迴圈的不同階段加計時（clock_gettime），
+  比較各段耗時，最大的那段就是瓶頸，優先優化它。
+  （學長名言印證：通常 IO 是瓶頸，運算不是。）
+
+【場景 D：GitLab 評測失敗，找「哪個 test case 掛」】
+  若 OJ 有顯示部分通過，看通過幾個 / 總共幾個，
+  先確保最簡單的 case 過，再逐個往上修。</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 5. OJ 提交策略 ==================== -->
+    <details id="oj" style="border-color: #10b981;">
+      <summary style="color: #6ee7b7; background: rgba(16,185,129,0.1);">
+        <span>🐙 OJ / GitLab 提交策略（別讓流程吃掉你的分）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="danger-box">
+          <strong>🛑 致命規則：</strong>一次只能跑一個 task。重複提交會把前一個評測「取消」，等於白做。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">正確提交 SOP</span>
+            <button class="copy-btn" data-target="code-oj">📋 複製</button>
+          </div>
+          <pre id="code-oj">【正確提交 SOP：本地驗證 → 一次 push】
+
+Step 1. 本地先編譯、先跑，確認無誤
+   $ make clean && make
+   $ ./bin/your_program
+   用示範 PDF 給的測資或自己造的邊界測資（空輸入、最大值、最小值）驗證。
+
+Step 2. 若 push 卡住（帳密問題）
+   $ git config --global credential.helper store
+   然後再 push，輸入一次帳密後就會記住。
+
+Step 3. 提交後「不要立刻再 push」
+   - 等評測結果回來（可能 pending 10+ 分鐘，後期會塞車）
+   - 若失敗，先看 error message，在本地修好，再 push 下一次
+
+Step 4. 若真的需要多次提交
+   - 確認前一次評測已「結束」（不是 pending）再 push
+   - 若前一次還在跑，你的新 push 可能取消它 → 兩頭空
+
+【千萬不要做的事】
+   ✗ 一直 commit 一直 push 想「試試看」
+   ✗ 用 merge / rebase 搞版本控制（浪費時間）
+   ✗ 在評測 pending 時又 push 同一題</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 6. 考場 LLM 操作 ==================== -->
+    <details id="ime" style="border-color: #3b82f6;">
+      <summary style="color: #93c5fd; background: rgba(59,130,246,0.1);">
+        <span>💬 考場 LLM 操作 SOP（無中文輸入法怎麼辦）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>🔥 物理限制：</strong>考場電腦沒有中文輸入法，且不能自行安裝。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">三種輸入中文給 LLM 的方法</span>
+            <button class="copy-btn" data-target="code-ime">📋 複製</button>
+          </div>
+          <pre id="code-ime">【方法 1（學長認證）：Google 翻譯網頁虛擬鍵盤】
+  1. 開瀏覽器 → Google 翻譯 → 來源語言選「中文」
+  2. 點輸入框左下角「鍵盤圖示」→ 選「注音」
+  3. 用滑鼠點虛擬鍵盤打字
+  4. 打完複製文字 → 貼給 LLM
+
+【方法 2：用英文問 LLM，叫它用中文答】
+  直接把題目翻成英文丟給 LLM，例如：
+  "Explain pthread_cond_wait spurious wakeup in Chinese."
+  LLM 會用中文回答，你複製答案去用。
+
+【方法 3：用拼音/羅馬拼音硬打】
+  若你熟拼音，可直接打 "wei shen me cond wait yao yong while"
+  LLM 通常看得懂，會回中文。
+
+【複製貼上大法（學長認證穩定）】
+  - 程式碼一律用 C-V 搬運，不要手打
+  - 從 LLM 複製的程式碼，貼到編輯器前先確認沒有全形空格
+  - 若貼上後編譯報錯，先檢查是否有 &amp; &lt; &gt; 被 HTML escape 掉</pre>
+        </div>
+        <div class="note-box">
+          <strong>💡 考場節奏建議：</strong>先用方法 2（英文問、中文答）最省時，卡住再用方法 1。不要在輸入法上浪費超過 2 分鐘。
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 7. QoS 靜默失敗 ==================== -->
+    <details id="qos" style="border-color: #ec4899;">
+      <summary style="color: #f9a8d4; background: rgba(236,72,153,0.1);">
+        <span>📡 QoS 靜默失敗（ROS 2 最難 debug 的坑）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="danger-box" style="border-left-color: #ec4899;">
+          <strong>症狀：</strong><code>ros2 topic echo</code> 沒資料，但 <code>ros2 topic info</code> 顯示有 publisher、有 subscriber、topic 名稱完全正確、沒有任何報錯。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">QoS 不匹配診斷</span>
+            <button class="copy-btn" data-target="code-qos">📋 複製</button>
+          </div>
+          <pre id="code-qos">【QoS 靜默失敗診斷 SOP】
+
+Step 1. 看雙方 QoS 是否匹配
+   $ ros2 topic info /topic -v
+   輸出會列出 Publisher 和 Subscriber 各自的 QoS profile。
+
+Step 2. 對照關鍵欄位
+   Reliability:  BEST_EFFORT  vs  RELIABLE
+   Durability:   VOLATILE     vs  TRANSIENT_LOCAL
+   History:      KEEP_LAST (depth=N) vs KEEP_ALL
+
+Step 3. 常見不匹配組合
+   - Publisher 用 BEST_EFFORT（如 /scan 感測器），
+     Subscriber 用預設 RELIABLE → 永遠收不到
+   - Publisher 用 VOLATILE，Subscriber 晚啟動 →
+     錯過啟動時發布一次的地圖 → 收不到
+   - depth 太小 + 發布太快 → 中間訊息被丟
+
+Step 4. 修正方式（Python）
+   from rclpy.qos import qos_profile_sensor_data
+   self.create_subscription(Scan, '/scan', self.cb, qos_profile_sensor_data)
+   # qos_profile_sensor_data = BEST_EFFORT + VOLATILE + depth=5
+
+【一句話】QoS 不匹配時，DDS 發現機制看得到彼此，
+但不會建立資料連線，且「幾乎沒有事件通知」。</pre>
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目</span>
+            <div class="q-text">
+              「Nav2 訂閱不到 <code>/scan</code>，<code>ros2 topic info</code> 顯示有 publisher，但 <code>echo</code> 沒資料。列出至少 2 個 QoS 相關原因。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              ① Reliability 不匹配（BEST_EFFORT vs RELIABLE）② Durability 不匹配（VOLATILE vs TRANSIENT_LOCAL）③ depth 太小導致丟包。診斷用 <code>ros2 topic info /scan -v</code>。
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 8. DMA 對齊/時機 ==================== -->
+    <details id="dma-align" style="border-color: #f97316;">
+      <summary style="color: #fdba74; background: rgba(249,115,22,0.1);">
+        <span>🚚 DMA 對齊與完成時機（比 count 單位更隱蔽）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #f97316;">
+          <strong>你已寫的：</strong>count 是筆數不是 bytes。<br>
+          <strong>你沒寫的：</strong>位址對齊、DMA 完成 ≠ 資料可用、trigger 參數。
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 A（位址對齊）</span>
+            <div class="q-text">
+              「用 <code>DMA_SIZE_32</code> 搬 <code>char buf[100]</code> 到另一個 buffer，DMA 直接 fault 或行為異常。為什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label good">✅ 正確做法</span>
+            <div class="q-text good">
+              <code>DMA_SIZE_32</code> 要求來源與目標位址都是 4 的倍數，且長度是 4 的倍數。<code>char buf[100]</code> 的起始位址不保證 4 對齊。解法：<code>__attribute__((aligned(4)))</code> 或改用 <code>DMA_SIZE_8</code>。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 B（完成時機）</span>
+            <div class="q-text">
+              「DMA 搬完後，<code>dst</code> 前幾個元素是新的、後面是舊值。可能什麼配置問題？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <code>dma_channel_wait_for_finish_blocking</code> 等的是「DMA 搬完」，若來源是外設（ADC/UART），外設可能還在寫資料。<strong>DMA 完成 ≠ 外設寫完</strong>。解法：先等外設 data-ready flag，或用外設的 DMA request 觸發模式。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 C（trigger 參數）</span>
+            <div class="q-text">
+              「<code>dma_channel_configure</code> 配置好了，但 DMA 完全沒動。為什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label good">✅ 正確做法</span>
+            <div class="q-text good">
+              最後一個參數 <code>trigger</code> 傳 <code>false</code> 時，通道配置好但<strong>不會自動開始</strong>，需要另外呼叫 <code>dma_channel_start(chan)</code>。傳 <code>true</code> 才會立即啟動。
+            </div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">對齊 + 啟動完整骨架</span>
+            <button class="copy-btn" data-target="code-dma-align">📋 複製</button>
+          </div>
+          <pre id="code-dma-align">#include "pico/stdlib.h"
+#include "hardware/dma.h"
+
+// 確保 4-byte 對齊
+uint32_t __attribute__((aligned(4))) src[256];
+uint32_t __attribute__((aligned(4))) dst[256];
+
+int chan = dma_claim_unused_channel(true);
+dma_channel_config c = dma_channel_get_default_config(chan);
+channel_config_set_transfer_data_size(&amp;c, DMA_SIZE_32);  // 要求 4 對齊
+channel_config_set_read_increment(&amp;c, true);
+channel_config_set_write_increment(&amp;c, true);
+
+// 先配置，trigger=false 不自動啟動
+dma_channel_configure(chan, &amp;c, dst, src, 256, false);
+
+// 若來源是外設，先確認 data ready
+// while (!peripheral_data_ready()) tight_loop_contents();
+
+// 手動啟動
+dma_channel_start(chan);
+dma_channel_wait_for_finish_blocking(chan);</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 9. PIO autopull ==================== -->
+    <details id="pio-autopull" style="border-color: #8b5cf6;">
+      <summary style="color: #c4b5fd; background: rgba(139,92,246,0.1);">
+        <span>⚙️ PIO autopull / autopush 陷阱</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #8b5cf6;">
+          <strong>示範 PDF 說：</strong>「<code>echo.pio</code> 假設 OSR 已設定為 autopull」。這句話本身就是考點。
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 A（autopull 閾值）</span>
+            <div class="q-text">
+              「PIO 程式寫對了，但完全不會動。CPU 呼叫 <code>pio_sm_put_blocking</code> 後卡住。可能原因？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              autopull threshold 設 32，但實際只 push 8 bits → OSR 沒「空」到閾值 → autopull 不觸發 → PIO 卡在 <code>out</code> 等資料 → TX FIFO 永不消耗 → CPU 卡在 <code>put_blocking</code>。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 B（push 丟資料）</span>
+            <div class="q-text">
+              「PIO 送出的資料偶爾少一筆，但沒有報錯。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <code>push</code> 沒加 <code>block</code> 時，若 RX FIFO 滿，<strong>資料會被直接丟棄</strong>（不阻塞）。解法：<code>push block</code> 或加大 FIFO 深度 / 提高 CPU 消費速度。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 C（autopull 時讀 OSR）</span>
+            <div class="q-text">
+              「PIO 用 autopull 收 CPU 資料，但偶爾讀到錯誤的值。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              autopull 是<strong>硬體自動</strong>從 TX FIFO 補充 OSR，時機和 PIO 程式異步。在 autopull 模式下用 <code>MOV</code> 讀 OSR 是未定義行為（可能讀到殘值或新拉進來的字）。解法：關掉 autopull 手動 <code>pull</code>，或確保在 <code>OUT</code> 之前資料已就位。
+            </div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">PIO autopull 心智模型</span>
+            <button class="copy-btn" data-target="code-pio-autopull">📋 複製</button>
+          </div>
+          <pre id="code-pio-autopull">【PIO 資料流與 autopull 開關】
+
+關閉 autopull（手動模式）：
+  CPU → pio_sm_put_blocking → TX FIFO
+  PIO 程式執行 pull → OSR  ← 程式控制時機
+  PIO 程式執行 out  → 取出 OSR 內容到 X/引腳
+  → 優點：完全可控
+  → 缺點：每個字都要寫 pull 指令
+
+開啟 autopull（自動模式）：
+  CPU → pio_sm_put_blocking → TX FIFO
+  硬體自動：當 OSR 空了 → 從 TX FIFO 補進 OSR
+  PIO 程式執行 out → 直接取 OSR
+  → 優點：省 pull 指令
+  → 陷阱：
+     (1) 程式讀 OSR 內容時機不確定
+     (2) threshold 設錯（例如只 push 8 bits 但 threshold=32）→ 永遠不觸發
+     (3) PULL 指令在 autopull 且 OSR 滿時是 no-op
+
+【echo.pio 為什麼能運作】
+  .program echo
+  .wrap_target
+    out x, 32   ; 從 OSR 取 32 bits 到 X
+    in  x, 32   ; 把 X 推入 ISR
+    push        ; ISR → RX FIFO → CPU
+  .wrap_target
+  前提：OSR 已 autopull 填好資料，否則 out 會 stall。</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 10. getBits/rotate ==================== -->
+    <details id="getbits" style="border-color: #14b8a6;">
+      <summary style="color: #5eead4; background: rgba(20,184,166,0.1);">
+        <span>🔢 getBits / 循環移位（比 SET_BIT 難一檔）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #14b8a6;">
+          <strong>你已寫的：</strong>SET_BIT / CLEAR_BIT / GET_BIT / GET_BITS。<br>
+          <strong>你沒寫的：</strong>循環移位、移位量 ≥ 寬度的 UB、有號整數右移。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">getBits / rightRotate / 邊界安全版</span>
+            <button class="copy-btn" data-target="code-getbits">📋 複製</button>
+          </div>
+          <pre id="code-getbits">#include &lt;stdint.h&gt;
+
+// === 取 x 的第 p 位起 n 個 bits（p 是起始位索引）===
+uint32_t getBits(uint32_t x, int p, int n) {
+    return (x &gt;&gt; (p - n + 1)) &amp; ~(~0u &lt;&lt; n);
+}
+
+// === 向右循環移位（rotate，不是普通 shift）===
+uint32_t rightRotate(uint32_t x, int n) {
+    int bits = sizeof(x) * 8;   // 32
+    n &amp;= (bits - 1);            // 防止 n &gt;= 32（移位量 ≥ 寬度是 UB）
+    return (x &gt;&gt; n) | (x &lt;&lt; (bits - n));
+}
+
+// === 邊界安全遮罩（避開 1u << 32 的 UB）===
+uint32_t mask_n_bits(int n) {
+    if (n &lt;= 0) return 0;
+    if (n &gt;= 32) return 0xFFFFFFFFu;
+    return (1u &lt;&lt; n) - 1;
+}
+
+// === 從資料包取欄位：[31:24] type | [23:8] payload | [7:0] crc ===
+uint8_t  get_type(uint32_t pkt)    { return (pkt &gt;&gt; 24) &amp; 0xFF; }
+uint16_t get_payload(uint32_t pkt) { return (pkt &gt;&gt; 8)  &amp; 0xFFFF; }
+uint8_t  get_crc(uint32_t pkt)     { return  pkt        &amp; 0xFF; }</pre>
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 A（取欄位）</span>
+            <div class="q-text">
+              「給定 32-bit 封包，格式 <code>[31:24] type | [23:8] payload | [7:0] crc</code>，寫函式取出 payload。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 B（移位 UB）</span>
+            <div class="q-text">
+              「<code>uint32_t x; x &lt;&lt; 32</code> 的結果是什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <strong>未定義行為（UB）</strong>，不是 0。C 標準規定移位量必須小於型別寬度。同理 <code>1u &lt;&lt; 32</code> 也是 UB，寫遮罩時要特判 <code>n == 32</code>。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 C（負數右移）</span>
+            <div class="q-text">
+              「<code>int x = -8; x &gt;&gt; 1</code> 的結果是什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <strong>Implementation-defined</strong>（實作定義），大多數編譯器做算術右移得 <code>-4</code>，但 C 標準不保證。要跨平台安全，先轉 <code>unsigned</code> 再移位。
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 11. Watchdog ==================== -->
+    <details id="watchdog" style="border-color: #dc2626;">
+      <summary style="color: #fca5a5; background: rgba(220,38,38,0.1);">
+        <span>🐕 Watchdog Timer（看門狗，獨立硬體模組）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #dc2626;">
+          <strong>為什麼是新板塊：</strong>DMA / PIO / mutex 都是「主動完成功能」的技術。Watchdog 是「被動兜底」——不幫你完成任何事，只負責「程式卡死時把系統拉回來」。這是一個獨立的硬體模組。
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">Pico SDK Watchdog 骨架</span>
+            <button class="copy-btn" data-target="code-watchdog">📋 複製</button>
+          </div>
+          <pre id="code-watchdog">#include "pico/stdlib.h"
+#include "hardware/watchdog.h"
+
+int main() {
+    // watchdog_enable(delay_ms, pause_on_debug)
+    // delay_ms 最大約 8300（看 bootrom 實作）
+    // pause_on_debug=true：用調試器單步時 watchdog 也暫停
+    watchdog_enable(2000, true);
+
+    while (1) {
+        do_work();           // 可能耗時的操作
+        watchdog_update();   // 餵狗：必須在超時前呼叫
+        sleep_ms(100);
+    }
+}</pre>
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 A（餵狗週期）</span>
+            <div class="q-text">
+              「程式正常運行但偶爾自動重啟，沒有 crash log。可能原因？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              watchdog 超時時間 &lt; 主循環單次耗時（例如 DMA 等待或大塊 memcpy 超過 2 秒）。程式還沒走到 <code>watchdog_update()</code> 就被重啟。解法：加大超時時間，或在耗時操作中分段餵狗。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 B（pause_on_debug）</span>
+            <div class="q-text">
+              「用調試器單步執行時，程式一直重啟。為什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <code>pause_on_debug = false</code> 時，調試器暫停 CPU 但 watchdog 仍在計數，超時就重啟。解法：設為 <code>true</code>，或調試時先停用 watchdog。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 C（餵狗位置）</span>
+            <div class="q-text">
+              「把 <code>watchdog_update()</code> 放在 <code>if (has_work)</code> 分支裡，某段時間沒工作時程式會重啟。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              餵狗應放在主循環<strong>固定位置</strong>（每輪必經之路），不能放在條件分支裡。沒工作時分支不執行 → 不餵狗 → 超時重啟。
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 12. Sleep modes ==================== -->
+    <details id="sleep" style="border-color: #6366f1;">
+      <summary style="color: #a5b4fc; background: rgba(99,102,241,0.1);">
+        <span>😴 Sleep / Low-Power Modes（lightsleep vs deepsleep）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="warn-box" style="border-left-color: #6366f1;">
+          <strong>為什麼是新板塊：</strong>「降頻」是降低活動頻率，Sleep 是<strong>完全停止活動</strong>。兩者在嵌入式系統裡是不同層級的功耗優化。
+        </div>
+        <div class="q-card">
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 A（deepsleep 狀態丟失）</span>
+            <div class="q-text">
+              「程式進入 deepsleep 喚醒後，main 裡的計數器歸零了。為什麼？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              <code>deepsleep</code> 切斷 RAM 電源，喚醒相當於<strong>冷啟動</strong>，main 從頭執行，所有變數重新初始化。<code>lightsleep</code> 才保留 RAM 狀態。需要跨 deepsleep 保留的資料要存在 flash / RTC scratch register。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 B（lightsleep 醒不來）</span>
+            <div class="q-text">
+              「呼叫 lightsleep 後程式完全不動了，也沒有重啟。」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              lightsleep 需要<strong>配置喚醒源</strong>（GPIO 變化、RTC 鬧鐘等），沒配置就永遠醒不來。例如 <code>sleep_goto_sleep_until(&amp;alarm, NULL)</code> 要先用 <code>rtc_set_alarm</code> 設鬧鐘。
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label q">🎯 可能題目 C（Watchdog × Sleep）</span>
+            <div class="q-text">
+              「進入 sleep 後 watchdog 把系統重啟了。怎麼協調？」
+            </div>
+          </div>
+          <div class="q-section">
+            <span class="q-label why">💡 答案</span>
+            <div class="q-text why">
+              進 sleep 前要嘛先停用 watchdog（<code>watchdog_disable()</code>），要嘛確保 sleep 時間 &lt; watchdog 剩餘時間。喚醒後重新 <code>watchdog_update()</code>。
+            </div>
+          </div>
+        </div>
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">lightsleep / deepsleep 對照</span>
+            <button class="copy-btn" data-target="code-sleep">📋 複製</button>
+          </div>
+          <pre id="code-sleep">【lightsleep vs deepsleep 對照表】
+
+lightsleep：
+  - CPU 暫停，RAM 保留，外設狀態保留
+  - 喚醒後從「呼叫 sleep 那行」繼續執行
+  - 變數值保留
+  - 需配置喚醒源（RTC 鬧鐘、GPIO 等）
+  - 適合：短暫等待、省電輪詢
+
+deepsleep：
+  - 幾乎所有電源切斷，包含 RAM
+  - 喚醒後 = 冷啟動，main 從頭執行
+  - 變數全部重新初始化
+  - 適合：長時間待機（電池供電裝置）
+  - 若要保留狀態 → 存在 flash 或 RTC scratch
+
+【lightsleep + RTC 喚醒骨架（Pico SDK）】
+  #include "pico/sleep.h"
+  #include "hardware/rtc.h"
+
+  datetime_t alarm = {
+      .year=2026, .month=11, .day=9,
+      .hour=12, .min=0, .sec=5, .dotw=0
+  };
+  rtc_set_alarm(&amp;alarm);
+  sleep_goto_sleep_until(&amp;alarm, NULL);  // 進 lightsleep
+  // 喚醒後從這行繼續，變數還在</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 13. API 規格坑點 ==================== -->
+    <details id="api-traps" style="border-color: #64748b;">
+      <summary style="color: #cbd5e1; background: rgba(100,116,139,0.1);">
+        <span>⚠️ API 規格級坑點（11 條精選）</span><span class="arrow">▼</span>
+      </summary>
+      <div class="detail-body">
+        <div class="note-box">
+          <strong>這些都是「不需要歷屆、純從 API 規格就能推出」的坑。</strong>每一條都可能包成獨立考題。
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">1. memory_order 選錯（atomic）</span>
+          </div>
+          <pre>// ❌ 用 relaxed 當「發布」旗標
+atomic_int ready = 0;
+int data = 0;
+
+// 執行緒 A
+data = 42;
+atomic_store_explicit(&amp;ready, 1, memory_order_relaxed);
+
+// 執行緒 B
+if (atomic_load_explicit(&amp;ready, memory_order_relaxed)) {
+    printf("%d\n", data);  // ❌ 可能讀到 0（data 還沒寫入）
+}
+
+// ✅ 寫端 release、讀端 acquire
+atomic_store_explicit(&amp;ready, 1, memory_order_release);
+// 讀端：
+if (atomic_load_explicit(&amp;ready, memory_order_acquire)) { ... }</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">2. condvar 用同一條導致喚醒錯陣營</span>
+          </div>
+          <pre>// ❌ 生產者、消費者共用同一條 condvar
+pthread_cond_t cond;  // 只有一條
+
+// 生產者
+while (count == SIZE) pthread_cond_wait(&amp;cond, &amp;mutex);
+// 消費者
+while (count == 0)    pthread_cond_wait(&amp;cond, &amp;mutex);
+
+// 問題：signal 可能喚醒「生產者」而該醒的是「消費者」，
+// 被喚醒者發現條件不成立又睡回去，真正該醒的卻沒收到通知。
+
+// ✅ 兩條 condvar
+pthread_cond_t not_empty, not_full;</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">3. ring buffer 空/滿歧義</span>
+          </div>
+          <pre>// ❌ 不用 count，只用 head == tail
+int head, tail;
+bool is_empty() { return head == tail; }
+bool is_full()  { return head == tail; }  // ❌ 兩個條件一樣！
+
+// ✅ 方案 A：保留一個空格（容量實際是 SIZE-1）
+bool is_full() { return (tail + 1) % SIZE == head; }
+
+// ✅ 方案 B：加一個額外旗標區分
+int count;  // 直接用 count 判空/滿</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">4. spinlock 在單核退化</span>
+          </div>
+          <pre>// 單核環境（1 核）：持有 spinlock 的執行緒被排程器換下，
+// 等待者會空轉直到時間片用完 → 比 mutex 還差。
+// spinlock 只在「多核 + 短臨界區」才划算。</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">5. 巨集參數沒全加括號</span>
+          </div>
+          <pre>// ❌
+#define SQUARE(x) x*x
+SQUARE(a+1)  // 展開成 a+1*a+1，不是 (a+1)*(a+1)
+
+// ✅
+#define SQUARE(x) ((x)*(x))</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">6. 遮罩邊界（1u &lt;&lt; 32 是 UB）</span>
+          </div>
+          <pre>// ❌ n == 32 時 UB
+uint32_t mask = (1u &lt;&lt; n) - 1;
+
+// ✅ 特判
+uint32_t mask_n(int n) {
+    if (n &lt;= 0)  return 0;
+    if (n &gt;= 32) return 0xFFFFFFFFu;
+    return (1u &lt;&lt; n) - 1;
+}</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">7. topic 命名空間陷阱（ROS 2）</span>
+          </div>
+          <pre>// /number 和 number 在 ROS 2 裡是不同 topic
+// 無前導斜線 = 相對名稱，會加上節點命名空間
+// 例：節點在 /robot1 命名空間下訂閱 "number" → 實際是 /robot1/number
+
+// ❌ Publisher 發 /number，Subscriber 訂 number
+// ✅ 兩端都用絕對名稱 /number，或明確對齊命名空間</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">8. executor 被慢 callback 阻塞（ROS 2）</span>
+          </div>
+          <pre>// ❌ 單執行緒 executor + callback 裡 sleep
+def callback(msg):
+    time.sleep(2)  # 阻塞整個 executor
+    # 其他 subscription / timer 全部卡住
+
+// ✅ 方案 A：callback 內不做耗時操作，丟到 worker thread
+// ✅ 方案 B：MultiThreadedExecutor</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">9. volatile 不是同步機制</span>
+          </div>
+          <pre>// ❌ 以為 volatile 能跨執行緒同步
+volatile int flag = 0;
+
+// 執行緒 A
+flag = 1;
+// 執行緒 B
+while (!flag) {}  // 可能永遠卡住（編譯器/CPU 重排、快取）
+
+// ✅ 用 atomic（C11）
+#include &lt;stdatomic.h&gt;
+atomic_int flag = 0;</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">10. non-recursive mutex 重複 lock 死鎖</span>
+          </div>
+          <pre>// PTHREAD_MUTEX_INITIALIZER 預設是 non-recursive
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
+void f() {
+    pthread_mutex_lock(&amp;m);
+    g();  // g() 內又 lock 同一把 → 死鎖或 EDEADLK
+    pthread_mutex_unlock(&amp;m);
+}
+
+// ✅ 用遞迴鎖（謹慎使用）
+pthread_mutexattr_t attr;
+pthread_mutexattr_init(&amp;attr);
+pthread_mutexattr_settype(&amp;attr, PTHREAD_MUTEX_RECURSIVE);
+pthread_mutex_init(&amp;m, &amp;attr);</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">11. malloc 本身有鎖（多執行緒效能）</span>
+          </div>
+          <pre>// glibc malloc 內部有鎖，多執行緒大量 malloc/free 會 contention
+// 症狀：多執行緒程式比單執行緒還慢
+
+// ✅ 方案：
+// 1. 用執行緒本地記憶體池（thread-local pool）
+// 2. 改用 jemalloc / tcmalloc
+// 3. 減少 malloc 頻率（一次配置大塊，自己管理）</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 尾註 ==================== -->
+    <div class="note-box" style="margin-top: 32px; border-left-color: #6b7280;">
+      <strong>📌 使用建議：</strong><br>
+      考場上先看題目屬於哪個技術領域 → 對照左側導覽找到對應區塊 → 看「❌ 錯誤示範」確認你有沒有踩到 → 看「✅ 正確寫法」直接抄。<br>
+      如果題目跨多個領域（例如 DMA + 位元運算），把相關區塊的骨架拼起來即可。
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast() {
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (!targetEl) return;
+      copyText(targetEl.textContent);
+      const original = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+
+  // 側邊欄點擊平滑滾動 + active 切換
+  document.querySelectorAll('.nav-item[href^="#"]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.querySelector(item.getAttribute('href'));
+      if (!target) return;
+      // 展開目標 details
+      if (target.tagName === 'DETAILS') target.setAttribute('open', '');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelectorAll('.nav-item[href^="#"]').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

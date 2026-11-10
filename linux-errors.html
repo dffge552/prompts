@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 終端機錯誤百科</title>
+<style>
+  :root {
+    --bg: #1a1d23;
+    --sidebar-bg: #14171c;
+    --panel-bg: #23272f;
+    --pre-bg: #12151a;
+    --border: #2e333d;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    --accent: #4f9cf9;
+    --accent-dim: #2c5a94;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warn: #eab308;
+    --sidebar-w: 220px;
+    --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ====== 左側欄 ====== */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w); background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 {
+    font-size: 16px; color: var(--text-dim);
+    margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+  }
+  .sidebar h2 {
+    font-size: 13px; color: #6b7280; margin: 20px 8px 6px;
+    letter-spacing: 1px; font-weight: 600; text-transform: uppercase;
+  }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0;
+    border-radius: 8px; color: var(--text-dim); text-decoration: none;
+    font-size: 15px; transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+  /* ====== 主內容 ====== */
+  .main {
+    margin-left: var(--sidebar-w);
+    margin-right: var(--refpanel-w); /* 留給右側欄 */
+    flex: 1; padding: 28px 40px 80px;
+    max-width: 1000px;
+  }
+  .page-title {
+    font-size: 30px; font-weight: 700; margin: 0 0 8px;
+    padding-bottom: 12px; border-bottom: 2px solid var(--border);
+  }
+  .page-subtitle {
+    color: var(--text-dim); font-size: 16px; margin: 0 0 24px;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--border);
+  }
+
+  /* ====== 搜尋框 ====== */
+  .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; background: var(--panel-bg);
+    border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 24px; position: sticky; top: 20px; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; background: var(--pre-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 16px;
+    font-family: "SF Mono", "Consolas", monospace;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+  .search-bar .search-icon { font-size: 20px; color: var(--text-dim); }
+
+  /* ====== 分類標題 ====== */
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    margin: 36px 0 16px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  /* ====== 錯誤卡片 ====== */
+  .error-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .error-card:hover { border-color: #4b5563; }
+  .error-card.hidden { display: none; }
+  
+  .card-header {
+    padding: 16px 20px; background: #1e2229;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700; color: #fca5a5;
+    font-family: "SF Mono", "Consolas", monospace;
+    word-break: break-all;
+  }
+  .card-header .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; margin-right: 10px;
+    vertical-align: middle; font-family: -apple-system, sans-serif;
+    background: rgba(239, 68, 68, 0.2); color: #fca5a5;
+  }
+
+  .card-body { padding: 20px; }
+  
+  .info-row { margin-bottom: 16px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .info-label.look { background: rgba(79,156,249,0.2); color: #93c5fd; }
+  .info-label.why { background: rgba(234,179,8,0.2); color: #fde047; }
+  .info-label.fix { background: rgba(34,197,94,0.2); color: #86efac; }
+  
+  .info-content {
+    font-size: 16px; color: var(--text); line-height: 1.6;
+  }
+  .info-content code {
+    background: var(--pre-bg); padding: 2px 6px;
+    border-radius: 4px; font-family: "SF Mono", monospace;
+    font-size: 14px; color: #d4d8de;
+  }
+  .info-content pre {
+    background: var(--pre-bg); padding: 12px 16px;
+    border-radius: 8px; border: 1px solid var(--border);
+    font-family: "SF Mono", "Consolas", monospace;
+    font-size: 14px; color: #86efac;
+    overflow-x: auto; margin: 8px 0;
+  }
+
+  /* ====== 右側說明欄 ====== */
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: var(--refpanel-w); background: var(--sidebar-bg);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+  }
+  .refpanel-header {
+    padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .refpanel-body {
+    flex: 1; overflow-y: auto; padding: 18px;
+    font-size: 14.5px; line-height: 1.7;
+  }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body ul { padding-left: 20px; margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body li { margin-bottom: 6px; }
+  .refpanel-body code {
+    background: var(--pre-bg); padding: 2px 6px;
+    border-radius: 4px; font-family: "SF Mono", monospace;
+    color: #86efac; font-size: 13px;
+  }
+  .refpanel-body .highlight { color: var(--yellow); font-weight: bold; }
+
+  /* ====== Toast ====== */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff;
+    padding: 12px 28px; border-radius: 10px;
+    font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ====== 窄螢幕響應式 ====== */
+  @media (max-width: 1200px) {
+    .main { margin-right: 0; }
+    .refpanel {
+      position: static; width: 100%; border-left: none; border-top: 1px solid var(--border);
+    }
+    .refpanel-body { overflow-y: visible; }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .search-bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>提示詞查閱</h1>
+    <a class="nav-item" href="index.html">考前測試</a>
+    <a class="nav-item" href="llama3.html">Llama 3</a>
+    <a class="nav-item" href="gemma4.html">Gemma 4</a>
+    <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+    <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+    <a class="nav-item" href="muse.html">Muse</a>
+    <a class="nav-item" href="midhigh.html">中高端模型</a>
+    <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+    <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+    <a class="nav-item active" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+    <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+    <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+    <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+    <a class="nav-item" href="commands.html">🔧 工作流</a>
+    <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+  </aside>
+
+  <!-- 中間主內容 -->
+  <main class="main">
+    <h1 class="page-title">🐧 Linux 終端機錯誤百科</h1>
+    <p class="page-subtitle">
+      遇到紅字不要慌，把錯誤訊息貼進下方搜尋框，立刻找到原因與解法。
+    </p>
+
+    <!-- 搜尋框 -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="貼上錯誤訊息（例如：undefined reference、Segmentation fault、expected ';'）">
+    </div>
+
+    <!-- ==================== 1. 編譯期錯誤 ==================== -->
+    <h2 class="section-title">🛑 編譯期錯誤（Compiler Errors）</h2>
+
+    <div class="error-card" data-search="expected ';' before '}' token missing semicolon syntax error">
+      <div class="card-header">
+        <span class="badge">語法</span>
+        main.c:25:1: error: expected ';' before '}' token
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">編譯器說 25 行有錯，但**真正的兇手通常在上一行（24 行）**，或是該語句的結尾。編譯器是讀到 25 行的 <code>}</code> 才發現 24 行少分號。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">忘記在變數宣告、函式呼叫、<code>struct</code> 定義或 <code>do-while</code> 結尾加上分號 <code>;</code>。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">檢查報錯行的**上一行**或**前幾行**，補上分號。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="undeclared first use in this function missing include typo">
+      <div class="card-header">
+        <span class="badge">宣告</span>
+        main.c:12:5: error: 'counter' undeclared (first use in this function)
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">直接看第 12 行，檢查 <code>counter</code> 這個字。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">
+            1. 拼錯字或大小寫不一致（例如宣告 <code>Counter</code>，使用 <code>counter</code>）。<br>
+            2. 根本沒有定義這個變數。<br>
+            3. 用了某個函式但沒 <code>#include</code> 對應的標頭檔（例如用 <code>printf</code> 沒加 <code>&lt;stdio.h&gt;</code>，或 <code>pthread_create</code> 沒加 <code>&lt;pthread.h&gt;</code>）。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">檢查拼寫，確認在使用前已宣告，並檢查檔案頂部的 <code>#include</code> 是否齊全。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="unknown type name uint32_t stdint include">
+      <div class="card-header">
+        <span class="badge">型別</span>
+        main.c:8:1: error: unknown type name 'uint32_t'
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">第 8 行使用了標準整數型別，但編譯器不認識。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">使用了 <code>uint32_t</code>、<code>int8_t</code> 等固定寬度型別，但忘記引入標頭檔。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">在檔案最上方加上：<br><code>#include &lt;stdint.h&gt;</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="unknown character 0x full width chinese punctuation">
+      <div class="card-header">
+        <span class="badge">全形符號</span>
+        main.c:5:20: error: unknown character '0xa3'
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">看第 5 行第 20 個字元附近。通常是從網頁、PDF 或 AI 複製程式碼時，混入了**全形空白、全形標點**。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">C/C++ 只接受半角（ASCII）符號。如果你打出了全形的分號 <code>；</code>、括號 <code>（）</code> 或引號 <code>＂</code>，編譯器會把它當成未知字元（ASCII 碼通常大於 0x7F）。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">將該行的標點符號刪除，重新用英文半角輸入。複製 AI 程式碼後，務必檢查這類隱藏錯誤。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. 連結期錯誤 ==================== -->
+    <h2 class="section-title">🔗 連結期錯誤（Linker Errors）</h2>
+
+    <div class="error-card" data-search="undefined reference to pthread_create -pthread linker">
+      <div class="card-header">
+        <span class="badge">連結</span>
+        /usr/bin/ld: ... undefined reference to `pthread_create'
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">編譯器已經把語法檢查完了，但在最後把函式庫「串起來」時找不到 pthread 的實作。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">在 Linux 下，多執行緒的 pthread 函式庫不會自動連結，必須手動加上參數。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">在 gcc 指令的最後面加上 <code>-pthread</code>：<br>
+          <pre>gcc main.c -o main -pthread</pre>
+          注意：是 <code>-pthread</code>，不是 <code>-lpthread</code> 也不是 <code>-pthreads</code>。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="undefined reference to sqrt pow sin math -lm">
+      <div class="card-header">
+        <span class="badge">連結</span>
+        /usr/bin/ld: ... undefined reference to `sqrt'
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">錯誤訊息會清楚指出是哪個數學函式找不到（例如 <code>sqrt</code>、<code>pow</code>、<code>sin</code>）。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">引入了 <code>&lt;math.h&gt;</code>，但沒有告訴連結器要去哪裡找數學函式庫的實作。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">在 gcc 指令最尾端加上 <code>-lm</code>：<br>
+          <pre>gcc main.c -o main -lm</pre>
+          注意：<code>-lm</code> 必須放在**來源檔案的後面**，順序反了會無效。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="undefined reference to my_function multiple files compile">
+      <div class="card-header">
+        <span class="badge">連結</span>
+        /usr/bin/ld: ... undefined reference to `my_function'
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">函式名稱可能是你自己寫的，在 <code>main.c</code> 呼叫了，但連結器找不到它。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">
+            1. 函式只宣告了，沒寫實作。<br>
+            2. 函式寫在另一個檔案（例如 <code>queue.c</code>），但你編譯時只寫了 <code>gcc main.c</code>。<br>
+            3. C++ 呼叫 C 的函式，沒有加 <code>extern "C"</code>。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">把實作所在的檔案一起加進編譯指令：<br>
+          <pre>gcc main.c queue.c -o main</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. 執行期錯誤 ==================== -->
+    <h2 class="section-title">💥 執行期錯誤（Runtime Errors）</h2>
+
+    <div class="error-card" data-search="Segmentation fault core dumped segfault gdb bt pointer out of bounds">
+      <div class="card-header">
+        <span class="badge">崩潰</span>
+        Segmentation fault (core dumped)
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">終端機只會印出這行，**不會告訴你錯在第幾行**。你需要用 <code>gdb</code> 來抓。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">
+            你的程式試圖存取**不屬於它的記憶體空間**。最常見原因：<br>
+            1. **空指標解引用**：<code>int *p = NULL; *p = 5;</code><br>
+            2. **陣列越界**：陣列大小 10，你卻寫了 <code>a[10] = 1;</code>（合法範圍是 0~9）。<br>
+            3. **野指標**：指標沒初始化就亂用。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">
+            <strong>考場神技：用 gdb 抓行號</strong><br>
+            1. 編譯時加上 <code>-g</code>：<br>
+            <pre>gcc main.c -o main -g -pthread</pre>
+            2. 執行 gdb：<br>
+            <pre>gdb ./main</pre>
+            3. 在 gdb 裡面輸入 <code>run</code> 按下 Enter，等它崩潰。<br>
+            4. 崩潰後輸入 <code>bt</code>（backtrace），它會印出函式呼叫堆疊，最上面那行就是出錯的準確行號。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="double free corruption tcache Aborted free null">
+      <div class="card-header">
+        <span class="badge">記憶體</span>
+        free(): double free detected in tcache 2
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">這通常是執行到一半才崩潰，代表你把同一塊記憶體釋放了兩次。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">兩個指標指向同一塊 <code>malloc</code> 出來的記憶體，你對兩個指標都呼叫了 <code>free()</code>；或在迴圈/分支中重複釋放。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">
+            釋放完記憶體後，**立刻將指標設為 NULL**：<br>
+            <pre>free(p);
+p = NULL;  // 之後再 free(p) 也不會報錯，因為 free(NULL) 是安全的</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. 系統與工具 ==================== -->
+    <h2 class="section-title">🖥️ 系統與工具（Shell / OS）</h2>
+
+    <div class="error-card" data-search="Permission denied chmod +x execute">
+      <div class="card-header">
+        <span class="badge">權限</span>
+        bash: ./main: Permission denied
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">你想執行一個檔案，但系統不給你執行。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">這個檔案沒有「執行權限（x）」。可能是你用編輯器存檔時，權限沒有被正確設定。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">給予執行權限：<br>
+          <pre>chmod +x main</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="Killed OOM out of memory malloc huge array">
+      <div class="card-header">
+        <span class="badge">系統</span>
+        Killed
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看錯在哪</div>
+          <div class="info-content">程式不是自己崩潰的，是被作業系統強制殺掉的（而且沒有 <code>core dumped</code>）。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">最常見是 **OOM（Out of Memory）**。你宣告了過大的陣列（例如在 Stack 上開 <code>int a[100000000];</code>），或是 <code>malloc</code> 用太多記憶體，系統為了保護自己把你砍了。</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼修</div>
+          <div class="info-content">
+            1. 檢查陣列大小是否合理。<br>
+            2. 若需要極大陣列，改用 <code>malloc()</code> 配置在 Heap 上（記得要 <code>free</code>）。<br>
+            3. 可用 <code>dmesg | tail</code> 確認是不是 OOM Killer 所為。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. 詳細除錯教學（最下方） ==================== -->
+    <h2 class="section-title" style="margin-top: 48px;">🕵️‍♂️ 不會用 GDB 的除錯神技：Printf Debugging</h2>
+    
+    <div class="error-card" style="border-color: var(--accent);">
+      <div class="card-body">
+        <p style="color: var(--text-dim); margin-bottom: 16px;">
+          在考場上如果遇到 <code>Segmentation fault</code>，但沒時間學 GDB，或是 GDB 環境不給用，你可以用最古老的 <code>printf</code> 大法。這不是亂印，而是有技巧的「二分搜尋法」。
+        </p>
+
+        <div class="info-row">
+          <div class="info-label look">🎯 為什麼不能用普通的 printf？</div>
+          <div class="info-content">
+            因為 C/C++ 的終端機輸出是「行緩衝（Line-buffered）」的。如果你寫 <code>printf("step 1");</code> 但沒有換行，程式下一秒就崩潰了，這行字會卡在緩衝區裡<b>印不出來</b>。你會誤以為程式根本沒跑到這裡。
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確的加 printf 方式</div>
+          <div class="info-content">
+            <b>1. 一定要加 `\n`（換行符號）</b><br>
+            錯誤寫法：<code>printf("DEBUG: 準備進入迴圈");</code><br>
+            正確寫法：<code>printf("DEBUG: 準備進入迴圈\n");</code><br><br>
+            
+            <b>2. 或者用 stderr 強制輸出</b><br>
+            將 <code>printf</code> 改成 <code>fprintf(stderr, ...)</code>，因為 <code>stderr</code> 預設是無緩衝的，會立刻印在螢幕上：
+            <pre>fprintf(stderr, "DEBUG: 目前 i = %d\n", i);</pre>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-label look">💡 實戰範例：抓出陣列越界</div>
+          <div class="info-content">
+            假設你懷疑下面這段迴圈會崩潰，你可以這樣加：
+            <pre>printf("DEBUG: 準備進入迴圈\n");
+for (int i = 0; i &lt; n; i++) {
+    printf("DEBUG: i = %d, ptr = %p\n", i, ptr); // 看它印到幾就掛了
+    ptr-&gt;value = i;
+}
+printf("DEBUG: 迴圈順利結束\n");</pre>
+            
+            <b>結果判讀：</b><br>
+            如果終端機印出 <code>i = 5</code>，然後下一行直接出現 <code>Segmentation fault</code>，就代表當 <code>i = 5</code> 時，<code>ptr-&gt;value</code> 存取了非法記憶體。
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-label why">🔍 如果程式陷入死迴圈？</div>
+          <div class="info-content">
+            如果程式沒有崩潰，而是卡住不動，你可以在迴圈內加 <code>printf("waiting...\n");</code> 和 <code>sleep(1);</code>，看它卡在哪個條件判斷裡。
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 右側說明欄 -->
+  <aside class="refpanel">
+    <div class="refpanel-header">
+      <div class="refpanel-title">📖 考場生存說明</div>
+    </div>
+    <div class="refpanel-body">
+      <h3>🚑 遇到報錯的第一步</h3>
+      <p>不要慌，程式不會騙人。把終端機的紅字<b>整段複製</b>，貼進左側的搜尋框。</p>
+      <p>如果是編譯錯誤，<b>永遠先看行號</b>。但請記住：<span class="highlight">「編譯器說第 N 行錯，通常是第 N-1 行有問題」</span>。</p>
+
+      <h3>🔥 三大高頻致命錯誤</h3>
+      <ul>
+        <li><code>undefined reference to ...</code><br>就是「找不到實作」。問自己：<br>1. 編譯指令有加對應參數嗎？（<code>-pthread</code> / <code>-lm</code>）<br>2. 多檔案編譯有把所有 .c 都列進去嗎？</li>
+        <li><code>Segmentation fault</code><br>記憶體亂存取。編譯時加 <code>-g</code>，用 <code>gdb ./main</code> 跑，輸入 <code>bt</code> 抓出崩潰行號。</li>
+        <li><code>unknown character '0x...'</code><br>你複製的程式碼混入了全形標點。去那行把標點刪掉重打。</li>
+      </ul>
+
+      <h3>🧠 不會用 GDB 怎麼抓 Bug？</h3>
+      <p>如果不想學 GDB，最暴力的做法是在懷疑的地方加上 <code>printf</code>，看程式跑到哪一行才斷掉。</p>
+      <p>👉 <b>詳細圖文教學請見左側頁面最下方：「🕵️‍♂️ 不會用 GDB 的除錯神技」</b></p>
+
+      <h3>🤖 求救 Prompt 範例</h3>
+      <p>如果查不到，把這段丟給考場 AI：</p>
+      <p style="background: var(--pre-bg); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border);">
+        「我正在 Linux 上用 gcc 寫 C++。我遇到以下錯誤訊息：（貼上紅字）。請告訴我：1. 這是編譯期還是連結期錯誤？2. 為什麼會發生？3. 給我具體的修改建議或編譯指令修正。」
+      </p>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+  // ==================== 搜尋過濾功能 ====================
+  const searchInput = document.getElementById('searchInput');
+  const cards = document.querySelectorAll('.error-card');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    
+    cards.forEach(card => {
+      const searchText = (card.dataset.search || '') + ' ' + card.textContent.toLowerCase();
+      if (query === '' || searchText.includes(query)) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  });
+</script>
+</body>
+</html>

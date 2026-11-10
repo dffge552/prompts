@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama 3 8B — 提示詞查閱</title>
+    <style>
+        :root {
+            --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+            --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+            --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+            --success: #4caf7d; --warn-bg: #4a3f13; --warn-border: #b8962e;
+            --warn-text: #ffe08a; --sidebar-w: 220px; --refpanel-w: 340px;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; height: 100%; }
+        body {
+            font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+            background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6;
+        }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+            background: var(--sidebar-bg); border-right: 1px solid var(--border);
+            padding: 20px 12px; overflow-y: auto; z-index: 100;
+        }
+        .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+        .nav-item {
+            display: block; padding: 9px 14px; margin: 3px 0; border-radius: 8px;
+            color: var(--text-dim); text-decoration: none; font-size: 16px;
+            transition: background 0.15s, color 0.15s; cursor: pointer;
+        }
+        .nav-item:hover { background: #1f242c; color: var(--text); }
+        .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+        .main {
+            margin-left: var(--sidebar-w); margin-right: var(--refpanel-w);
+            flex: 1; padding: 28px 40px 80px; transition: margin-right 0.25s ease; max-width: 1000px;
+        }
+        .layout.panel-collapsed .main { margin-right: 44px; }
+        .page-title { font-size: 30px; font-weight: 700; margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+        .page-title small { font-size: 15px; font-weight: 400; color: var(--text-dim); margin-left: 12px; }
+        .toggle-bar {
+            display: flex; align-items: center; gap: 12px; background: var(--panel-bg);
+            border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+            margin-bottom: 16px; font-size: 17px; flex-wrap: wrap;
+        }
+        .toggle-bar .label { color: var(--text-dim); }
+        .toggle-btn {
+            padding: 7px 18px; border-radius: 7px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-dim); font-size: 16px;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .toggle-btn:hover { border-color: var(--accent); color: var(--text); }
+        .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+        .order-hint {
+            background: var(--warn-bg); border: 1px solid var(--warn-border);
+            border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;
+            color: var(--warn-text); font-size: 15px; line-height: 1.8;
+        }
+        .order-hint strong { color: #fff; }
+        .order-hint code {
+            background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px;
+            font-family: "SF Mono", "Consolas", monospace; font-size: 14px;
+        }
+        .search-bar { margin: 20px 0 24px; position: relative; }
+        .search-bar input {
+            width: 100%; padding: 13px 18px; font-size: 17px; background: var(--panel-bg);
+            border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+            outline: none; transition: border-color 0.15s;
+        }
+        .search-bar input:focus { border-color: var(--accent); }
+        .search-bar input::placeholder { color: #5c6470; }
+        .no-result { display: none; color: var(--text-dim); text-align: center; padding: 40px 0; font-size: 17px; }
+        .block {
+            background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 12px; margin-bottom: 24px; overflow: hidden;
+        }
+        .block-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px; border-bottom: 1px solid var(--border); background: #1e2229;
+            flex-wrap: wrap; gap: 8px;
+        }
+        .block-title { font-size: 19px; font-weight: 700; color: var(--accent); }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .copy-btn {
+            padding: 7px 14px; background: transparent; border: 1px solid var(--border);
+            border-radius: 7px; color: var(--text-dim); font-size: 14px;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+        .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+        .merged-btn { border-color: var(--accent-dim); color: var(--accent); }
+        .full-btn { border-color: var(--success); color: var(--success); }
+        .full-btn:hover { border-color: var(--success); color: #fff; background: var(--success); }
+        .block pre {
+            margin: 0; padding: 20px 22px; background: var(--pre-bg);
+            font-family: "SF Mono", "Consolas", "Menlo", "Courier New", monospace;
+            font-size: 15px; line-height: 1.7; color: #d4d8de;
+            white-space: pre-wrap; word-wrap: break-word; overflow-x: auto;
+        }
+        .refpanel {
+            position: fixed; top: 0; right: 0; bottom: 0; width: var(--refpanel-w);
+            background: var(--sidebar-bg); border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 90; transition: width 0.25s ease;
+        }
+        .layout.panel-collapsed .refpanel { width: 44px; }
+        .refpanel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; }
+        .refpanel-collapse-btn {
+            background: transparent; border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-dim); font-size: 14px; padding: 4px 10px;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .refpanel-collapse-btn:hover { border-color: var(--accent); color: var(--text); }
+        .refpanel-body { flex: 1; overflow-y: auto; padding: 16px; font-size: 14.5px; line-height: 1.65; }
+        .refpanel-body h3 {
+            font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+            padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+        }
+        .refpanel-body h3:first-child { margin-top: 0; }
+        .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+        .refpanel-body strong { color: var(--text); }
+        .refpanel-body .note {
+            background: #1e2229; border-left: 3px solid var(--accent);
+            padding: 10px 12px; border-radius: 5px; margin: 10px 0;
+            color: var(--text); font-size: 14px;
+        }
+        .refpanel-body .note.warn { border-left-color: var(--warn-border); background: var(--warn-bg); color: var(--warn-text); }
+        .ref-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13.5px; }
+        .ref-table th {
+            text-align: left; padding: 6px 8px; background: #1e2229; color: var(--text-dim);
+            font-weight: 600; border-bottom: 1px solid var(--border); font-size: 13px;
+        }
+        .ref-table td { padding: 7px 8px; border-bottom: 1px solid #262b34; color: var(--text); vertical-align: top; }
+        .ref-table td:first-child { color: var(--text-dim); }
+        .ref-table .cat { color: var(--accent); font-weight: 600; white-space: nowrap; }
+        .layout.panel-collapsed .refpanel-title, .layout.panel-collapsed .refpanel-body { display: none; }
+        .layout.panel-collapsed .refpanel-header {
+            padding: 12px 0; justify-content: center; border-bottom: none;
+            height: 100%; writing-mode: vertical-rl; text-orientation: mixed;
+        }
+        .layout.panel-collapsed .refpanel-collapse-btn {
+            writing-mode: vertical-rl; border: none; font-size: 14px; padding: 10px 6px;
+        }
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--success); color: #fff; padding: 12px 28px; border-radius: 10px;
+            font-size: 16px; font-weight: 600; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s; z-index: 999;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (max-width: 1280px) { :root { --refpanel-w: 300px; } }
+        @media (max-width: 1024px) {
+            .main { margin-right: 0; padding-right: 80px; }
+            .refpanel {
+                width: 320px; transform: translateX(calc(100% - 44px));
+                box-shadow: -4px 0 20px rgba(0,0,0,0.4); transition: transform 0.25s ease;
+            }
+            .refpanel.open { transform: translateX(0); }
+            .layout.panel-collapsed .refpanel { transform: translateX(calc(100% - 44px)); }
+            .layout.panel-collapsed .refpanel.open { transform: translateX(0); }
+        }
+        @media (max-width: 820px) {
+            .sidebar {
+                width: 100%; height: auto; bottom: auto; position: relative;
+                border-right: none; border-bottom: 1px solid var(--border);
+                display: flex; flex-wrap: wrap; padding: 12px;
+            }
+            .sidebar h1 { width: 100%; margin-bottom: 8px; }
+            .nav-item { padding: 6px 12px; font-size: 15px; margin: 2px; }
+            .main { margin-left: 0; padding: 20px 16px 60px; }
+            .page-title { font-size: 24px; }
+            .refpanel { width: 90%; max-width: 340px; transform: translateX(calc(100% - 40px)); }
+        }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item active" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+    <main class="main">
+        <h1 class="page-title">Llama 3 8B <small>8K 上下文 · 參數不可調 · 單次對話</small></h1>
+
+        <div class="order-hint">
+            <strong>📌 建議操作：</strong>點任意區塊的 <code>📋 填空+層一+層二</code> 按鈕。<br>
+            複製出來的結構是：<strong>填空區（最前）→ 層一 → 層二規則（最後）</strong>。<br>
+            你只需往最前面的填空區填內容，不用手動挪動任何東西。
+        </div>
+
+        <div class="toggle-bar">
+            <span class="label">層一顯示版本：</span>
+            <button class="toggle-btn active" data-mode="offline">離線版</button>
+            <button class="toggle-btn" data-mode="online">連網版</button>
+        </div>
+
+        <div class="toggle-bar">
+            <span class="label">輸出語言：</span>
+            <button class="toggle-btn lang-btn active" data-lang="zh-CN">強制簡體</button>
+            <button class="toggle-btn lang-btn" data-lang="zh-TW">強制繁體</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋區塊（例如：1、編譯、競態、層一…）">
+        </div>
+        <div class="no-result" id="noResult">找不到符合的區塊</div>
+
+        <section class="block" data-title="層一 系統規則 離線版 連網版">
+            <div class="block-header">
+                <span class="block-title" id="layer1Title">層一（離線版）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="layer1Content">📋 複製層一</button>
+                </div>
+            </div>
+            <pre id="layer1Content"></pre>
+        </section>
+
+        <section class="block" data-title="第0-1類 修復現有 Bug 第0類">
+            <div class="block-header">
+                <span class="block-title">第 0-1 類：全面修復與安全審查（修復 Bug）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c0-1">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c0-1">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c0-1">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c0-1">【第 0-1 類：全面修復與安全審查】
+本指令已明確解除層一「禁止給完整程式碼」的限制。
+我已知這段程式碼有 Bug，請直接產出「修復後」的完整函數。
+
+【強制執行規則】
+1. 🚨 請完全無視程式碼中所有的註解！註解可能是騙人的，請以實際的程式碼邏輯為準。
+2. 請同時掃描以下三個維度，找出所有潛在問題：
+   - 記憶體安全（越界、重複釋放、記憶體洩漏）
+   - 執行緒安全（資料競爭、未加鎖的共享變數）
+   - 邏輯正確性（演算法錯誤、邊界條件、型別轉換）
+3. 只輸出修改後的完整函數。不要輸出整個文件，不要用「...」省略。
+4. 不要順手重構我沒要求修改的其他邏輯。
+5. 結尾一行：「修改信心：高/中/低。不確定的行號或邊界條件：___」
+6. 不要解釋你改了什麼。直接給程式碼。寫完立即停止。
+
+【已知問題】：[貼上編譯錯誤、崩潰訊息或症狀]
+【原始函數】：[只貼目標函數，不要貼整個檔案]</pre>
+        </section>
+
+        <section class="block" data-title="第0-2類 從零生成程式碼 第0類">
+            <div class="block-header">
+                <span class="block-title">第 0-2 類：從零生成程式碼（防呆版）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c0-2">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c0-2">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c0-2">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c0-2">【第 0-2 類：從零生成程式碼】
+本指令已明確解除層一「禁止給完整程式碼」的限制。
+請根據我的需求，直接產出完整、可運行的程式碼。不需要給骨架，直接給實作。
+
+【強制執行規則】
+1. 🚨 請不要添加我沒要求的防禦性檢查或過度設計。
+2. 如果你寫了多執行緒，請自動確保資料競爭與死結問題已被解決。
+3. 如果你寫了指標或動態記憶體，請自動確保沒有記憶體洩漏。
+4. 結尾一行：「編譯信心：高/中/低。不確定的行號或 API：___」
+5. 不要寫「希望這能幫到你」或任何結束語。寫完程式碼立即停止。
+
+【我的需求】：[例如：請寫一個多執行緒的任務管理系統，保證執行緒安全。]
+【語言與環境】：[例如：C++17 / Python 3 / ROS 2 Jazzy]</pre>
+        </section>
+
+        <section class="block" data-title="第0-3類 重構與效能優化 第0類">
+            <div class="block-header">
+                <span class="block-title">第 0-3 類：重構與效能優化（防呆版）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c0-3">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c0-3">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c0-3">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c0-3">【第 0-3 類：重構與效能優化】
+本指令已明確解除層一「禁止給完整程式碼」的限制。
+這段程式碼目前功能正確，但我需要對它進行優化。請給出優化後的完整程式碼。
+
+【強制執行規則】
+1. 🚨 請完全無視程式碼中所有的註解！以實際邏輯為準。
+2. 優化時，請保持原本的輸入輸出介面不變，不要亂改我的業務邏輯。
+3. 如果優化涉及多執行緒（如縮小鎖的粒度），請確保不會引入新的競態條件或死結。
+4. 結尾一行：「行為一致性信心：高/中/低。可能引入的新風險：___」
+5. 不要解釋你改了什麼。直接給程式碼。寫完立即停止。
+
+【優化目標】：[例如：降低時間複雜度 / 解決 TLE / 減少鎖的競爭]
+【原始函數】：[只貼目標函數，不要貼整個檔案]</pre>
+        </section>
+
+        <section class="block" data-title="第0-4類 仿寫代碼 照抄 替換 第0類">
+            <div class="block-header">
+                <span class="block-title">第 0-4 類：仿寫代碼（照抄正確邏輯，只替換目標）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c0-4">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c0-4">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c0-4">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c0-4">【第 0-4 類：仿寫代碼】
+本指令已明確解除層一「禁止給完整程式碼」的限制。
+我會貼兩段程式碼：上方是「有問題的目標代碼」，下方是「邏輯正確的參考代碼」。
+請你照抄參考代碼的邏輯與結構，只把目標代碼裡需要替換的部分（變數、函式名、型別、業務細節）換成目標代碼的內容。
+不要發明新邏輯，不要重構，不要加入參考代碼裡沒有的東西。
+
+【強制執行規則】
+1. 🚨 完全無視兩段程式碼中所有的註解。以實際程式碼邏輯為準。
+2. 只輸出「替換後」的完整目標函數。不要輸出參考代碼，不要輸出整個檔案。
+   如果替換後的某段程式碼與「目標代碼」原文完全相同（逐字相同），
+   可以用一行註解 `// [unchanged: lines X-Y]` 代替，並保留行號。
+   除此之外，不要用「...」省略任何內容。
+   函數簽名、返回值、收尾的大括號絕對不能省略。
+3. 如果參考代碼的邏輯與目標代碼的需求有衝突，停下來告訴我衝突在哪，不要擅自決定。
+4. 如果目標代碼裡有參考代碼沒有的額外邏輯（例如額外的錯誤處理），保留它，不要刪掉。
+5. 結尾一行：「替換信心：高/中/低。不確定的替換點：___」
+6. 不要解釋你換了什麼。直接給程式碼。寫完立即停止。
+
+輸出前自檢：你標為 [unchanged] 的行，是否與目標代碼逐字相同？
+如果有任何一行你不確定，就不要標記，直接完整輸出那一行。
+
+【目標代碼（有問題的，要改的）】：
+[貼上目標函數]
+
+【參考代碼（邏輯正確的，照抄它）】：
+[貼上參考函數]</pre>
+        </section>
+
+        <section class="block" data-title="第1類 編譯與語法錯誤 編譯錯誤診斷">
+            <div class="block-header">
+                <span class="block-title">第 1 類：編譯與語法錯誤</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c1">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c1">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c1">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c1">【編譯錯誤診斷】
+我貼的是編譯器的原始輸出。
+只回答以下三項：
+1. 這條錯誤的根本原因，一句話。
+2. 如果是缺少 #include 或編譯參數，直接告訴我具體缺哪個。
+3. 如果錯誤訊息明確指向某一行（例如 "error: expected ';' at line 42"），
+   給出該行的修正（只改那一行，不要改其他行，不要給完整檔案）。
+   如果錯誤訊息不指向具體行（例如 "undefined reference to X"），
+   給我一個能在終端驗證的指令或 man 章節，不要猜程式碼哪裡錯。
+
+如果無法從錯誤訊息確定原因，說「不確定，建議先檢查 X」，不要猜。
+不要解釋你的推理過程。寫完立即停止。
+
+【錯誤訊息】：[貼上]
+【程式碼上下文】：[只貼報錯指向的行，不要貼整個檔案]
+
+輸出前自檢：
+- 你的修正有沒有超出錯誤訊息指向的那一行？超出了就刪掉。
+- 你有沒有因為「看起來還能順手改一下」而動了其他行？動了就還原。</pre>
+        </section>
+
+        <section class="block" data-title="第2類 邏輯錯誤與執行期崩潰 執行期 邏輯問題">
+            <div class="block-header">
+                <span class="block-title">第 2 類：邏輯錯誤與執行期崩潰</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c2">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c2">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c2">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c2">【執行期／邏輯問題診斷】
+我貼的程式碼編譯通過，但行為不對。不要重寫我的程式碼。
+只回答以下三項：
+1. 最可能的原因，按確信度排序，最多 3 個，最少 1 個。
+   每個原因格式：「原因：... | 確信度：高／中／低 | 程式碼依據：第 X 行或函式 Y」
+   如果某個原因你找不到具體的程式碼依據，不要寫出來。寧可只給 1 個。
+2. 針對確信度最高的那個原因，給我一個我能執行的驗證方式。
+3. 如果一個原因都給不出，直接說「無法從當前資訊確定」，不要編。
+
+額外規則：
+- 如果你判斷某個原因的確信度為「高」，且指向具體行，可以額外給該行的修正方向
+  （一句話，不要給完整修正程式碼）。
+- 確信度為中或低的原因，只給驗證方式，不給修正方向。
+- 不要解釋你的推理過程。寫完立即停止。
+
+【症狀描述】：[貼上]
+【相關程式碼】：[只貼目標函數，不要貼整個檔案]
+
+輸出前自檢：
+- 你列出的每個「原因」，是否都指向了程式碼裡的具體行或函式？如果沒有，刪掉它。
+- 你有沒有在確信度為中／低時給了修正程式碼？如果有，刪掉，只留驗證方式。</pre>
+        </section>
+
+        <section class="block" data-title="第3類 效能瓶頸與資源浪費 效能 TLE CPU 記憶體">
+            <div class="block-header">
+                <span class="block-title">第 3 類：效能瓶頸與資源浪費</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c3">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c3">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c3">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c3">【效能問題分析】
+我的程式結果正確，但 Judge 回報 TLE／CPU 過高／記憶體過大。
+不要直接給我優化後的程式碼。不要在沒有量測資料的情況下猜瓶頸。
+只回答以下兩項：
+1. 給我 2 個零依賴的粗略定位方法（例如手動計時、二分註解、縮小輸入規模）。
+2. 根據你對我貼的程式碼的靜態觀察，最可能的 1 個瓶頸方向，格式：「瓶頸方向：... | 驗證方式：...」
+   如果無法從程式碼本身判斷，說「需要量測資料才能判斷」。
+
+額外（僅當程式碼涉及 mutex／spinlock 或 ROS 2 executor 時回答）：
+3. 如果程式碼有鎖：鎖內有沒有呼叫 printf／malloc／sleep／future.get／檔案 I/O？指出行號。
+4. 如果用了 rclpy MultiThreadedExecutor：據你所知，rclpy 的 MultiThreadedExecutor 有沒有已知的「回呼排程異常導致 CPU 空轉」問題？給我一個 GitHub issue 關鍵詞。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【Judge 回饋】：[貼上]
+【程式碼】：[只貼目標函數，不要貼整個檔案]
+
+輸出前自檢：你的「瓶頸方向」有沒有聲稱「一定是 X」？如果有，改成「可能是 X，驗證方式是 Y」。</pre>
+        </section>
+
+        <section class="block" data-title="第4類 不熟悉的 API 與語法 API 查詢 語法">
+            <div class="block-header">
+                <span class="block-title">第 4 類：不熟悉的 API 與語法</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c4">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c4">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c4">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c4">【API／語法查詢】
+我需要確認一個 API 的用法。不要給我完整可編譯的程式。
+只回答以下三項：
+1. 你「高信心」記得的最小骨架。如果你不確定，直接說「不確定骨架」。
+2. 給我 2 個英文關鍵詞，讓我去官方文件驗證。
+3. 這個 API 有沒有「常見陷阱」是你記得的？一句話。沒有就說沒有。
+   **如果你認為這個 API 在 ROS 2 Jazzy 中與舊版本（Humble／Iron）有行為差異，但你不確定具體變了什麼，直接說「不確定，建議查 Jazzy migration guide」。**
+
+【我要用的 API／語法】：[...]
+【我的環境】：[C++17／Python rclpy／ROS 2 Jazzy（2024 年發布，你的知識截止可能早於此）]
+
+不要解釋你的推理過程。寫完立即停止。
+
+輸出前自檢：你有沒有假設我知道某個 API 的完整簽名？如果有，改成「骨架大概是這樣，請查文件確認簽名」。你有沒有給出任何「在 Jazzy 上一定可以」的斷言？如果有，改成「我不確定 Jazzy 的行為是否與舊版一致」。</pre>
+        </section>
+
+        <section class="block" data-title="第5類 架構設計與優化策略 架構 策略">
+            <div class="block-header">
+                <span class="block-title">第 5 類：架構設計與優化策略</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c5">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c5">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c5">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c5">【架構／策略討論】
+我在設計一個系統，不確定架構方向。不要給我程式碼。
+先列出 2-3 個你需要我確認的關鍵約束。
+
+等我確認後，你再只回答：
+1. 2 個可能的架構方向，每個一句話描述。
+2. 每個方向的一個「主要風險」和一個「我能在 10 分鐘內、不寫完整版程式碼就能做的驗證動作」。
+3. 如果你認為某個方向明顯更優，說明理由（一句話）。
+   如果你不確定哪個更好，直接說「取決於 X 和 Y 的權衡」。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【需求描述】：[貼上]
+
+輸出前自檢：你給的「驗證方式」是不是需要我寫完整版程式碼或跑完整測試才能驗證？如果是，換一個更輕量的，或者直接說「這個方向在考場上無法快速驗證，建議先不選」。</pre>
+        </section>
+
+        <section class="block" data-title="第6類 搜索關鍵詞生成 搜索引導 超出能力邊界">
+            <div class="block-header">
+                <span class="block-title">第 6 類：搜索關鍵詞生成</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c6">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c6">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c6">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c6">【超出能力邊界的搜尋引導】
+我貼的是程式碼和問題現象。你先判斷：這個問題在你的知識範圍內嗎？
+
+【我的程式碼】：[只貼目標函數或錯誤訊息，不要貼整個檔案]
+【我的問題】：[一句話描述現象]
+【我的環境】：[C++17／Python rclpy／ROS 2 Jazzy／Linux 容器]
+
+只回答以下三項：
+1. 你能直接從這段程式碼和現象中判斷出問題原因嗎？
+   如果能：只給一句話原因，然後跳到第 3 項。
+   如果不能：直接說「超出我的判斷範圍」，不要猜。
+2. 如果超出你的範圍，給我 3 組英文搜尋關鍵詞，按精度從高到低排列：
+   第一組：精確型——包含你認為最關鍵的 1-2 個技術術語 + 症狀詞。
+   第二組：寬泛型——只包含症狀詞 + 環境名。
+   第三組：探索型——給我 2-3 個你可能不知道但值得查的方向詞。
+   第三組中，如果你自己也不確定是否相關的詞，請在該詞後面標「[不確定]」。
+3. 給我一個「我該去哪個檔案的哪個章節找答案」的方向。如果你不知道，說不知道。
+
+不要解釋你的推理過程。寫完立即停止。
+
+輸出前自檢：
+- 你給的第一組關鍵詞，如果搜出來零結果，第二組能不能兜底？如果不能，調整第一組或第二組。
+- 第三組裡有沒有沒標 [不確定] 的詞，但其實你也不確定？有就補標。</pre>
+        </section>
+
+        <section class="block" data-title="第7類 靜默失敗診斷 靜默失敗 資料消失">
+            <div class="block-header">
+                <span class="block-title">第 7 類：靜默失敗診斷</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c7">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c7">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c7">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c7">【靜默失敗診斷】
+我的程式沒有報錯，但預期行為沒有發生（資料沒出現／結果不對／系統沒反應）。
+不要給我程式碼。只回答：
+1. 根據我的描述，列出我該按什麼順序檢查哪些環節（從資料／控制流的起點到終點）。
+   格式：環節 → 檢查方式（具體指令或觀察點）→ 如果這裡正常，下一步查什麼
+2. 這個鏈路裡有沒有「已知會靜默丟資料或改行為」的元件／設計模式？
+   如果有，指出最可疑的一個，並給我一個確認方式。
+3. 如果我不確定完整鏈路，告訴我該用什麼工具還原鏈路
+   （例如 ros2 node info／gdb／printf／日誌／strace）。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【我的系統】：[例如 ROS 2 節點鏈／多執行緒共享變數／硬體搬運引擎／位元流解析]
+【現象】：[例如 上游有資料但下游沒有／counter 少了一些／結果差了幾倍]
+【我已檢查】：[列出你已經確認正常的部分]
+
+輸出前自檢：
+- 你列出的檢查順序，有沒有哪一步需要我寫新程式碼才能執行？如果有，換一個更輕量的。
+- 如果你判斷問題局限在單個函式內，直接告訴我「建議改用定向插樁模板」，不要勉強給跨模組的檢查鏈。
+- 輸出時按以下優先級組織：檢查順序 → 每一項的一句話說明 → 舉例。
+  如果篇幅不夠，省略舉例，不要省略檢查順序本身。
+- 禁止用「內容太長」作為不輸出的理由。如果檢查鏈超過 10 個環節，
+  只給前 8 個，註明「其餘環節請縮小範圍後再問」，不要輸出半截話。</pre>
+        </section>
+
+        <section class="block" data-title="第8類 rosbag 錄製操作確認 錄製 bag">
+            <div class="block-header">
+                <span class="block-title">第 8 類：rosbag 錄製操作確認</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c8">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c8">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c8">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c8">【錄製操作確認】
+我需要錄製一段執行過程用於提交。不要給我程式碼。只回答：
+1. 根據我要錄的主題，給我一句完整的 ros2 bag record 指令。
+2. 我列的主題裡，有沒有通常應該一起錄但我漏了的（例如 /tf、/tf_static、/odom）？只提醒，不展開。
+3. 錄完後，我用什麼指令快速確認 bag 檔案裡有資料？（一個 ros2 bag info 相關指令即可）
+
+不要解釋你的推理過程。寫完立即停止。
+
+【我要錄的主題】：[貼上]
+【我的 ROS 2 版本】：[Humble／Jazzy]
+
+輸出前自檢：你給的指令裡，有沒有任何參數是你不確定在當前 ROS 2 版本存在的？如果有，標出來讓我查。</pre>
+        </section>
+
+        <section class="block" data-title="第9類 CI Judge 提交問題 CI 分數">
+            <div class="block-header">
+                <span class="block-title">第 9 類：CI／Judge 提交問題</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c9">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c9">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c9">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c9">【CI／Judge 提交問題】
+我 push 後遇到流程問題。不要給我程式碼。只回答：
+1. 根據現象，最可能是 CI 設定問題、commit 格式問題、還是 Judge 環境問題？一句話。
+2. 給我 2 個我立刻能檢查的東西（具體看哪個欄位／檔案／指令）。
+3. 如果無法判斷，告訴我該問助教什麼具體問題。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【現象】：[例如 push 後 CI 沒跑／CI Log 出現 X／分數沒更新]
+【我的操作】：[例如 我改了哪個檔案、commit message 寫了什麼]</pre>
+        </section>
+
+        <section class="block" data-title="第10類 解釋程式碼 讀懂 程式碼解釋">
+            <div class="block-header">
+                <span class="block-title">第 10 類：解釋程式碼</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c10">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c10">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c10">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c10">【程式碼解釋】
+我需要理解一段程式碼在做什麼。不要找 bug，不要給修正建議。
+只回答：
+1. 這段程式碼的輸入是什麼、輸出是什麼、副作用是什麼？（各一句話）
+2. 它的執行流程，按步驟列出來，每步一句話。如果超過 8 步，只列關鍵步驟。
+3. 它依賴了哪些外部的東西（全域變數、其他函式、系統呼叫、ROS 2 的 topic／service）？
+   列出名稱和用途，一句話一個。
+4. 如果你在解釋過程中發現某處「看起來可能有問題」，不要展開分析，
+   只在最後加一句：「我注意到第 X 行可能有問題，但這不是你問的，僅供參考。」
+
+不要解釋你的推理過程。寫完立即停止。
+
+【程式碼】：[只貼目標函數，不要貼整個檔案]
+【我的目的】：[例如 讀懂題目給的既有程式碼／理解隊友寫的模組／確認某段邏輯是否符合規格]
+
+輸出前自檢：
+- 你有沒有在解釋裡加入「應該改成 X」這類建議？如果有，刪掉，我只問它是什麼，不問它該怎樣。
+- 輸出時按以下優先級組織內容：核心結論（執行流程）→ 每一項的一句話說明 → 舉例。
+  如果篇幅不夠，從最低優先級（舉例）開始省略，不要省略核心結論。
+- 禁止用「內容太長」作為不輸出的理由。如果執行流程本身超過 10 步，
+  只給前 8 步並註明「其餘步驟請縮小範圍後再問」，不要輸出半截話。</pre>
+        </section>
+
+        <section class="block" data-title="第11類 定向插樁 log 插樁 縮小範圍">
+            <div class="block-header">
+                <span class="block-title">第 11 類：定向插樁</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c11">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c11">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c11">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c11">【定向插樁】
+我的程式行為不對，我想加 log 縮小範圍。不要給我加了 log 的完整程式碼。
+只回答：
+1. 根據我的症狀，給我一個「最小觀測集」：最多 3 個 log 插入點。
+   每個點格式：
+   - 位置：第 X 行／函式 Y 的入口／出口
+   - 印出內容：變數名 + 預期值範圍（例如 "i=?, 預期 0..n-1"）
+   - 如果這裡印出 A，說明問題在 B；如果印出 C，說明問題在 D
+2. 根據我的語言和環境，直接選一種印出方式：C 用 fprintf(stderr)，C++ 用 std::cerr，
+   Python 用 print。不要解釋為什麼選這個。不要混用。
+3. 如果我的程式已有 printf／log，告訴我哪些應該暫時關掉，避免輸出淹沒關鍵資訊。
+4. 如果三個點仍無法定位，告訴我下一個該加在哪（一句話，不要展開）。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【症狀】：[例如 多執行緒 counter 少了／陣列結果不對／ROS 2 callback 不觸發]
+【相關程式碼】：[只貼你要我插樁的函式，不要貼整個檔案]
+【我的環境】：[C/C++／Python，是否多執行緒，是否 ROS 2]
+
+輸出前自檢：
+- 你給的每個 log 點，我加上去跑一次，能不能明確區分「問題在這之前」還是「在這之後」？如果不能，換一個位置。
+- 你有沒有同時建議 printf 和 std::cerr？如果有，只保留一種。</pre>
+        </section>
+
+        <section class="block" data-title="第12類 競態條件診斷 多執行緒 資料競爭 race">
+            <div class="block-header">
+                <span class="block-title">第 12 類：競態條件診斷</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c12">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c12">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c12">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c12">【競態條件診斷】
+我的多執行緒程式結果不穩定：有時對、有時錯，或錯誤只在特定時序下出現。
+不要給我完整修正程式碼。只回答：
+1. 根據我貼的程式碼，列出所有共享可變狀態（共享變數、全域變數、堆上的物件、
+   檔案描述符、ROS 2 回呼間共享的成員變數）。每個標註：誰讀、誰寫、有沒有保護。
+2. 判斷哪些共享狀態是「資料競爭」（沒有同步保護就被多執行緒存取）。
+   只列你高信心的，給出行號或變數名。如果無法從程式碼判斷，說「無法判斷」。
+3. 給我一個「穩定重現」的驗證方法：
+   - 能不能用增加迴圈次數／縮小臨界區／插入隨機延遲來提高重現率？
+   - 有沒有更輕量的方式（例如把執行緒數從 2 改成 4）？
+   給 1-2 個具體做法，不要給程式碼。
+4. 如果我的程式碼用了 atomic 或 mutex，指出有沒有「看起來有保護但實際無效」的地方
+   （例如 atomic 只保護了讀沒保護寫、鎖的粒度不覆蓋完整操作）。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【症狀】：[例如 counter 每次結果不同／偶爾 segfault／ROS 2 callback 偶發丟資料]
+【相關程式碼】：[只貼涉及共享狀態的函式，不要貼整個檔案]
+【我的環境】：[C/C++ pthread／C++ std::thread／Python threading／rclpy 多執行緒]
+
+輸出前自檢：
+- 你列的每個「資料競爭」，有沒有指出具體是哪個變數的哪次讀寫？沒有就刪掉。
+- 你給的重現方法，需不需要我改程式碼邏輯才能執行？如果需要，換一個不改邏輯的。</pre>
+        </section>
+
+        <section class="block" data-title="第13類 分治定位 大程式碼 分治">
+            <div class="block-header">
+                <span class="block-title">第 13 類：分治定位</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c13">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c13">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c13">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c13">【大程式碼分治定位】
+我有一段幾百行的程式碼，程式行為不對，但我不確定問題在哪個函式或哪一段。
+不要嘗試一次分析整個檔案，不要給我修正程式碼。只回答以下三項：
+
+1. 根據我的症狀描述和程式碼塊列表，把最可能包含問題的塊按可能性排序，只給前 3 個。
+   每個塊格式：「塊標籤 | 可能性：高／中／低 | 依據：一句話」
+
+2. 針對可能性最高的那個塊，給我一個「不需要我理解全部程式碼就能執行的驗證方式」。
+   例如：「在塊 B 的入口加一行 printf 印出變數 X，如果 X 的值是 Y，說明問題在 B 內部；
+   如果 X 正常，說明問題在 B 之前。」
+
+3. 如果我的症狀描述和程式碼塊列表不足以讓你判斷哪個塊最可疑，
+   直接說「需要更多資訊：請告訴我 [具體缺少什麼]」，不要硬猜。
+
+不要解釋你的推理過程。寫完立即停止。
+
+【症狀】：[貼上，例如 "程式在處理大輸入時崩潰，小輸入正常"]
+【程式碼塊列表】：[只貼函式名／行號範圍／結構，不要貼完整程式碼]
+【我的環境】：[C/C++／Python，是否多執行緒，是否 ROS 2]
+
+輸出前自檢：
+- 你有沒有嘗試分析程式碼塊列表之外的程式碼？如果有，刪掉。
+- 你給的「最可能塊」有沒有具體的症狀依據？如果只是「看起來複雜」，刪掉。
+- 你給的驗證方式，是不是需要我寫新程式碼才能執行？如果是，換一個更輕量的。</pre>
+        </section>
+    </main>
+
+    <aside class="refpanel" id="refpanel">
+        <div class="refpanel-header">
+            <span class="refpanel-title">8B / 8K 對照表</span>
+            <button class="refpanel-collapse-btn" id="collapseBtn" title="收合／展開">收合 ›</button>
+        </div>
+        <div class="refpanel-body" id="refpanelBody">
+
+            <h3>📌 複製按鈕說明</h3>
+            <div class="note warn">
+                <strong>📋 複製層二</strong>：只複製英文規則，不含填空區。<br>
+                <strong>📋 層一+層二</strong>：層一 + 層二規則，不含填空區。<br>
+                <strong>📋 填空+層一+層二</strong>：<strong>推薦</strong>。填空區（最前）+ 層一 + 層二規則。你直接往最前面填內容即可。
+            </div>
+
+            <h3>⚠️ 8B + 8K 鐵律</h3>
+            <div class="note warn">
+                <strong>1. 永遠不要貼整個檔案。</strong>只貼報錯行、目標函數、或相關聲明。<br>
+                <strong>2. 只貼函式原型或類定義</strong>，不貼實現。<br>
+                <strong>3. 編譯日誌只貼錯誤行</strong>和錯誤訊息，不貼完整輸出。<br>
+                <strong>4. 一個對話框只做一次對話。</strong>第二次追問品質會顯著下降。要追問就重開對話框。
+            </div>
+
+            <h3>第零層：先決定「要動手」還是「要動腦」</h3>
+            <table class="ref-table">
+                <thead><tr><th>現象</th><th>用這個</th><th>沒用就換</th></tr></thead>
+                <tbody>
+                <tr><td>明確需要它寫出完整程式碼（從零寫新功能）</td><td class="cat">第 0-2 類 從零生成</td><td>報錯切 1/2/11 類</td></tr>
+                <tr><td>程式碼能跑但太慢/太醜，需要重寫一版</td><td class="cat">第 0-3 類 效能優化</td><td>變慢切第 3 類</td></tr>
+                <tr><td>已經知道 Bug 在哪，需要它直接改好</td><td class="cat">第 0-1 類 修復 Bug</td><td>報錯切 1/2/11 類</td></tr>
+                <tr><td>有正確的參考代碼，想讓它照抄邏輯、只替換目標</td><td class="cat">第 0-4 類 仿寫代碼</td><td>邏輯衝突切 5 類</td></tr>
+                </tbody>
+            </table>
+
+            <h3>第 1 層：先判斷問題類別</h3>
+            <table class="ref-table">
+                <thead><tr><th>現象</th><th>用這個</th><th>沒用就換</th></tr></thead>
+                <tbody>
+                <tr><td>編譯器噴紅字，有明確行號</td><td class="cat">第 1 類</td><td>第 6 類</td></tr>
+                <tr><td>編譯器噴紅字，沒有行號（undefined reference）</td><td class="cat">第 1 類</td><td>第 6 類</td></tr>
+                <tr><td>程式崩潰（segfault），不知道崩在哪</td><td class="cat">第 11 類 定向插樁</td><td>第 2 類</td></tr>
+                <tr><td>不崩潰，結果不對，每次都錯</td><td class="cat">第 2 類 邏輯 bug</td><td>第 7 類</td></tr>
+                <tr><td>不崩潰，結果不對，有時對有時錯</td><td class="cat">第 12 類 競態</td><td>第 11 類</td></tr>
+                <tr><td>不報錯，但資料／訊號消失（上游有下游沒有）</td><td class="cat">第 7 類 靜默失敗</td><td>第 11 類</td></tr>
+                <tr><td>幾百行程式碼，不知道從哪個函式查</td><td class="cat">第 13 類 分治定位</td><td>第 11 類</td></tr>
+                <tr><td>程式對了但太慢／太吃資源（TLE／CPU／記憶體）</td><td class="cat">第 3 類 效能</td><td>第 6 類</td></tr>
+                <tr><td>不知道某個 API 怎麼用</td><td class="cat">第 4 類 API 查詢</td><td>第 6 類</td></tr>
+                <tr><td>完全讀不懂一段程式碼</td><td class="cat">第 10 類 解釋程式碼</td><td>—</td></tr>
+                <tr><td>不知道系統該怎麼設計，沒思路</td><td class="cat">第 5 類 架構討論</td><td>—</td></tr>
+                <tr><td>卡住了，不知道下一步</td><td class="cat">第 6 類 搜尋引導</td><td>—</td></tr>
+                <tr><td>需要錄製 demo 用於提交</td><td class="cat">第 8 類 錄製確認</td><td>—</td></tr>
+                <tr><td>push 後 CI 沒跑／分數沒更新／看不懂 CI Log</td><td class="cat">第 9 類 CI／Judge</td><td>—</td></tr>
+                </tbody>
+            </table>
+
+            <h3>第 2 層：貼之前必做</h3>
+            <div class="note">
+                <strong>把程式碼裡的註解刪掉</strong>，或開頭加一句「註解可能是錯的，以程式碼邏輯為準」。
+                <br>這是層一規則 6 的落地動作。<strong>刪註解比任何 prompt 都直接。</strong>
+            </div>
+
+            <h3>第 3 層：看到輸出後的驗證</h3>
+            <table class="ref-table">
+                <thead><tr><th>它給了什麼</th><th>你怎麼驗證</th></tr></thead>
+                <tbody>
+                <tr><td><strong>第 0 類生成的完整程式碼</strong></td><td><strong>直接丟進編譯器或 Judge 跑。如果有錯，重開對話框，根據報錯切回 1-13 類。</strong></td></tr>
+                <tr><td>編譯錯誤的原因</td><td>按它說的改，重編，錯誤消失 = 對</td></tr>
+                <tr><td>邏輯 bug 原因（確信度高）</td><td>按它說的加 log 或檢查變數，跑一次看是否符合</td></tr>
+                <tr><td>邏輯 bug 原因（確信度中／低）</td><td>不要直接信，重開對話框用第 11 類縮小範圍</td></tr>
+                <tr><td>分治定位的「最可能塊」</td><td>在該塊入口加它建議的 log，跑一次看行為</td></tr>
+                <tr><td>效能瓶頸方向</td><td>按它說的量測，有數據再決定改不改</td></tr>
+                <tr><td>API 骨架</td><td>拿它給的關鍵詞去官方文件確認簽名</td></tr>
+                <tr><td>搜尋關鍵詞</td><td>直接搜，第一組零結果換第二組</td></tr>
+                <tr><td>靜默失敗的檢查鏈</td><td>按順序走，走到哪步資料消失，問題就在那之前</td></tr>
+                <tr><td>競態條件的重現方法</td><td>按它說的提高重現率，能穩定重現 = 找到了</td></tr>
+                </tbody>
+            </table>
+
+            <h3>第 4 層：什麼時候放棄</h3>
+            <div class="note">
+                <strong>8B 下，同一個模板只給它一次機會。</strong>結果不對就重開對話框、換模板或換<strong>第 6 類（搜尋引導）</strong>。
+                <br>不要在一個對話框裡追問——第二次的品質會顯著下降。
+            </div>
+
+            <h3>考場閉環 SOP（使用順序）</h3>
+            <p>📌 <strong>拿到題目要寫程式碼：</strong>直接用 <strong>第 0-2 類（生成）</strong> 讓它寫出第一版。新對話框。</p>
+            <p>📌 <strong>寫程式／編譯：</strong>有紅字用第 1 類；不確定 API 用第 4 類。每個都是新對話框。</p>
+            <p>📌 <strong>程式行為不對（進入除錯）：</strong></p>
+            <p style="margin-left: 15px; color: var(--accent);">• 知道問題在哪 👉 重開對話框，切 <strong>第 0-1 類（修復）</strong>。</p>
+            <p style="margin-left: 15px; color: var(--accent);">• 不知道問題在哪 👉 13 類 → 11 類 → 2/7/12 類，每步新對話框。</p>
+            <p style="margin-left: 15px; color: var(--accent);">• 找到原因後 👉 重開對話框，切回 <strong>第 0-1 類</strong> 讓它改。</p>
+            <p>📌 <strong>程式對了但慢：</strong>切 <strong>第 0-3 類</strong> 或第 3 類。新對話框。</p>
+            <p>📌 <strong>提交階段：</strong>第 8 類（錄製）、第 9 類（CI）。新對話框。</p>
+            <p>📌 <strong>全程卡住超過 10 分鐘：</strong>第 6 類。新對話框。</p>
+
+            <h3>⚠️ 參數不可控的現實</h3>
+            <div class="note warn">
+                當前環境無法設定 temperature ≤0.2，8B 的輸出會帶有隨機波動。<strong>同一段程式碼，兩次生成結果可能不同。</strong>重要修改務必人工複查，不要把模型的「信心聲明」當作編譯保證。
+            </div>
+
+        </div>
+    </aside>
+
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+    // ==================== 層一（依語言動態生成） ====================
+    let currentLang = 'zh-CN';
+
+    function getLayer1(lang) {
+        const langRule = lang === 'zh-CN'
+            ? '7. Unless the content is code, your entire response MUST be in Simplified Chinese (简体中文). Code, identifiers, and API names stay in their original form.'
+            : '7. Unless the content is code, your entire response MUST be in Traditional Chinese (繁體中文). Code, identifiers, and API names stay in their original form.';
+
+        const offline = `You are a code assistant. Follow these rules strictly:
+
+1. IGNORE all comments in the code. Treat actual code logic as truth. If a comment contradicts the code, point out the contradiction.
+2. If the code involves multi-threading, check whether shared variables are locked. If it involves pointers or dynamic memory, check for leaks and out-of-bounds access.
+3. When you see a prompt starting with [Type 0-X], you MUST output complete runnable code. But end with a one-line statement: "Compile confidence: high/medium/low."
+4. Whenever you give an API/function, attach one verification path (which man section / which cppreference page / which docs.ros.org keyword). If you cannot provide one, do not give the API.
+5. If you are uncertain, say "Uncertain, keyword is X". Never use "usually", "generally", or "should" to hide uncertainty.
+6. Output code only. No explanation, no alternatives, no pleasantries. Stop immediately after the code.
+${langRule}`;
+
+        const online = `You are a code assistant with internet access.
+Before checking any API, version, or documentation, say "I need to look up X" and wait for my confirmation.
+After checking, include the source (URL or doc section name). If you cannot find it, say "Not found". Do not pass off old training knowledge as a search result.
+
+Follow these rules strictly:
+
+1. IGNORE all comments in the code. Treat actual code logic as truth. If a comment contradicts the code, point out the contradiction.
+2. If the code involves multi-threading, check whether shared variables are locked. If it involves pointers or dynamic memory, check for leaks and out-of-bounds access.
+3. When you see a prompt starting with [Type 0-X], you MUST output complete runnable code. But end with a one-line statement: "Compile confidence: high/medium/low."
+4. Whenever you give an API/function, attach one verification path (which man section / which cppreference page / which docs.ros.org keyword). If you cannot provide one, do not give the API.
+5. If you are uncertain, say "Uncertain, keyword is X". Never use "usually", "generally", or "should" to hide uncertainty.
+6. Output code only. No explanation, no alternatives, no pleasantries. Stop immediately after the code.
+${langRule}`;
+
+        return { offline, online };
+    }
+
+    let currentMode = 'offline';
+
+    function renderLayer1() {
+        const layer1 = getLayer1(currentLang);
+        const title = currentMode === 'offline' ? '層一（離線版）' : '層一（連網版）';
+        document.getElementById('layer1Title').textContent = title;
+        const langName = currentLang === 'zh-CN' ? '简体中文' : '繁體中文';
+        const zh = currentMode === 'offline'
+            ? `【層一：離線版系統提示詞】\n\n（此區塊顯示中文摘要，點擊「複製層一」會複製完整的英文系統提示詞）\n\n核心規則：\n1. 忽略程式碼中所有註解，以實際邏輯為準\n2. 多執行緒檢查共享變數加鎖；指標/動態記憶體檢查洩漏與越界\n3. 看到【第 0-X 類】開頭時，直接給完整可執行程式碼，結尾聲明編譯信心\n4. 給任何 API 時附驗證方式；給不出就不要給\n5. 不確定就說「不確定，關鍵詞是 X」，禁止用「通常」「應該」掩蓋\n6. 只輸出程式碼本身，不要解釋、不要客套話，寫完立即停止\n7. 除程式碼外，強制使用${langName}輸出`
+            : `【層一：連網版系統提示詞】\n\n（此區塊顯示中文摘要，點擊「複製層一」會複製完整的英文系統提示詞）\n\n核心規則：\n1. 需要查 API/版本/文件時，先說「我需要查 X」並等我確認\n2. 查到後附上來源（網址或文件章節）；查不到就說「查不到」\n3. 其餘規則與離線版相同：忽略註解、檢查競態/記憶體、第 0 類給完整程式碼、API 附驗證方式、不確定就說、只輸出程式碼\n4. 除程式碼外，強制使用${langName}輸出`;
+        document.getElementById('layer1Content').textContent = zh;
+        document.getElementById('layer1Content').dataset.copy = layer1[currentMode];
+    }
+
+    // ==================== 各區塊模板（填空區 + 英文規則） ====================
+    const TEMPLATES = {
+        'c0-1': {
+            fill: `【原始函數（只貼目標函數，不要貼整個檔案）】：
+[貼上目標函數]
+
+【已知問題（編譯錯誤、崩潰訊息或症狀）】：
+[貼上]`,
+            rules: `[Type 0-1: Full Fix and Security Audit]
+This command explicitly overrides Layer-1's "no full code" restriction.
+I know this code has bugs. Output the COMPLETE FIXED function directly.
+
+[Rules]
+1. IGNORE all comments in the code. Comments may lie. Trust actual code logic.
+2. Scan all three dimensions simultaneously:
+   - Memory safety (out-of-bounds, double-free, leaks)
+   - Thread safety (data races, unlocked shared variables)
+   - Logic correctness (algorithm errors, edge cases, type conversions)
+3. Output ONLY the complete fixed function. Do not output the whole file. Do not use "..." to omit.
+4. Do not refactor other logic I did not ask you to change.
+5. End with one line: "Fix confidence: high/medium/low. Uncertain lines/edge cases: ___"
+6. Do not explain what you changed. Give code directly. Stop immediately after.`
+        },
+        'c0-2': {
+            fill: `【我的需求】：
+[例如：請寫一個多執行緒的任務管理系統，保證執行緒安全。]
+
+【語言與環境】：
+[例如：C++17 / Python 3 / ROS 2 Jazzy]`,
+            rules: `[Type 0-2: Generate Code from Scratch]
+This command explicitly overrides Layer-1's "no full code" restriction.
+Generate complete, runnable code directly. No skeleton. No explanation.
+
+[Rules]
+1. Do not add defensive checks or over-engineering I did not ask for.
+2. If you write multi-threading, ensure data races and deadlocks are handled.
+3. If you write pointers or dynamic memory, ensure no leaks.
+4. End with one line: "Compile confidence: high/medium/low. Uncertain lines/APIs: ___"
+5. No closing remarks. Stop immediately after the code.`
+        },
+        'c0-3': {
+            fill: `【原始函數（只貼目標函數，不要貼整個檔案）】：
+[貼上目標函數]
+
+【優化目標】：
+[例如：降低時間複雜度 / 解決 TLE / 減少鎖的競爭]`,
+            rules: `[Type 0-3: Refactor and Performance Optimization]
+This command explicitly overrides Layer-1's "no full code" restriction.
+This code is functionally correct but needs optimization. Output the complete optimized code.
+
+[Rules]
+1. IGNORE all comments. Trust actual logic.
+2. Keep the original input/output interface unchanged. Do not alter my business logic.
+3. If optimization involves multi-threading (e.g., finer lock granularity), ensure no new races or deadlocks.
+4. End with one line: "Behavior consistency confidence: high/medium/low. Possible new risks: ___"
+5. Do not explain what you changed. Give code directly. Stop immediately after.`
+        },
+        'c0-4': {
+            fill: `【目標代碼（有問題的，要改的）】：
+[貼上目標函數]
+
+【參考代碼（邏輯正確的，照抄它）】：
+[貼上參考函數]`,
+            rules: `[Type 0-4: Code Imitation — Copy Correct Logic, Replace Only the Target]
+This command explicitly overrides Layer-1's "no full code" restriction.
+I will paste two code blocks: the target code (buggy, to be fixed) on top, and the reference code (logic-correct, to be copied) below.
+Copy the logic and structure of the reference code. Only replace the parts in the target code that need replacement (variable names, function names, types, business details) with the target code's content.
+Do not invent new logic. Do not refactor. Do not add anything not present in the reference code.
+
+[Rules]
+1. IGNORE all comments in both code blocks. Trust actual code logic.
+2. Output ONLY the complete replaced target function. Do not output the reference code. Do not output the whole file.
+   If a section of the replaced code is EXACTLY identical (character-for-character) to the original target code,
+   you may replace it with a single comment line "// [unchanged: lines X-Y]" and keep the line numbers.
+   Otherwise, do not omit anything with "...".
+   Function signature, return statement, and closing brace MUST NOT be omitted.
+3. If the reference code's logic conflicts with the target code's requirements, stop and tell me where the conflict is. Do not decide on your own.
+4. If the target code has extra logic not present in the reference code (e.g., extra error handling), keep it. Do not delete it.
+5. End with one line: "Replacement confidence: high/medium/low. Uncertain replacement points: ___"
+6. Do not explain what you replaced. Give code directly. Stop immediately after.
+
+Before output: Is every line you marked [unchanged] character-for-character identical to the target code?
+If you are unsure about any line, do not mark it — output that line in full.`
+        },
+        'c1': {
+            fill: `【錯誤訊息】：
+[貼上]
+
+【程式碼上下文（只貼報錯指向的行，不要貼整個檔案）】：
+[貼上]`,
+            rules: `[Compile Error Diagnosis]
+Below is the raw compiler output.
+Answer ONLY these three items:
+1. The root cause of this error, in one sentence.
+2. If it is a missing #include or compile flag, tell me exactly which one.
+3. If the error points to a specific line (e.g., "error: expected ';' at line 42"),
+   give the fix for that line ONLY. Do not touch other lines. Do not output the whole file.
+   If the error does not point to a specific line (e.g., "undefined reference to X"),
+   give me a terminal command or man section to verify. Do not guess where the code is wrong.
+
+If you cannot determine the cause from the error message, say "Uncertain, suggest checking X first". Do not guess.
+Do not explain your reasoning. Stop immediately after.
+
+Self-check before output:
+- Does your fix go beyond the line the error points to? If yes, delete it.
+- Did you touch other lines because "it looked like it could be improved"? If yes, revert.`
+        },
+        'c2': {
+            fill: `【症狀描述】：
+[貼上]
+
+【相關程式碼（只貼目標函數，不要貼整個檔案）】：
+[貼上]`,
+            rules: `[Runtime / Logic Issue Diagnosis]
+The code compiles but behaves incorrectly. Do NOT rewrite my code.
+Answer ONLY these three items:
+1. Most likely causes, sorted by confidence, max 3, min 1.
+   Format for each: "Cause: ... | Confidence: high/medium/low | Code evidence: line X or function Y"
+   If a cause has no concrete code evidence, do not write it. Better to give only 1.
+2. For the highest-confidence cause, give me a verification step I can execute.
+3. If you cannot give any cause, say "Cannot determine from current information". Do not fabricate.
+
+Extra rules:
+- If a cause has "high" confidence and points to a specific line, you may add a one-line fix direction (no full fixed code).
+- For medium/low confidence causes, give verification only, no fix direction.
+- Do not explain your reasoning. Stop immediately after.
+
+Self-check before output:
+- Does every "cause" point to a specific line or function in the code? If not, delete it.
+- Did you give fixed code for medium/low confidence causes? If yes, delete it, keep only verification.`
+        },
+        'c3': {
+            fill: `【Judge 回饋】：
+[貼上]
+
+【程式碼（只貼目標函數，不要貼整個檔案）】：
+[貼上]`,
+            rules: `[Performance Issue Analysis]
+The program is correct but the judge reports TLE / high CPU / high memory.
+Do NOT give me optimized code directly. Do NOT guess the bottleneck without measurement data.
+Answer ONLY these two items:
+1. Give me 2 zero-dependency rough localization methods (e.g., manual timing, binary-search commenting, reducing input size).
+2. Based on your static observation of the code I pasted, the single most likely bottleneck direction. Format: "Bottleneck direction: ... | Verification: ..."
+   If you cannot tell from the code itself, say "Measurement data needed to determine".
+
+Extra (answer ONLY if the code involves mutex/spinlock or ROS 2 executor):
+3. If the code has locks: are there printf/malloc/sleep/future.get/file I/O inside the lock? Point out line numbers.
+4. If using rclpy MultiThreadedExecutor: to your knowledge, does rclpy's MultiThreadedExecutor have a known "callback scheduling anomaly causing CPU spin" issue? Give me a GitHub issue keyword.
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check: Did your "bottleneck direction" claim "it must be X"? If yes, change to "it may be X, verification is Y".`
+        },
+        'c4': {
+            fill: `【我要用的 API／語法】：
+[...]
+
+【我的環境】：
+[C++17 / Python rclpy / ROS 2 Jazzy（2024 年發布，你的知識截止可能早於此）]`,
+            rules: `[API / Syntax Lookup]
+I need to confirm how an API is used. Do NOT give me complete compilable code.
+Answer ONLY these three items:
+1. The minimal skeleton you remember with HIGH confidence. If uncertain, say "Uncertain skeleton".
+2. Give me 2 English keywords to verify in official docs.
+3. Any "common pitfalls" you remember for this API? One sentence. If none, say none.
+   **If you believe this API behaves differently in ROS 2 Jazzy vs older versions (Humble/Iron) but are unsure what changed, say "Uncertain, suggest checking Jazzy migration guide".**
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check: Did you assume I know the full signature of an API? If yes, change to "skeleton is roughly this, check docs for signature". Did you make any "definitely works on Jazzy" assertion? If yes, change to "I am not sure if Jazzy behavior matches older versions".`
+        },
+        'c5': {
+            fill: `【需求描述】：
+[貼上]`,
+            rules: `[Architecture / Strategy Discussion]
+I am designing a system and am unsure about the architecture direction. Do NOT give me code.
+First list 2-3 key constraints you need me to confirm.
+
+After I confirm, answer ONLY:
+1. 2 possible architecture directions, one sentence each.
+2. For each direction: one "main risk" and one "verification action I can do within 10 minutes without writing the full implementation".
+3. If you think one direction is clearly better, state why (one sentence).
+   If you are unsure which is better, say "Depends on the trade-off between X and Y".
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check: Does your "verification method" require me to write full code or run full tests? If yes, replace with something lighter, or say "this direction cannot be quickly verified in an exam setting, suggest not choosing it first".`
+        },
+        'c6': {
+            fill: `【我的程式碼（只貼目標函數或錯誤訊息，不要貼整個檔案）】：
+[貼上]
+
+【我的問題（一句話描述現象）】：
+[貼上]
+
+【我的環境】：
+[C++17 / Python rclpy / ROS 2 Jazzy / Linux 容器]`,
+            rules: `[Search Guidance Beyond Capability]
+Below is code and a symptom. First judge: is this problem within your knowledge?
+Answer ONLY these three items:
+1. Can you directly determine the cause from this code and symptom?
+   If yes: give a one-sentence cause, then skip to item 3.
+   If no: say "Beyond my judgment scope". Do not guess.
+2. If beyond your scope, give me 3 sets of English search keywords, ordered from precise to broad:
+   Set 1: Precise — 1-2 most critical technical terms + symptom word.
+   Set 2: Broad — symptom word + environment name only.
+   Set 3: Exploratory — 2-3 direction words you may not know but are worth checking.
+   In Set 3, mark any word you are unsure about with "[uncertain]".
+3. Give me a direction for "which file, which section to find the answer". If you do not know, say so.
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- If Set 1 returns zero results, can Set 2 cover it? If not, adjust Set 1 or Set 2.
+- In Set 3, is there any word not marked [uncertain] that you are actually unsure about? Mark it.`
+        },
+        'c7': {
+            fill: `【我的系統】：
+[例如 ROS 2 節點鏈 / 多執行緒共享變數 / 硬體搬運引擎 / 位元流解析]
+
+【現象】：
+[例如 上游有資料但下游沒有 / counter 少了一些 / 結果差了幾倍]
+
+【我已檢查】：
+[列出你已經確認正常的部分]`,
+            rules: `[Silent Failure Diagnosis]
+The program does not error out, but the expected behavior does not happen (data missing / wrong result / system unresponsive).
+Do NOT give me code. Answer ONLY:
+1. Based on my description, list the order in which I should check each link (from data/control-flow start to end).
+   Format: link → check method (specific command or observation point) → if normal here, check next
+2. Is there any "known to silently drop data or alter behavior" component/design pattern in this chain?
+   If yes, point out the most suspicious one and give me a confirmation method.
+3. If I am unsure of the full chain, tell me what tool to use to reconstruct it (e.g., ros2 node info / gdb / printf / logs / strace).
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- Does any check step require me to write new code? If yes, replace with something lighter.
+- If you judge the problem is confined to a single function, tell me "suggest using the targeted instrumentation template" instead of forcing a cross-module check chain.
+- Organize output by priority: check order → one-sentence description per item → examples.
+  If space is insufficient, omit examples, never omit the check order itself.
+- Do NOT use "content too long" as a reason not to output. If the check chain exceeds 10 links,
+  give only the first 8, note "for the rest, narrow the scope and ask again". Do not output half sentences.`
+        },
+        'c8': {
+            fill: `【我要錄的主題】：
+[貼上]
+
+【我的 ROS 2 版本】：
+[Humble / Jazzy]`,
+            rules: `[Recording Operation Confirmation]
+I need to record a run for submission. Do NOT give me code. Answer ONLY:
+1. Based on the topics I want to record, give me one complete ros2 bag record command.
+2. Among the topics I listed, are any commonly recorded together but missing (e.g., /tf, /tf_static, /odom)? Just remind, do not elaborate.
+3. After recording, what command quickly confirms the bag file has data? (One ros2 bag info related command is enough.)
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check: Is any parameter in your command something you are unsure exists in the current ROS 2 version? If yes, mark it for me to verify.`
+        },
+        'c9': {
+            fill: `【現象】：
+[例如 push 後 CI 沒跑 / CI Log 出現 X / 分數沒更新]
+
+【我的操作】：
+[例如 我改了哪個檔案、commit message 寫了什麼]`,
+            rules: `[CI / Judge Submission Issue]
+I encountered a process issue after push. Do NOT give me code. Answer ONLY:
+1. Based on the symptom, is it most likely a CI config issue, commit format issue, or Judge environment issue? One sentence.
+2. Give me 2 things I can check immediately (which field / file / command).
+3. If you cannot determine, tell me what specific question to ask the TA.
+
+Do not explain your reasoning. Stop immediately after.`
+        },
+        'c10': {
+            fill: `【程式碼（只貼目標函數，不要貼整個檔案）】：
+[貼上]
+
+【我的目的】：
+[例如 讀懂題目給的既有程式碼 / 理解隊友寫的模組 / 確認某段邏輯是否符合規格]`,
+            rules: `[Code Explanation]
+I need to understand what a piece of code does. Do NOT find bugs. Do NOT give fix suggestions.
+Answer ONLY:
+1. What is the input, output, and side effect of this code? (One sentence each)
+2. Its execution flow, step by step, one sentence per step. If more than 8 steps, list only key steps.
+3. What external things does it depend on (global variables, other functions, system calls, ROS 2 topics/services)?
+   List name and purpose, one sentence each.
+4. If you notice something "looks potentially problematic" during explanation, do not analyze it.
+   Only add at the end: "I noticed line X may have an issue, but that is not what you asked, for reference only."
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- Did you add "should change to X" type suggestions in the explanation? If yes, delete them. I only ask what it is, not what it should be.
+- Organize output by priority: core conclusion (execution flow) → one-sentence description per item → examples.
+  If space is insufficient, omit from the lowest priority (examples), never omit the core conclusion.
+- Do NOT use "content too long" as a reason not to output. If the execution flow exceeds 10 steps,
+  give only the first 8 and note "for the rest, narrow the scope and ask again". Do not output half sentences.`
+        },
+        'c11': {
+            fill: `【症狀】：
+[例如 多執行緒 counter 少了 / 陣列結果不對 / ROS 2 callback 不觸發]
+
+【相關程式碼（只貼你要我插樁的函式，不要貼整個檔案）】：
+[貼上]
+
+【我的環境】：
+[C/C++ / Python，是否多執行緒，是否 ROS 2]`,
+            rules: `[Targeted Instrumentation]
+My program behaves incorrectly and I want to add logs to narrow it down. Do NOT give me the full code with logs added.
+Answer ONLY:
+1. Based on my symptom, give me a "minimal observation set": at most 3 log insertion points.
+   Format for each point:
+   - Location: line X / function Y entry / exit
+   - Print content: variable name + expected value range (e.g., "i=?, expected 0..n-1")
+   - If A prints here, problem is in B; if C prints, problem is in D
+2. Based on my language and environment, pick ONE print method: C uses fprintf(stderr), C++ uses std::cerr, Python uses print. Do not explain why. Do not mix.
+3. If my code already has printf/log, tell me which to temporarily disable to avoid drowning the key info.
+4. If 3 points still cannot localize, tell me where to add the next one (one sentence, do not elaborate).
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- Can each log point I add and run once clearly distinguish "problem is before this" vs "after this"? If not, change the location.
+- Did you suggest both printf and std::cerr? If yes, keep only one.`
+        },
+        'c12': {
+            fill: `【症狀】：
+[例如 counter 每次結果不同 / 偶爾 segfault / ROS 2 callback 偶發丟資料]
+
+【相關程式碼（只貼涉及共享狀態的函式，不要貼整個檔案）】：
+[貼上]
+
+【我的環境】：
+[C/C++ pthread / C++ std::thread / Python threading / rclpy 多執行緒]`,
+            rules: `[Race Condition Diagnosis]
+My multi-threaded program gives unstable results: sometimes correct, sometimes wrong, or errors only under specific timing.
+Do NOT give me complete fixed code. Answer ONLY:
+1. Based on the code I pasted, list all shared mutable state (shared variables, globals, heap objects, file descriptors, member variables shared between ROS 2 callbacks). For each, note: who reads, who writes, protected or not.
+2. Determine which shared states are "data races" (accessed by multiple threads without synchronization). List only high-confidence ones, with line numbers or variable names. If you cannot tell from the code, say "Cannot determine".
+3. Give me a "stable reproduction" verification method:
+   - Can increasing loop count / shrinking critical section / inserting random delays improve reproduction rate?
+   - Is there a lighter way (e.g., changing thread count from 2 to 4)?
+   Give 1-2 concrete methods, no code.
+4. If my code uses atomic or mutex, point out any "looks protected but actually ineffective" spots (e.g., atomic protects read but not write, lock granularity does not cover the full operation).
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- Does every "data race" you list point to a specific read/write of a specific variable? If not, delete it.
+- Does your reproduction method require me to change code logic to execute? If yes, replace with one that does not change logic.`
+        },
+        'c13': {
+            fill: `【症狀】：
+[貼上，例如 "程式在處理大輸入時崩潰，小輸入正常"]
+
+【程式碼塊列表（只貼函式名／行號範圍／結構，不要貼完整程式碼）】：
+[貼上]
+
+【我的環境】：
+[C/C++ / Python，是否多執行緒，是否 ROS 2]`,
+            rules: `[Large Code Divide-and-Conquer Localization]
+I have a few hundred lines of code. The behavior is wrong, but I am not sure which function or section has the problem.
+Do NOT try to analyze the whole file at once. Do NOT give me fixed code. Answer ONLY these three items:
+
+1. Based on my symptom description and code block list, rank the blocks most likely to contain the problem, top 3 only.
+   Format for each block: "Block label | Likelihood: high/medium/low | Basis: one sentence"
+
+2. For the highest-likelihood block, give me a "verification method I can execute without understanding the whole code".
+   Example: "Add a printf at the entry of block B printing variable X. If X is Y, the problem is inside B; if X is normal, the problem is before B."
+
+3. If my symptom description and code block list are insufficient to determine the most suspicious block,
+   say "Need more information: please tell me [what specifically is missing]". Do not guess.
+
+Do not explain your reasoning. Stop immediately after.
+
+Self-check:
+- Did you try to analyze code outside the code block list? If yes, delete it.
+- Does your "most likely block" have concrete symptom-based evidence? If it is just "looks complex", delete it.
+- Does your verification method require me to write new code? If yes, replace with something lighter.`
+        }
+    };
+
+    // ==================== 事件綁定 ====================
+    document.querySelectorAll('.toggle-btn[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentMode = btn.dataset.mode;
+            document.querySelectorAll('.toggle-btn[data-mode]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderLayer1();
+        });
+    });
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentLang = btn.dataset.lang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderLayer1();
+        });
+    });
+
+    renderLayer1();
+
+    // ==================== 複製功能 ====================
+    const toast = document.getElementById('toast');
+    let toastTimer = null;
+
+    function showToast(msg) {
+        toast.textContent = msg || '✅ 已複製';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function copyText(text, msg) {
+        const done = () => showToast(msg);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text); done(); });
+        } else {
+            fallbackCopy(text);
+            done();
+        }
+    }
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); }
+        catch (e) { alert('複製失敗，請手動選取'); }
+        document.body.removeChild(ta);
+    }
+
+    function flashBtn(btn) {
+        const original = btn.textContent;
+        btn.textContent = '✅ 已複製';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = original;
+            btn.classList.remove('copied');
+        }, 1500);
+    }
+
+    // 普通复制：只复制层二规则
+    document.querySelectorAll('.copy-btn[data-target]:not(.merged-btn):not(.full-btn)').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            if (targetId === 'layer1Content') {
+                const text = document.getElementById('layer1Content').dataset.copy;
+                copyText(text, '✅ 已複製層一');
+            } else {
+                const t = TEMPLATES[targetId];
+                if (!t) return;
+                copyText(t.rules, '✅ 已複製層二');
+            }
+            flashBtn(btn);
+        });
+    });
+
+    // 合并复制：层一 + 层二规则
+    document.querySelectorAll('.merged-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const t = TEMPLATES[btn.dataset.target];
+            if (!t) return;
+            const layer1Text = document.getElementById('layer1Content').dataset.copy;
+            const text = layer1Text + '\n\n---\n\n' + t.rules;
+            copyText(text, '✅ 已複製層一+層二');
+            flashBtn(btn);
+        });
+    });
+
+    // 完整复制：填空区 + 层一 + 层二规则
+    document.querySelectorAll('.full-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const t = TEMPLATES[btn.dataset.target];
+            if (!t) return;
+            const layer1Text = document.getElementById('layer1Content').dataset.copy;
+            const text = t.fill + '\n\n---\n\n' + layer1Text + '\n\n---\n\n' + t.rules;
+            copyText(text, '✅ 已複製（填空+層一+層二）');
+            flashBtn(btn);
+        });
+    });
+
+    // ==================== 搜尋 ====================
+    const searchInput = document.getElementById('searchInput');
+    const noResult = document.getElementById('noResult');
+
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
+        const blocks = document.querySelectorAll('.block');
+        let visibleCount = 0;
+        blocks.forEach(block => {
+            const titleAttr = (block.dataset.title || '').toLowerCase();
+            const titleText = block.querySelector('.block-title').textContent.toLowerCase();
+            const haystack = titleAttr + ' ' + titleText;
+            const matched = q === '' || haystack.includes(q) || (q === '0' && titleText.includes('第 0'));
+            block.style.display = matched ? '' : 'none';
+            if (matched) visibleCount++;
+        });
+        noResult.style.display = visibleCount === 0 ? 'block' : 'none';
+    });
+
+    // ==================== 右側面板收合 ====================
+    const layout = document.getElementById('layout');
+    const collapseBtn = document.getElementById('collapseBtn');
+
+    const stored = localStorage.getItem('refpanelCollapsed');
+    if (stored === '1') {
+        layout.classList.add('panel-collapsed');
+        collapseBtn.textContent = '‹ 展開';
+    }
+
+    collapseBtn.addEventListener('click', () => {
+        layout.classList.toggle('panel-collapsed');
+        const collapsed = layout.classList.contains('panel-collapsed');
+        collapseBtn.textContent = collapsed ? '‹ 展開' : '收合 ›';
+        localStorage.setItem('refpanelCollapsed', collapsed ? '1' : '0');
+        if (window.innerWidth <= 1024) {
+            document.getElementById('refpanel').classList.toggle('open', !collapsed);
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth > 1024) return;
+        const refpanel = document.getElementById('refpanel');
+        if (!refpanel.classList.contains('open')) return;
+        if (refpanel.contains(e.target) || collapseBtn.contains(e.target)) return;
+        refpanel.classList.remove('open');
+        layout.classList.add('panel-collapsed');
+        collapseBtn.textContent = '‹ 展開';
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考場應用技術與骨架 — 提示詞查閱</title>
+<style>
+  /* ====== 基礎樣式與變數 ====== */
+  :root {
+    --bg: #1a1d23;
+    --sidebar-bg: #14171c;
+    --panel-bg: #23272f;
+    --pre-bg: #12151a;
+    --border: #2e333d;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    --accent: #4f9cf9;
+    --accent-dim: #2c5a94;
+    --success: #4caf7d;
+    --warn-bg: #4a3f13;
+    --warn-border: #b8962e;
+    --warn-text: #ffe08a;
+    --danger-bg: #3a1e1e;
+    --danger-border: #c85a5a;
+    --danger-text: #ffb8b8;
+    --sidebar-w: 220px;
+    --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ====== 左側欄 ====== */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w); background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 {
+    font-size: 16px; color: var(--text-dim);
+    margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+  }
+  .nav-item {
+    display: block; padding: 9px 14px; margin: 3px 0;
+    border-radius: 8px; color: var(--text-dim); text-decoration: none;
+    font-size: 16px; transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+  /* ====== 中間主內容 ====== */
+  .main {
+    margin-left: var(--sidebar-w);
+    margin-right: var(--refpanel-w);
+    flex: 1; padding: 28px 40px 80px;
+    transition: margin-right 0.25s ease;
+    max-width: 1000px;
+  }
+  .layout.panel-collapsed .main { margin-right: 44px; }
+  .page-title {
+    font-size: 30px; font-weight: 700; margin: 0 0 20px;
+    padding-bottom: 12px; border-bottom: 2px solid var(--border);
+  }
+
+  /* ====== 折疊區塊 ====== */
+  details {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  details[open] {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  summary {
+    padding: 16px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e2229;
+    transition: background 0.15s;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { background: #23272f; }
+  summary .arrow { font-size: 14px; color: var(--text-dim); transition: transform 0.3s; }
+  details[open] summary .arrow { transform: rotate(180deg); }
+  
+  .detail-body {
+    padding: 0;
+    border-top: 1px solid var(--border);
+  }
+  .block {
+    margin: 0; border: none; border-radius: 0;
+  }
+  .block-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: #12151a;
+  }
+  .block-title { font-size: 15px; font-weight: 600; color: var(--text-dim); }
+  .copy-btn {
+    padding: 6px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 14px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+  .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+
+  /* ====== 程式碼區塊 ====== */
+  pre {
+    margin: 0; padding: 20px;
+    background: var(--pre-bg);
+    font-family: "SF Mono", "Consolas", "Menlo", "Courier New", monospace;
+    font-size: 15px; line-height: 1.7; color: #d4d8de;
+    white-space: pre-wrap; word-wrap: break-word;
+    max-height: 500px; overflow-y: auto;
+  }
+
+  /* ====== 警告與提示 ====== */
+  .warn-box {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-border);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--warn-text); font-size: 16px; line-height: 1.7;
+  }
+  .warn-box strong { color: #fff; }
+  .danger-box {
+    background: var(--danger-bg); border-left: 4px solid var(--danger-border);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--danger-text); font-size: 16px; line-height: 1.7;
+  }
+  .danger-box strong { color: #fff; }
+  .note-box {
+    background: #1e2229; border-left: 4px solid var(--accent);
+    padding: 14px 18px; border-radius: 8px; margin: 16px 20px;
+    color: var(--text); font-size: 16px; line-height: 1.7;
+  }
+  .note-box strong { color: var(--accent); }
+  
+  /* 超連結樣式 */
+  a.ext-link {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  a.ext-link:hover {
+    color: #fff;
+    border-bottom: 1px solid #fff;
+  }
+
+  /* ====== 右側面板 ====== */
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: var(--refpanel-w); background: var(--sidebar-bg);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+    transition: width 0.25s ease;
+  }
+  .layout.panel-collapsed .refpanel { width: 44px; }
+  .refpanel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .refpanel-collapse-btn {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-dim); font-size: 14px;
+    padding: 4px 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .refpanel-collapse-btn:hover { border-color: var(--accent); color: var(--text); }
+  .refpanel-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    font-size: 14.5px; line-height: 1.65;
+  }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .layout.panel-collapsed .refpanel-title,
+  .layout.panel-collapsed .refpanel-body { display: none; }
+  .layout.panel-collapsed .refpanel-header {
+    padding: 12px 0; justify-content: center; border-bottom: none;
+    height: 100%; writing-mode: vertical-rl; text-orientation: mixed;
+  }
+  .layout.panel-collapsed .refpanel-collapse-btn {
+    writing-mode: vertical-rl; border: none; font-size: 14px; padding: 10px 6px;
+  }
+
+  /* ====== Toast ====== */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff;
+    padding: 12px 28px; border-radius: 10px;
+    font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ====== 窄螢幕 ====== */
+  @media (max-width: 1024px) {
+    .main { margin-right: 0; padding-right: 80px; }
+    .refpanel {
+      width: 320px; transform: translateX(calc(100% - 44px));
+      box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+      transition: transform 0.25s ease;
+    }
+    .refpanel.open { transform: translateX(0); }
+    .layout.panel-collapsed .refpanel { transform: translateX(calc(100% - 44px)); }
+    .layout.panel-collapsed .refpanel.open { transform: translateX(0); }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .nav-item { padding: 6px 12px; font-size: 15px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .refpanel { width: 90%; max-width: 340px; transform: translateX(calc(100% - 40px)); }
+  }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item active" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <!-- 中間主內容 -->
+  <main class="main">
+    <h1 class="page-title">考場應用技術與骨架</h1>
+
+    <!-- ==================== 🤖 綜合檢索提示詞 ==================== -->
+    <details open style="border-color: #8a2be2;">
+      <summary style="color: #d8b4fe; background: rgba(138,43,226,0.1);"><span>🤖 綜合版檢索器（考場遇到不知道哪題時，先丟這個給 AI）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="note-box" style="border-left-color: #8b5cf6; margin-bottom: 0;">
+          <strong style="color: #d8b4fe;">使用說明：</strong>當你看到題目，不知道該用哪個技術骨架時，直接把「下面這段提示詞」+「題目描述」丟給考場 AI。它會自己判斷屬於哪個板塊，並要求你提供對應的程式碼。
+        </div>
+        <div class="block">
+          <div class="block-header" style="background: rgba(138,43,226,0.15);">
+            <span class="block-title" style="color: #d8b4fe;">綜合檢索提示詞</span>
+            <button class="copy-btn" data-target="code-rag" style="border-color: #8b5cf6; color: #d8b4fe;">📋 複製</button>
+          </div>
+          <pre id="code-rag">【任務：考場技術判定與骨架檢索】
+
+我目前正在進行 C 語言 / 系統程式設計的考試。我遇到了一道題目，但我不確定應該使用哪種實作骨架。
+
+我手邊有以下技術板塊：
+[板塊 1] 臨界區保護：pthread_mutex, pthread_spinlock, C11 atomic (適用於多執行緒計數器)
+[板塊 2] 生產者-消費者：環形緩衝區 (Circular Buffer) + pthread_cond_t (適用於佇列、等待資源)
+[板塊 3] 資料搬運引擎：DMA 概念（configure -> start -> wait -> result）或 Pico SDK DMA API
+[板塊 4] 位元運算：SET_BIT, CLEAR_BIT, GET_BITS（適用於底層位元操作、遮罩）
+[板塊 5] PIO 狀態機：Pico SDK PIO API（pio_sm_put_blocking, pio_sm_get_blocking）
+[板塊 6] ROS 2 節點與排查：Python rclpy 骨架、CLI 指令（node list, topic echo 等）
+
+【我的題目描述如下】：
+（請在這裡貼上題目描述或你遇到的問題）
+
+請你扮演系統架構師，回答我：
+1. 這道題目最適合使用上述哪一個板塊的骨架？
+2. 請告訴我使用該骨架時，需要注意的「1 個致命陷阱」。
+3. 如果我要用該骨架，請告訴我應該 include 哪些標頭檔（header files）。</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 1. 臨界區保護 ==================== -->
+    <details>
+      <summary><span>🔒 1. 臨界區保護（Mutex / Spinlock / Atomic）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>核心任務：</strong>多個執行緒對同一個變數（如 counter）進行加減。如果沒有保護，會發生 Lost Update（結果偏小）。<br>
+          <strong>成大考點：</strong>PDF 演示了 no lock / lock short / lock long 的差別。鎖要抓得越短越好，只包住真正存取的變數。<br>
+          <strong>參考資料：</strong> <a class="ext-link" href="https://michaelkerrisk.com/tlpi/code/online/diff/threads/thread_lock_speed.c.html" target="_blank">TLPI thread_lock_speed.c</a>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">骨架 A：標準 pthread_mutex（適合鎖內有耗時操作）</span>
+            <button class="copy-btn" data-target="code-mutex">📋 複製</button>
+          </div>
+          <pre id="code-mutex">#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+
+int counter = 0;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+void* worker(void* arg) {
+    for (int i = 0; i &lt; 20000; i++) {
+        pthread_mutex_lock(&lock);
+        counter++; // 臨界區：只包這行
+        pthread_mutex_unlock(&lock);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, worker, NULL);
+    pthread_create(&t2, NULL, worker, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    printf("counter = %d\n", counter);
+    return 0;
+}</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">骨架 B：pthread_spinlock（適合極短臨界區）</span>
+            <button class="copy-btn" data-target="code-spinlock">📋 複製</button>
+          </div>
+          <pre id="code-spinlock">#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+
+int counter = 0;
+pthread_spinlock_t spinlock;
+
+void* worker(void* arg) {
+    for (int i = 0; i &lt; 20000; i++) {
+        pthread_spin_lock(&spinlock);
+        counter++;
+        pthread_spin_unlock(&spinlock);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_spin_init(&spinlock, 0); // 0 = 執行緒間共享
+    pthread_create(&t1, NULL, worker, NULL);
+    pthread_create(&t2, NULL, worker, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    pthread_spin_destroy(&spinlock);
+    printf("counter = %d\n", counter);
+    return 0;
+}</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">骨架 C：C11 原子操作（無鎖，最快，但要注意 C11 支援）</span>
+            <button class="copy-btn" data-target="code-atomic">📋 複製</button>
+          </div>
+          <pre id="code-atomic">#include &lt;stdio.h&gt;
+#include &lt;pthread.h&gt;
+#include &lt;stdatomic.h&gt;
+
+atomic_int counter = 0;
+
+void* worker(void* arg) {
+    for (int i = 0; i &lt; 20000; i++) {
+        atomic_fetch_add_explicit(&amp;counter, 1, memory_order_relaxed);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_create(&amp;t1, NULL, worker, NULL);
+    pthread_create(&amp;t2, NULL, worker, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    printf("counter = %d\n", atomic_load(&amp;counter));
+    return 0;
+}</pre>
+        </div>
+
+        <div class="danger-box">
+          <strong>🚨 致命錯誤：</strong>絕對不要把 <code>printf</code>、<code>sleep</code>、<code>malloc</code> 或大量運算放進鎖裡面！這會導致其他執行緒全部卡死等待，效能比單執行緒還差（PDF 實測：lock long 耗時 155.6ms）。
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 2. 生產者-消費者 ==================== -->
+    <details>
+      <summary><span>📦 2. 生產者-消費者模型（Queue + Condvar）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>核心任務：</strong>一個（或多個）執行緒產生資料，另一個（或多個）執行緒消耗資料。<br>
+          <strong>必考點：</strong>為什麼 <code>pthread_cond_wait</code> 必須放在 <code>while</code> 迴圈裡？因為有 Spurious Wakeup（虛假喚醒）。<br>
+          <strong>參考資料：</strong> <a class="ext-link" href="https://github.com/qngapparat/CThreads" target="_blank">CThreads repo</a>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">純 C 環形緩衝區 + Mutex + Condvar（完整可編譯）</span>
+            <button class="copy-btn" data-target="code-prodcons">📋 複製</button>
+          </div>
+          <pre id="code-prodcons">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;pthread.h&gt;
+
+#define QUEUE_SIZE 10
+int queue[QUEUE_SIZE];
+int head = 0, tail = 0, count = 0;
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
+
+void* producer(void* arg) {
+    for (int i = 0; i &lt; 100; i++) {
+        pthread_mutex_lock(&amp;mutex);
+        while (count == QUEUE_SIZE) {
+            pthread_cond_wait(&amp;not_full, &amp;mutex);
+        }
+        queue[tail] = i;
+        tail = (tail + 1) % QUEUE_SIZE;
+        count++;
+        pthread_cond_signal(&amp;not_empty);
+        pthread_mutex_unlock(&amp;mutex);
+    }
+    return NULL;
+}
+
+void* consumer(void* arg) {
+    for (int i = 0; i &lt; 100; i++) {
+        pthread_mutex_lock(&amp;mutex);
+        while (count == 0) {
+            pthread_cond_wait(&amp;not_empty, &amp;mutex);
+        }
+        int val = queue[head];
+        head = (head + 1) % QUEUE_SIZE;
+        count--;
+        pthread_cond_signal(&amp;not_full);
+        pthread_mutex_unlock(&amp;mutex);
+        printf("Consumed: %d\n", val);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t p, c;
+    pthread_create(&amp;p, NULL, producer, NULL);
+    pthread_create(&amp;c, NULL, consumer, NULL);
+    pthread_join(p, NULL);
+    pthread_join(c, NULL);
+    return 0;
+}</pre>
+        </div>
+
+        <div class="note-box">
+          <strong>💡 結束條件設計：</strong>如果生產者結束後消費者還在等，會死鎖。常見做法是生產者最後放入「毒藥（Poison Pill）」（例如 -1），或者用一個 <code>done</code> 旗標，並搭配 <code>pthread_cond_broadcast</code> 喚醒所有執行緒。
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 3. 資料搬運引擎 (DMA) ==================== -->
+    <details>
+      <summary><span>🚚 3. 資料搬運引擎（DMA 四拍節奏）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>成大 PDF 考點：</strong>描述（configure）→ 啟動（start）→ 等待（wait）→ 取用結果。<br>
+          <strong>致命陷阱：</strong>count 的單位是「幾筆傳輸」，不是「幾個位元組」。每筆大小只能是 1、2 或 4 bytes。<br>
+          <strong>參考資料：</strong> <a class="ext-link" href="https://www.cnblogs.com/mcwhirr/articles/18969511" target="_blank">Pico SDK DMA 中文範例</a>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">骨架 A：概念模擬（用 C 結構體示範）</span>
+            <button class="copy-btn" data-target="code-dma-concept">📋 複製</button>
+          </div>
+          <pre id="code-dma-concept">#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+#include &lt;string.h&gt;
+
+typedef struct {
+    void* src;
+    void* dst;
+    uint32_t count;       // 幾筆傳輸（不是 bytes！）
+    uint32_t element_size; // 每筆大小：1, 2, 或 4 bytes
+    uint32_t src_inc;      // 來源位址是否遞增 (1=是, 0=否)
+    uint32_t dst_inc;      // 目標位址是否遞增 (1=是, 0=否)
+} dma_transfer_t;
+
+void simulate_dma(dma_transfer_t* t) {
+    char* s = (char*)t->src;
+    char* d = (char*)t->dst;
+    for (uint32_t i = 0; i &lt; t->count; i++) {
+        memcpy(d, s, t->element_size);
+        if (t->src_inc) s += t->element_size;
+        if (t->dst_inc) d += t->element_size;
+    }
+}
+
+int main() {
+    uint32_t src[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};
+    uint32_t dst[4] = {0};
+    dma_transfer_t t = { src, dst, 4, 4, 1, 1 };
+    simulate_dma(&amp;t);
+    return 0;
+}</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">骨架 B：Pico SDK DMA 實戰 API（考場填空用）</span>
+            <button class="copy-btn" data-target="code-dma-pico">📋 複製</button>
+          </div>
+          <pre id="code-dma-pico">#include "pico/stdlib.h"
+#include "hardware/dma.h"
+
+// 1. 獲取一個空閒通道，如果沒有則 panic
+int chan = dma_claim_unused_channel(true);
+
+// 2. 獲取該通道的默認配置
+dma_channel_config c = dma_channel_get_default_config(chan);
+
+// 3. 設定傳輸資料大小（DMA_SIZE_8 / _16 / _32）
+channel_config_set_transfer_data_size(&amp;c, DMA_SIZE_8);
+
+// 4. 設定讀/寫位址是否自增（true = 每次搬完指標往前）
+channel_config_set_read_increment(&amp;c, true);
+channel_config_set_write_increment(&amp;c, true);
+
+// 5. 寫入通道配置並啟動
+// 參數：(通道, 配置, 目標, 來源, 傳輸次數, 是否立即啟動)
+dma_channel_configure(
+    chan,
+    &amp;c,
+    dst,
+    src,
+    count_of(src), // 注意：是幾筆，不是幾個 bytes
+    true
+);
+
+// 6. 等待 DMA 完成（阻塞式）
+dma_channel_wait_for_finish_blocking(chan);</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 4. 位元運算 ==================== -->
+    <details>
+      <summary><span>🔢 4. 位元運算（Bitwise）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>成大 PDF 考點：</strong>設定、清除、取出、遮罩。注意移位時加上 <code>u</code> 避免有號整數溢位。
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">必背位元操作巨集</span>
+            <button class="copy-btn" data-target="code-bitwise">📋 複製</button>
+          </div>
+          <pre id="code-bitwise">#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+
+#define SET_BIT(x, n)      ((x) |= (1u &lt;&lt; (n)))
+#define CLEAR_BIT(x, n)    ((x) &amp;= ~(1u &lt;&lt; (n)))
+#define TOGGLE_BIT(x, n)   ((x) ^= (1u &lt;&lt; (n)))
+#define GET_BIT(x, n)      (((x) &gt;&gt; (n)) &amp; 1u)
+#define GET_BITS(x, hi, lo) (((x) &gt;&gt; (lo)) &amp; ((1u &lt;&lt; ((hi) - (lo) + 1)) - 1))
+
+int main() {
+    uint32_t x = 0xA5; // 1010 0101
+    SET_BIT(x, 1);
+    printf("GET_BITS = 0x%X\n", GET_BITS(0xA5, 3, 0));
+    return 0;
+}</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 5. PIO 狀態機 ==================== -->
+    <details>
+      <summary><span>⚙️ 5. PIO 狀態機（Pico SDK）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>成大 PDF 考點：</strong>CPU 透過 TX FIFO 送資料進 OSR，程式以 <code>out</code> 取出；以 <code>in</code> 放入 ISR，再以 <code>push</code> 送回 CPU。<br>
+          <strong>參考資料：</strong> <a class="ext-link" href="https://raw.githubusercontent.com/raspberrypi/pico-examples/master/pio/hello_pio/hello.c" target="_blank">官方 hello_pio 範例</a>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">PIO 載入與啟動最小模板</span>
+            <button class="copy-btn" data-target="code-pio">📋 複製</button>
+          </div>
+          <pre id="code-pio">#include "pico/stdlib.h"
+#include "hardware/pio.h"
+#include "hello.pio.h" // 編譯時自動生成的標頭檔
+
+int main() {
+    PIO pio;
+    uint sm;
+    uint offset;
+
+    // 1. 獲取空閒的 PIO 與狀態機，並載入程式
+    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(
+        &amp;hello_program, &amp;pio, &amp;sm, &amp;offset, PIN, 1, true
+    );
+    hard_assert(success);
+
+    // 2. 初始化該狀態機（通常會配置 GPIO 方向等）
+    hello_program_init(pio, sm, offset, PIN);
+
+    // 3. 將資料推入 TX FIFO（送到 OSR）
+    pio_sm_put_blocking(pio, sm, 0x12345678);
+
+    // 4. 從 RX FIFO 取出資料（從 ISR 來）
+    // uint32_t data = pio_sm_get_blocking(pio, sm);
+
+    // 5. 釋放資源
+    pio_remove_program_and_unclaim_sm(&amp;hello_program, pio, sm, offset);
+    return 0;
+}</pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 6. ROS 2 節點與排查 ==================== -->
+    <details>
+      <summary><span>🤖 6. ROS 2 節點骨架與排查 SOP</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="warn-box">
+          <strong>成大考場重點：</strong>ROS 2 Jazzy 環境。不會叫你從零寫整個機器人，但會考「節點通訊」與「資料沒來怎麼查」。<br>
+          <strong>參考資料：</strong> <a class="ext-link" href="https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html" target="_blank">官方 Python Pub/Sub 教程</a>、<a class="ext-link" href="http://docs.ros.org/en/jazzy/How-To-Guides/Run-2-nodes-in-single-or-separate-docker-containers.html" target="_blank">Docker 執行 Talker/Listener</a>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">ROS 2 Python 節點骨架（Publisher / Subscriber）</span>
+            <button class="copy-btn" data-target="code-ros2">📋 複製</button>
+          </div>
+          <pre id="code-ros2">import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Int32
+
+class MyNode(Node):
+    def __init__(self):
+        super().__init__('my_node')
+        self.pub = self.create_publisher(Int32, '/number', 10)
+        self.sub = self.create_subscription(Int32, '/double', self.callback, 10)
+        self.timer = self.create_timer(1.0, self.timer_callback)
+        self.i = 0
+
+    def timer_callback(self):
+        msg = Int32()
+        msg.data = self.i
+        self.pub.publish(msg)
+        self.i += 1
+
+    def callback(self, msg):
+        self.get_logger().info(f'Received: {msg.data}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MyNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">ROS 2 故障排查決策樹（成大 PDF 第五點實戰）</span>
+            <button class="copy-btn" data-target="code-ros2-sop">📋 複製</button>
+          </div>
+          <pre id="code-ros2-sop">【ROS 2 資料沒來時的排查順序】
+請依照以下順序，在終端機輸入指令確認：
+
+1. 確認 Node 存在
+   $ ros2 node list
+   （如果沒看到，代表程式根本沒啟動或崩潰了）
+
+2. 確認 Topic 存在
+   $ ros2 topic list
+   （如果沒看到，代表名稱拼錯，或 Node 沒建立發佈/訂閱）
+
+3. 確認兩端是否連到相同的 Topic
+   $ ros2 node info /你的節點名稱
+   （檢查 Publisher 與 Subscriber 的 Topic 名稱是否完全一致）
+
+4. 確認 Publisher/Subscriber 數量是否合理
+   $ ros2 topic info /topic名稱
+   （例如應該有 1 個發佈、1 個訂閱，如果是 0 就代表沒接上）
+
+5. 確認實際是否有資料傳輸
+   $ ros2 topic echo /topic名稱
+   （看有沒有資料，如果沒有，代表上游根本沒發）
+
+6. 確認頻率
+   $ ros2 topic hz /topic名稱
+   （確認是否有卡頓、掉幀）</pre>
+        </div>
+
+        <div class="note-box">
+          <strong>💡 實用小技巧：</strong>如果不想寫 Publisher 程式，可以直接用終端機發送測試訊息：
+          <code>ros2 topic pub --once /number std_msgs/msg/Int32 "{data: 21}"</code>
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================== 7. 外部資源與超連結 ==================== -->
+    <details>
+      <summary><span>🔗 外部參考資料庫（點擊連外）</span><span class="arrow">▼</span></summary>
+      <div class="detail-body">
+        <div class="block">
+          <div class="block-header">
+            <span class="block-title">精選資源列表</span>
+          </div>
+          <div style="padding: 20px; font-size: 16px; line-height: 1.8;">
+            <h3 style="color: var(--accent); font-size: 18px; margin-bottom: 10px;">ROS 2</h3>
+            <ul style="margin-top: 0; padding-left: 20px;">
+              <li><a class="ext-link" href="https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Publisher-And-Subscriber.html" target="_blank">ROS 2 官方 Jazzy Python Pub/Sub 教程</a></li>
+              <li><a class="ext-link" href="https://github.com/CODECRUNCHWORLDWIDE/C24-CRUNCH-ROBOTICS/blob/cce8a910b1d44f1e05825ec3effb213cefac391b/curriculum/week-05-qos-dds-and-message-design/exercises/exercise-02-latched-map.py" target="_blank">Jazzy latched map 練習 (TRANSIENT_LOCAL QoS)</a></li>
+              <li><a class="ext-link" href="https://ros-industrial.github.io/ros2_i_training/_source/basics/ROS2-Basics-CheatSheet.html" target="_blank">ROS-Industrial Jazzy CLI 速查表</a></li>
+              <li><a class="ext-link" href="http://docs.ros.org/en/jazzy/How-To-Guides/Run-2-nodes-in-single-or-separate-docker-containers.html" target="_blank">Docker 內執行 Talker / Listener</a></li>
+            </ul>
+
+            <h3 style="color: var(--accent); font-size: 18px; margin: 20px 0 10px;">臨界區 / Spinlock</h3>
+            <ul style="margin-top: 0; padding-left: 20px;">
+              <li><a class="ext-link" href="https://github.com/jason741852/c_locks" target="_blank">C 語言鎖實作對比（Spinlock / Backoff / Queue Lock）</a></li>
+              <li><a class="ext-link" href="https://github.com/qngapparat/CThreads" target="_blank">POSIX pthread mutex / spinlock 練習</a></li>
+              <li><a class="ext-link" href="https://michaelkerrisk.com/tlpi/code/online/diff/threads/thread_lock_speed.c.html" target="_blank">TLPI thread_lock_speed.c（Michael Kerrisk）</a></li>
+            </ul>
+
+            <h3 style="color: var(--accent); font-size: 18px; margin: 20px 0 10px;">PIO / DMA</h3>
+            <ul style="margin-top: 0; padding-left: 20px;">
+              <li><a class="ext-link" href="https://raw.githubusercontent.com/raspberrypi/pico-examples/master/pio/hello_pio/hello.c" target="_blank">官方 Pico Examples: hello_pio</a></li>
+              <li><a class="ext-link" href="https://www.cnblogs.com/mcwhirr/articles/18969511" target="_blank">Pico SDK DMA 中文範例</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+  </main>
+
+  <!-- 右側任務對照表 -->
+  <aside class="refpanel" id="refpanel">
+    <div class="refpanel-header">
+      <span class="refpanel-title">考場症狀對照表</span>
+      <button class="refpanel-collapse-btn" id="collapseBtn" title="收合／展開">收合 ›</button>
+    </div>
+    <div class="refpanel-body">
+      <h3>遇到這個症狀，看哪個板塊？</h3>
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); color: var(--text-dim); text-align: left;">
+            <th style="padding: 8px 4px; width: 70%;">現象 / 任務</th>
+            <th style="padding: 8px 4px; width: 30%;">板塊</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #262b34;">
+            <td style="padding: 10px 4px;">多執行緒計數器結果不對（少於預期）</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">🔒 板塊 1</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262b34;">
+            <td style="padding: 10px 4px;">執行緒等待某個條件成立（如佇列滿/空）</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">📦 板塊 2</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262b34;">
+            <td style="padding: 10px 4px;">需要從硬體搬資料，不想用 CPU 迴圈</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">🚚 板塊 3</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262b34;">
+            <td style="padding: 10px 4px;">取出/設定某個 bit、遮罩運算</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">🔢 板塊 4</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #262b34;">
+            <td style="padding: 10px 4px;">需要 CPU 與周邊（PIO）透過 FIFO 交換資料</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">⚙️ 板塊 5</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 4px;">ROS 2 程式寫好了但兩邊沒通</td>
+            <td style="padding: 10px 4px; color: var(--accent); font-weight: 600;">🤖 板塊 6</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>核心數據對照</h3>
+      <div style="font-size: 13px; color: var(--text-dim); line-height: 1.6;">
+        <strong>成大 PDF 實測（20000 次遞增）：</strong><br>
+        • 無鎖：~39734（錯誤）<br>
+        • 短鎖：67.2 ms<br>
+        • 長鎖（含計算）：155.6 ms<br><br>
+        <strong>CThreads repo 實測（10 萬次）：</strong><br>
+        • Mutex：0.021s<br>
+        • Spinlock：0.020s<br>
+        • Condvar：0.108s<br>
+        <em>（短臨界區 spinlock 微快，但遇到睡眠需求請用 condvar）</em>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  // ==================== 複製功能 ====================
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast() {
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (!targetEl) return;
+      copyText(targetEl.textContent);
+      const original = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+
+  // ==================== 右側收合 ====================
+  const layout = document.getElementById('layout');
+  const collapseBtn = document.getElementById('collapseBtn');
+
+  const stored = localStorage.getItem('refpanelCollapsed');
+  if (stored === '1') {
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  }
+
+  collapseBtn.addEventListener('click', () => {
+    layout.classList.toggle('panel-collapsed');
+    const collapsed = layout.classList.contains('panel-collapsed');
+    collapseBtn.textContent = collapsed ? '‹ 展開' : '收合 ›';
+    localStorage.setItem('refpanelCollapsed', collapsed ? '1' : '0');
+    if (window.innerWidth <= 1024) {
+      document.getElementById('refpanel').classList.toggle('open', !collapsed);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth > 1024) return;
+    const refpanel = document.getElementById('refpanel');
+    if (!refpanel.classList.contains('open')) return;
+    if (refpanel.contains(e.target) || collapseBtn.contains(e.target)) return;
+    refpanel.classList.remove('open');
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  });
+</script>
+</body>
+</html>

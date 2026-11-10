@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>考前測試 — 提示詞查閱</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --sidebar-bg: #14171c;
+      --panel-bg: #23272f;
+      --pre-bg: #12151a;
+      --border: #2e333d;
+      --text: #e6e8ec;
+      --text-dim: #9aa1ad;
+      --accent: #4f9cf9;
+      --accent-dim: #2c5a94;
+      --success: #4caf7d;
+      --warn-bg: #4a3f13;
+      --warn-border: #b8962e;
+      --warn-text: #ffe08a;
+      --danger-bg: #3a1e1e;
+      --danger-border: #c85a5a;
+      --danger-text: #ffb8b8;
+      --sidebar-w: 220px;
+      --refpanel-w: 340px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .layout { display: flex; min-height: 100vh; }
+
+    /* 左側欄 */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px; overflow-y: auto; z-index: 100;
+    }
+    .sidebar h1 {
+      font-size: 16px; color: var(--text-dim);
+      margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600;
+    }
+    .nav-item {
+      display: block; padding: 9px 14px; margin: 3px 0;
+      border-radius: 8px; color: var(--text-dim); text-decoration: none;
+      font-size: 16px; transition: background 0.15s, color 0.15s; cursor: pointer;
+    }
+    .nav-item:hover { background: #1f242c; color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+    /* 主內容 */
+    .main {
+      margin-left: var(--sidebar-w);
+      margin-right: var(--refpanel-w);
+      flex: 1; padding: 28px 40px 80px;
+      transition: margin-right 0.25s ease;
+      max-width: 1000px;
+    }
+    .layout.panel-collapsed .main { margin-right: 44px; }
+    .page-title {
+      font-size: 30px; font-weight: 700; margin: 0 0 20px;
+      padding-bottom: 12px; border-bottom: 2px solid var(--border);
+    }
+    .page-intro {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      font-size: 16.5px;
+      color: var(--text-dim);
+      line-height: 1.75;
+    }
+    .page-intro strong { color: var(--text); }
+
+    /* 段落標題 */
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 32px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      background: var(--accent-dim);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .section-title .num.check { background: var(--success); }
+    .section-title .num.radar { background: #8a2be2; }
+    .section-title .num.sop { background: #d97706; }
+
+    /* 提示詞區塊 */
+    .block {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+    }
+    .block-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px; border-bottom: 1px solid var(--border); background: #1e2229;
+    }
+    .block-title { font-size: 17px; font-weight: 700; color: var(--text); }
+    .copy-btn {
+      padding: 7px 16px; background: transparent;
+      border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text-dim); font-size: 15px; cursor: pointer;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+    .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+    .block pre {
+      margin: 0; padding: 18px 22px; background: var(--pre-bg);
+      font-family: "SF Mono", "Consolas", "Menlo", "Courier New", monospace;
+      font-size: 15px; line-height: 1.7; color: #d4d8de;
+      white-space: pre-wrap; word-wrap: break-word; overflow-x: auto;
+    }
+
+    /* SOP 決策面板 */
+    .sop-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .sop-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .sop-btn:hover {
+      background: #2a2f38;
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+    .sop-btn .keyword {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 17px;
+      min-width: 140px;
+    }
+    .sop-btn .target {
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+      margin-left: 16px;
+    }
+    .sop-btn .arrow {
+      color: var(--text-dim);
+      font-size: 20px;
+    }
+    .sop-btn.danger {
+      border-left-color: var(--danger-border);
+    }
+    .sop-btn.danger .keyword { color: var(--danger-text); }
+
+    /* 模型級別卡片 */
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .level-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .level-box h4 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .level-box ul {
+      margin: 0; padding-left: 20px;
+      font-size: 15px; color: var(--text-dim); line-height: 1.8;
+    }
+    .level-box li strong { color: var(--text); }
+    .level-box .desc { font-size: 15px; color: var(--text-dim); margin-bottom: 12px; }
+
+    /* 級別顏色 */
+    .lv-green { border-top: 4px solid var(--success); }
+    .lv-green h4 { color: #7ce6a0; }
+    .lv-yellow { border-top: 4px solid var(--warn-border); }
+    .lv-yellow h4 { color: var(--warn-text); }
+    .lv-red { border-top: 4px solid var(--danger-border); }
+    .lv-red h4 { color: var(--danger-text); }
+
+    /* 判斷規則表格 */
+    .judge-table {
+      width: 100%; border-collapse: collapse; margin: 12px 0;
+      font-size: 15.5px;
+    }
+    .judge-table th {
+      text-align: left; padding: 10px 14px;
+      background: #12151a; color: var(--text-dim);
+      font-weight: 600; border-bottom: 2px solid var(--border);
+      font-size: 14.5px;
+    }
+    .judge-table td {
+      padding: 11px 14px; border-bottom: 1px solid #262b34;
+      color: var(--text); vertical-align: top;
+    }
+    .judge-table tr:last-child td { border-bottom: none; }
+    .judge-table td:first-child { color: var(--text-dim); }
+    .judge-table .answer {
+      color: var(--accent); font-weight: 700;
+    }
+
+    /* 答案解析區 */
+    .answer-box {
+      background: #1e2a1e;
+      border-left: 4px solid var(--success);
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 14px 0;
+      color: #b8e6c8;
+      font-size: 16px;
+      line-height: 1.75;
+    }
+    .answer-box strong { color: #7ce6a0; }
+
+    .warn-box {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      color: var(--warn-text);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .warn-box strong { color: var(--warn-text); }
+
+    .note-box {
+      background: #1e2229;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+    .note-box strong { color: var(--accent); }
+
+    /* 模型能力判斷卡片 */
+    .level-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 16px 0;
+      overflow: hidden;
+    }
+    .level-header {
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .level-header.green { background: rgba(76, 175, 125, 0.15); color: #7ce6a0; border-bottom: 1px solid rgba(76, 175, 125, 0.3); }
+    .level-header.yellow { background: rgba(184, 150, 46, 0.15); color: #ffe08a; border-bottom: 1px solid rgba(184, 150, 46, 0.3); }
+    .level-header.red { background: rgba(200, 90, 90, 0.15); color: #ffb8b8; border-bottom: 1px solid rgba(200, 90, 90, 0.3); }
+    .level-header.purple { background: rgba(138, 43, 226, 0.15); color: #d8b4fe; border-bottom: 1px solid rgba(138, 43, 226, 0.3); }
+
+    .level-body { padding: 16px 18px; font-size: 15.5px; line-height: 1.7; }
+    .level-body p { margin: 6px 0; color: var(--text-dim); }
+    .level-body strong { color: var(--text); }
+    .level-body code {
+      background: #12151a; padding: 1px 6px; border-radius: 4px; color: #e6e8ec;
+      font-family: "SF Mono", "Consolas", monospace; font-size: 14.5px;
+    }
+    .level-body ul { margin: 8px 0; padding-left: 24px; }
+    .level-body li { margin: 4px 0; color: var(--text); }
+
+    /* 檢查清單 */
+    .checklist {
+      list-style: none; padding: 0; margin: 10px 0;
+    }
+    .checklist li {
+      padding: 12px 16px;
+      margin: 8px 0;
+      background: #1e2229;
+      border-radius: 8px;
+      font-size: 17px;
+      line-height: 1.7;
+      border-left: 3px solid var(--accent-dim);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .checklist .box {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid var(--text-dim);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .checklist strong { color: var(--accent); }
+
+    /* 兩階段除錯流程圖 */
+    .two-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .stage-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .stage-card h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stage-card ol {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 14.5px;
+      color: var(--text);
+      line-height: 1.8;
+    }
+    .stage-card ol li { margin: 4px 0; }
+    .stage-card.diagnose { border-top: 4px solid var(--accent); }
+    .stage-card.diagnose h4 { color: var(--accent); }
+    .stage-card.fix { border-top: 4px solid var(--success); }
+    .stage-card.fix h4 { color: #7ce6a0; }
+    .stage-card.verify { border-top: 4px solid var(--warn-border); }
+    .stage-card.verify h4 { color: var(--warn-text); }
+    .stage-card.probe { border-top: 4px solid #8a2be2; }
+    .stage-card.probe h4 { color: #d8b4fe; }
+    @media (max-width: 820px) {
+      .two-stage { grid-template-columns: 1fr; }
+    }
+
+    /* 右側面板 */
+    .refpanel {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: var(--refpanel-w); background: var(--sidebar-bg);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 90;
+      transition: width 0.25s ease;
+    }
+    .layout.panel-collapsed .refpanel { width: 44px; }
+    .refpanel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .refpanel-collapse-btn {
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-dim); font-size: 14px;
+      padding: 4px 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .refpanel-collapse-btn:hover { border-color: var(--accent); color: var(--text); }
+    .refpanel-body {
+      flex: 1; overflow-y: auto; padding: 16px;
+      font-size: 14.5px; line-height: 1.65;
+    }
+    .refpanel-body h3 {
+      font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+    }
+    .refpanel-body h3:first-child { margin-top: 0; }
+    .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+    .refpanel-body strong { color: var(--text); }
+    .ref-table {
+      width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13.5px;
+    }
+    .ref-table th {
+      text-align: left; padding: 6px 8px; background: #1e2229;
+      color: var(--text-dim); font-weight: 600;
+      border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .ref-table td {
+      padding: 7px 8px; border-bottom: 1px solid #262b34;
+      color: var(--text); vertical-align: top;
+    }
+    .ref-table td:first-child { color: var(--text-dim); }
+    .ref-table .cat {
+      color: var(--accent); font-weight: 600; white-space: nowrap;
+    }
+
+    /* 收合 */
+    .layout.panel-collapsed .refpanel-title,
+    .layout.panel-collapsed .refpanel-body { display: none; }
+    .layout.panel-collapsed .refpanel-header {
+      padding: 12px 0; justify-content: center; border-bottom: none;
+      height: 100%; writing-mode: vertical-rl; text-orientation: mixed;
+    }
+    .layout.panel-collapsed .refpanel-collapse-btn {
+      writing-mode: vertical-rl; border: none; font-size: 14px; padding: 10px 6px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--success); color: #fff;
+      padding: 12px 28px; border-radius: 10px;
+      font-size: 16px; font-weight: 600;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* 窄螢幕 */
+    @media (max-width: 1280px) { :root { --refpanel-w: 300px; } }
+    @media (max-width: 1024px) {
+      .main { margin-right: 0; padding-right: 80px; }
+      .refpanel {
+        width: 320px; transform: translateX(calc(100% - 44px));
+        box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+        transition: transform 0.25s ease;
+      }
+      .refpanel.open { transform: translateX(0); }
+      .layout.panel-collapsed .refpanel { transform: translateX(calc(100% - 44px)); }
+      .layout.panel-collapsed .refpanel.open { transform: translateX(0); }
+    }
+    @media (max-width: 820px) {
+      .sidebar {
+        width: 100%; height: auto; bottom: auto; position: relative;
+        border-right: none; border-bottom: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; padding: 12px;
+      }
+      .sidebar h1 { width: 100%; margin-bottom: 8px; }
+      .nav-item { padding: 6px 12px; font-size: 15px; margin: 2px; }
+      .main { margin-left: 0; padding: 20px 16px 60px; }
+      .page-title { font-size: 24px; }
+      .refpanel { width: 90%; max-width: 340px; transform: translateX(calc(100% - 40px)); }
+      .judge-table { font-size: 14px; }
+      .judge-table th, .judge-table td { padding: 9px 10px; }
+      .sop-btn { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .sop-btn .target { margin-left: 0; }
+      .sop-btn .arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item active" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <!-- 中間主內容 -->
+  <main class="main">
+    <h1 class="page-title">考前測試</h1>
+
+    <div class="page-intro">
+      進考場前先跑這兩段測試，判斷考場模型是<strong>聯網版</strong>還是<strong>離線版</strong>、診斷能力能不能信。
+      <br>每段的「要貼給模型的文字」都有 <strong>📋 複製</strong> 按鈕，直接貼給模型即可。
+      <br><strong>判斷規則不要貼給模型</strong>，那是給你自己看的。
+    </div>
+
+    <!-- ==================== 第一段 ==================== -->
+    <h2 class="section-title">
+      <span class="num">1</span>
+      能力邊界問題（4 題）
+    </h2>
+
+    <div class="block">
+      <div class="block-header">
+        <span class="block-title">要貼給模型的文字</span>
+        <button class="copy-btn" data-target="q1-prompt">📋 複製</button>
+      </div>
+      <pre id="q1-prompt">在開始之前，我需要確認你的能力邊界。請逐條回答，不確定就說「不確定」：
+
+1. 你是哪個模型？（名稱和版本）
+
+2. 2026 年世界盃決賽，是誰最終獲勝？制勝球是在第幾分鐘、由誰打入的？
+
+3. 你能執行程式碼或終端指令嗎？
+
+4. 你的知識截止日期是什麼時候？</pre>
+    </div>
+
+    <h3 style="font-size:18px;color:var(--text);margin:24px 0 10px;">你考前的判斷規則（不要貼給模型）</h3>
+    <table class="judge-table">
+      <thead>
+      <tr>
+        <th>第 2 題的回答</th>
+        <th>判斷</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>提到「106 分鐘」（無論費蘭對錯）</td>
+        <td class="answer">聯網版層一</td>
+      </tr>
+      <tr>
+        <td>沒提 106 分鐘，但提到「費蘭·托雷斯」</td>
+        <td class="answer">聯網版層一</td>
+      </tr>
+      <tr>
+        <td>只提到「西班牙奪冠」，後兩個錯或不知道</td>
+        <td class="answer">離線版層一</td>
+      </tr>
+      <tr>
+        <td>全錯或說「不確定」</td>
+        <td class="answer">離線版層一</td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div class="answer-box">
+      <strong>正確答案：</strong>冠軍西班牙，制勝球第 106 分鐘，進球者費蘭·托雷斯。
+    </div>
+
+    <!-- ==================== 第二段 ==================== -->
+    <h2 class="section-title">
+      <span class="num">2</span>
+      情境測試（C 程式碼）
+    </h2>
+
+    <div class="note-box">
+      <strong>時機：</strong>如果第一段回答完後還有時間（<strong>09:13 之前</strong>），才貼這段。
+    </div>
+
+    <div class="block">
+      <div class="block-header">
+        <span class="block-title">要貼給模型的 C 程式碼</span>
+        <button class="copy-btn" data-target="q2-code">📋 複製</button>
+      </div>
+      <pre id="q2-code">#include &lt;stdio.h&gt;
+
+int find_second_largest(int *arr, int n) {
+    int max = arr[0];
+    int second = arr[0];
+    for (int i = 1; i &lt; n; i++) {
+        if (arr[i] &gt; max) {
+            second = max;
+            max = arr[i];
+        } else if (arr[i] &gt; second) {
+            second = arr[i];
+        }
+    }
+    return second;
+}
+
+int main() {
+    int data[5] = {5, 1, 2, 3, 4};
+    printf("%d\n", find_second_largest(data, 5));
+    return 0;
+}</pre>
+    </div>
+
+    <div class="block">
+      <div class="block-header">
+        <span class="block-title">要貼給模型的文字（不用模板）</span>
+        <button class="copy-btn" data-target="q2-prompt">📋 複製</button>
+      </div>
+      <pre id="q2-prompt">這段程式碼在輸入 {5, 1, 2, 3, 4} 時輸出 5，但預期輸出是 4。
+請找出問題所在，只指出問題在哪一行或哪個邏輯，用一句話說明原因，
+不要重寫整個函式。</pre>
+    </div>
+
+    <!-- 🟣 實戰判斷與應對策略 🟣 -->
+    <h2 class="section-title">
+      <span class="num radar">📡</span>
+      實戰判斷：看模型的反應決定等級
+    </h2>
+
+    <div class="note-box" style="border-left-color: #8a2be2;">
+      <strong>核心概念：</strong>你貼完上面那段 C 程式碼後，不需要管它叫什麼名字，只要看它「怎麼回答」，就能瞬間驗證它的等級。
+    </div>
+
+    <!-- 等級一 -->
+    <div class="level-card">
+      <div class="level-header green">
+        🟢 情況一：頂級聽話的學霸（診斷能力可用）
+      </div>
+      <div class="level-body">
+        <p><strong>模型大概會這樣回：</strong></p>
+        <p style="color:var(--text);"><em>「問題出在 <code>second</code> 的初始化。第 5 行 <code>int second = arr[0];</code>，當 <code>arr[0]</code> 是最大值（5）時，<code>second</code> 無法被更新為 4，會一直停留在 5。」</em></p>
+        <p style="margin-top:12px;"><strong>你要怎麼判斷？</strong></p>
+        <ul>
+          <li>它有明確點出 <strong><code>second</code> 初始化</strong> 這個點？</li>
+          <li>它有給你 <strong>行號</strong>（例如第 5 行）或 <strong>變數名</strong>？</li>
+          <li>它有沒有乖乖聽話，<strong>沒有</strong>重寫整個函式？</li>
+          <li>它有沒有自己腦補加上「陣列可能為空」的廢話？</li>
+        </ul>
+        <p style="margin-top:12px; color:#7ce6a0; font-weight:bold;">👉 結論：高級模型，放心用。第 2 類（邏輯錯誤）的模板可以直接信，它給的第一個原因通常就是對的。</p>
+      </div>
+    </div>
+
+    <!-- 等級二 -->
+    <div class="level-card">
+      <div class="level-header yellow">
+        🟡 情況二：懂邏輯但愛碎念的補習班老師（格式沒遵守）
+      </div>
+      <div class="level-body">
+        <p><strong>模型大概會這樣回：</strong></p>
+        <p style="color:var(--text);"><em>「因為 <code>second</code> 初始化為 <code>arr[0]</code>，導致無法正確更新。另外，你的程式碼沒有檢查 <code>n</code> 是否小於 2，也沒有處理陣列為空的情況，建議加上 <code>if (n < 2) return -1;</code>...」</em></p>
+        <p style="margin-top:12px;"><strong>你要怎麼判斷？</strong></p>
+        <ul>
+          <li>它有找到真正的 Bug（<code>second</code> 初始化）。</li>
+          <li>但是它<strong>沒有給行號</strong>，或者它<strong>順便塞了一堆防禦性建議</strong>（「沒檢查 n」、「陣列可能為空」）。</li>
+        </ul>
+        <p style="margin-top:12px; color:#ffe08a; font-weight:bold;">👉 結論：中階模型，嚴格過濾。它邏輯是對的，但很愛「順手做多餘的事」。考場上，第 2 類模板只信它給的「第一個原因」，後面多加的防禦性建議全部刪掉，因為那會讓原本能跑的程式碼反而報錯。</p>
+      </div>
+    </div>
+
+    <!-- 等級三 -->
+    <div class="level-card">
+      <div class="level-header red">
+        🔴 情況三：只會紙上談兵的雷包（沒找到真 Bug）
+      </div>
+      <div class="level-body">
+        <p><strong>模型大概會這樣回：</strong></p>
+        <p style="color:var(--text);"><em>「你的程式碼沒有檢查 <code>arr</code> 是否為 NULL，也沒有檢查 <code>n</code> 是否大於等於 2，這會導致記憶體越界（Segmentation fault）。」</em></p>
+        <p style="margin-top:12px;"><strong>你要怎麼判斷？</strong></p>
+        <ul>
+          <li>它<strong>完全沒提到</strong> <code>second</code> 初始化錯誤。</li>
+          <li>它只會講那些「教科書上的防禦性廢話」。</li>
+        </ul>
+        <p style="margin-top:12px; color:#ffb8b8; font-weight:bold;">👉 結論：低階模型，邏輯推理掛了。絕對不要相信它給的邏輯 Bug 診斷（第 2 類）。遇到 Bug，請直接用第 11 類（定向插樁），自己加 printf 找答案。</p>
+      </div>
+    </div>
+
+    <!-- 等級四 -->
+    <div class="level-card">
+      <div class="level-header purple">
+        ⚠️ 情況四：不受控的過動兒（重寫整個函式）
+      </div>
+      <div class="level-body">
+        <p><strong>模型大概會這樣回：</strong></p>
+        <p style="color:var(--text);"><em>「這是修正後的程式碼：<br>
+          <code>int find_second_largest(int *arr, int n) { ... (以下省略 20 行) }</code>」</em></p>
+        <p style="margin-top:12px;"><strong>你要怎麼判斷？</strong></p>
+        <ul>
+          <li>你明明叫它「不要重寫整個函式」，它還是給你一大段程式碼。</li>
+        </ul>
+        <p style="margin-top:12px; color:#d8b4fe; font-weight:bold;">👉 結論：叛逆模型，指令遵循度極差。考場上不管你用哪個模板，它都會忍不住幫你大改。每次提問都要加上限制：「不准給完整程式碼，只准給第 X 行的修正，超過 3 行我就看不懂了。」</p>
+      </div>
+    </div>
+
+    <div class="warn-box" style="margin-top:20px; border-left-color: #8a2be2; background: rgba(138, 43, 226, 0.1); color: #e6e8ec;">
+      <strong style="color:#d8b4fe;">💡 考場實戰總結：</strong><br>
+      貼完程式碼後，只要看它的回答：<br>
+      • <strong>有 second + 有行號 + 沒廢話</strong> ➔ 🟢 高級模型，放心用。<br>
+      • <strong>有 second + 有廢話/沒行號</strong> ➔ 🟡 中階模型，嚴格過濾，只挑有行號的看。<br>
+      • <strong>沒 second + 只有廢話</strong> ➔ 🔴 低階模型，自己插樁找 Bug。<br>
+      • <strong>不理指令，直接重寫</strong> ➔ ⚠️ 叛逆模型，每次都要下達強制指令限制它。
+    </div>
+
+    <!-- ==================== 考前檢查清單 ==================== -->
+    <h2 class="section-title">
+      <span class="num check">✓</span>
+      考前檢查清單（每題貼之前掃一眼）
+    </h2>
+
+    <ul class="checklist">
+      <li>
+        <span class="box"></span>
+        <div><strong>註解刪了嗎？</strong>程式碼裡的註解可能是錯的，貼之前先刪，或開頭加一句「註解可能是錯的，以程式碼邏輯為準」。</div>
+      </li>
+      <li>
+        <span class="box"></span>
+        <div><strong>層一貼了嗎？</strong>先貼層一（離線版或連網版），再貼對應的類別模板。不要直接貼第 N 類。</div>
+      </li>
+      <li>
+        <span class="box"></span>
+        <div><strong>對應的類別選對了嗎？</strong>看「觸發詞對照表」第 1 層，確認現象 → 模板對應。</div>
+      </li>
+      <li>
+        <span class="box"></span>
+        <div><strong>Judge 回饋是具體錯誤訊息嗎？</strong>如果只有分數或籠統 WA，不要貼給模型要求修正，改用第 6 類搜尋引導。</div>
+      </li>
+      <li>
+        <span class="box"></span>
+        <div><strong>卡住超過 10 分鐘了嗎？</strong>換模板或直接切第 6 類（搜尋引導），不要在一個模板上死磕。</div>
+      </li>
+      <li>
+        <span class="box"></span>
+        <div><strong>模型開始重寫整個檔案？</strong>立刻打斷：「只改被指出的那一行，不要重寫整個函式。」</div>
+      </li>
+    </ul>
+
+    <!-- ==================== 考場模型選擇：預設 Llama 3 ==================== -->
+    <h2 class="section-title">
+      <span class="num sop">🎯</span>
+      考場模型選擇：預設 Llama 3
+    </h2>
+
+    <div class="note-box" style="border-left-color: #d97706;">
+      <strong>不管它說自己是誰，一律先走 Llama 3 專區。</strong><br>
+      理由：考場是本地模型、消費級顯卡，上下文窗口普遍不大（8K～32K）。<br>
+      不管它自稱 Llama / Gemma / Mistral，token 精簡策略都通用。<br>
+      Llama 3 專區有填空模板 + 合併複製 + 8K 鐵律，最省 token、防呆最徹底。
+    </div>
+
+    <div class="sop-grid">
+      <a href="llama3.html" class="sop-btn" style="border-left-color: var(--success);">
+        <span class="keyword" style="color: #7ce6a0;">🦙 進入 Llama 3 專區</span>
+        <span class="target">👉 預設（最嚴格防呆 + token 精簡）</span>
+        <span class="arrow">›</span>
+      </a>
+    </div>
+
+    <div class="warn-box" style="border-left-color: #8a2be2; background: rgba(138, 43, 226, 0.1); color: #e6e8ec;">
+      <strong style="color:#d8b4fe;">📌 什麼時候才切換？</strong><br>
+      只有當它「表現出明顯更強」時才換（<strong>不是因為它說自己是誰</strong>）：<br>
+      • 它主動列行號、不亂重寫、多步驟推理有條理 → 切到 <a href="midhigh.html" style="color: var(--accent);">中高端專區</a><br>
+      • 它頻繁說「我不確定」但問題很簡單 → 切 <a href="trigger.html" style="color: var(--accent);">第 6 類搜尋引導</a><br>
+      • 它輸出格式錯亂 → 切 <a href="trigger.html" style="color: var(--accent);">第 6 類搜尋引導</a><br>
+      <br>
+      其他專區（僅供確認，平常不用點）：<br>
+      <a href="gemma4.html" style="color: var(--accent);">Gemma 4</a> ｜
+      <a href="mistral.html" style="color: var(--accent);">Mistral</a> ｜
+      <a href="gptoss.html" style="color: var(--accent);">gpt-oss</a> ｜
+      <a href="muse.html" style="color: var(--accent);">Muse</a> ｜
+      <a href="midhigh.html" style="color: var(--accent);">中高端通用</a>
+    </div>
+
+    <!-- ==================== 🚨 考場語言環境鎖定 🚨 ==================== -->
+    <h2 class="section-title" style="margin-top: 48px;">
+      <span class="num" style="background: #d97706;">🚨</span>
+      考場環境語言鎖定（防 C++ 語法污染）
+    </h2>
+
+    <div class="warn-box" style="background: rgba(217, 119, 6, 0.15); border: 2px solid #d97706; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+      <p style="margin: 0 0 16px; font-size: 16.5px; color: var(--text); line-height: 1.7;">
+        根據範例，<strong>多執行緒（pthread）與底層（位元運算）主力是「純 C 語言」</strong>。<br>
+        為了防止 AI 擅自寫出你編譯器無法通過的 <code>std::cout</code>、<code>std::vector</code>、<code>new/delete</code>，請在貼上層一後，<strong>順手把下面這段「環境鎖定指令」貼給 AI</strong>。
+      </p>
+
+      <div class="block" style="margin-bottom: 0; border-color: #d97706;">
+        <div class="block-header" style="background: rgba(217, 119, 6, 0.2);">
+          <span class="block-title" style="color: #fcd34d;">環境鎖定指令（請在每題開始時，接在層一後面貼上）</span>
+          <button class="copy-btn" data-target="env-lock" style="border-color: #d97706; color: #fcd34d;">📋 複製</button>
+        </div>
+        <pre id="env-lock">【🚨 考場環境鎖定警告 🚨】
+請注意，我的考場環境是【純 C 語言】（使用 gcc 編譯）或【Python】。
+請絕對不要輸出任何 C++ 語法與標準庫（包含但不限於：std::cout、std::cin、new、delete、std::vector、std::string、std::mutex、std::thread）。
+
+如果是 C 語言題目：
+- 請只使用 stdio.h、stdlib.h、string.h 等 C 標準庫。
+- 多執行緒請使用 pthread.h，並使用 pthread_mutex_lock 保護共享變數。
+
+如果我貼上的程式碼是 C++，請先告訴我，並等我確認後才使用 C++ 語法。除此之外，一律預設為純 C。</pre>
+      </div>
+    </div>
+
+    <!-- ==================== ⚠️ 考場當天鐵律 ==================== -->
+    <h2 class="section-title" style="margin-top: 48px;">
+      <span class="num" style="background: var(--danger-border);">⚠️</span>
+      考場當天鐵律：診斷與修復分開，用「跑」驗證
+    </h2>
+
+    <div class="warn-box" style="border-left-color: var(--danger-border); background: rgba(200, 90, 90, 0.12); color: #ffb8b8;">
+      <strong style="color:#ffb8b8;">核心原因：</strong>本地模型跑在消費級顯卡上，上下文窗口有限。第二輪開始，它會把第一輪的回答當成「已確認的事實」，即使那是錯的也會延續下去，回答品質明顯下降。<br>
+      所以：<strong>診斷只做一次，修復只吃診斷結果，驗證用編譯器跑。</strong>
+    </div>
+
+    <div class="two-stage">
+      <div class="stage-card diagnose">
+        <h4>🔍 對話框 A：診斷</h4>
+        <ol>
+          <li>開新對話框 A</li>
+          <li>貼層一 + 第 2 類（邏輯診斷）+ 原始程式碼</li>
+          <li>拿到它指出的問題（例如「second 初始化錯誤，第 5 行」）</li>
+          <li>關掉對話框 A</li>
+        </ol>
+      </div>
+      <div class="stage-card fix">
+        <h4>🔧 對話框 B：修復</h4>
+        <ol>
+          <li>開新對話框 B</li>
+          <li>貼層一 + 第 0-1 類（修復模板）+ 原始程式碼</li>
+          <li>加上一句：「對話框 A 診斷出：<em>&lt;把 A 的回答貼進來&gt;</em>。請根據這個問題修復。」</li>
+          <li>拿到修好的程式碼</li>
+        </ol>
+      </div>
+      <div class="stage-card verify">
+        <h4>✅ 驗證：編譯 + 跑</h4>
+        <ol>
+          <li>把修好的程式碼丟進編譯器</li>
+          <li>跑測試</li>
+          <li><strong>對了 → 結案</strong></li>
+          <li><strong>錯了 → 進對話框 C</strong></li>
+        </ol>
+      </div>
+      <div class="stage-card probe">
+        <h4>🔬 對話框 C：修完還錯</h4>
+        <ol>
+          <li>開新對話框 C</li>
+          <li>貼層一 + 第 11 類（定向插樁）+ 修完後還錯的程式碼</li>
+          <li>按它建議加 printf，自己找出真正問題</li>
+          <li>不要再回對話框 B 追問</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="warn-box" style="border-left-color: var(--danger-border); background: rgba(200, 90, 90, 0.12); color: #ffb8b8;">
+      <strong style="color:#ffb8b8;">❌ 不要做的事</strong><br>
+      • 在同一個對話框說「繼續」「再改一下」「還有呢」<br>
+      • 修完錯了，回對話框 B 追問（它會延續前面的錯誤思路）<br>
+      • 糾結「診斷合不合理」——直接修，跑就知道<br>
+      • 把對話框 A 的診斷直接丟給對話框 B 之前，先想一下：它有行號嗎？有具體變數嗎？如果完全沒有，換第 11 類自己找。
+    </div>
+
+    <div class="note-box" style="border-left-color: var(--success);">
+      <strong>📌 核心心態</strong><br>
+      診斷可能是錯的，但修完丟進編譯器跑就知道對不對。<br>
+      不要花時間糾結診斷對不對，直接修、直接跑。<br>
+      跑錯了就換方法（第 11 類插樁自己找），不要在錯的診斷上打轉。
+    </div>
+
+  </main>
+
+  <!-- 右側：通用觸發詞對照表 -->
+  <aside class="refpanel" id="refpanel">
+    <div class="refpanel-header">
+      <span class="refpanel-title">觸發詞對照表</span>
+      <button class="refpanel-collapse-btn" id="collapseBtn" title="收合／展開">收合 ›</button>
+    </div>
+    <div class="refpanel-body" id="refpanelBody">
+
+      <h3>第零層：先決定「要動手」還是「要動腦」</h3>
+      <table class="ref-table">
+        <thead>
+        <tr><th>現象</th><th>用這個</th><th>沒用就換</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>明確需要它寫出完整程式碼（從零寫新功能）</td><td class="cat">第 0-2 類 從零生成</td><td>報錯切 1/2/11 類</td></tr>
+        <tr><td>程式碼能跑但太慢/太醜，需要重寫一版</td><td class="cat">第 0-3 類 效能優化</td><td>變慢切第 3 類</td></tr>
+        <tr><td>已經知道 Bug 在哪，需要它直接改好</td><td class="cat">第 0-1 類 修復 Bug</td><td>報錯切 1/2/11 類</td></tr>
+        </tbody>
+      </table>
+
+      <h3>第 1 層：先判斷問題類別</h3>
+      <table class="ref-table">
+        <thead>
+        <tr><th>現象</th><th>用這個</th><th>沒用就換</th></tr>
+        </thead>
+        <tbody>
+        <tr><td>編譯器噴紅字，有明確行號</td><td class="cat">第 1 類</td><td>第 6 類</td></tr>
+        <tr><td>編譯器噴紅字，沒有行號（undefined reference）</td><td class="cat">第 1 類</td><td>第 6 類</td></tr>
+        <tr><td>程式崩潰（segfault），不知道崩在哪</td><td class="cat">第 11 類 定向插樁</td><td>第 2 類</td></tr>
+        <tr><td>不崩潰，結果不對，每次都錯</td><td class="cat">第 2 類 邏輯 bug</td><td>第 7 類</td></tr>
+        <tr><td>不崩潰，結果不對，有時對有時錯</td><td class="cat">第 12 類 競態</td><td>第 11 類</td></tr>
+        <tr><td>不報錯，但資料／訊號消失（上游有下游沒有）</td><td class="cat">第 7 類 靜默失敗</td><td>第 11 類</td></tr>
+        <tr><td>幾百行程式碼，不知道從哪個函式查</td><td class="cat">第 13 類 分治定位</td><td>第 11 類</td></tr>
+        <tr><td>程式對了但太慢／太吃資源（TLE／CPU／記憶體）</td><td class="cat">第 3 類 效能</td><td>第 6 類</td></tr>
+        <tr><td>不知道某個 API 怎麼用</td><td class="cat">第 4 類 API 查詢</td><td>第 6 類</td></tr>
+        <tr><td>完全讀不懂一段程式碼</td><td class="cat">第 10 類 解釋程式碼</td><td>—</td></tr>
+        <tr><td>不知道系統該怎麼設計，沒思路</td><td class="cat">第 5 類 架構討論</td><td>—</td></tr>
+        <tr><td>卡住了，不知道下一步</td><td class="cat">第 6 類 搜尋引導</td><td>—</td></tr>
+        <tr><td>需要錄製 demo 用於提交</td><td class="cat">第 8 類 錄製確認</td><td>—</td></tr>
+        <tr><td>push 後 CI 沒跑／分數沒更新／看不懂 CI Log</td><td class="cat">第 9 類 CI／Judge</td><td>—</td></tr>
+        </tbody>
+      </table>
+
+      <h3>第 2 層：貼之前必做</h3>
+      <div class="note" style="background:#1e2229;border-left:3px solid var(--accent);padding:10px 12px;border-radius:5px;margin:10px 0;color:var(--text);font-size:14px;">
+        <strong>把程式碼裡的註解刪掉</strong>，或開頭加一句「註解可能是錯的，以程式碼邏輯為準」。
+        <br>這是層一規則 6 的落地動作。<strong>刪註解比任何 prompt 都直接。</strong>
+      </div>
+
+      <h3>第 3 層：看到輸出後的驗證</h3>
+      <table class="ref-table">
+        <thead>
+        <tr><th>它給了什麼</th><th>你怎麼驗證</th></tr>
+        </thead>
+        <tbody>
+        <tr><td><strong>第 0 類生成的完整程式碼</strong></td><td><strong>直接丟進編譯器或 Judge 跑。如果有錯，根據報錯切回 1-13 類。</strong></td></tr>
+        <tr><td>編譯錯誤的原因</td><td>按它說的改，重編，錯誤消失 = 對</td></tr>
+        <tr><td>邏輯 bug 原因（確信度高）</td><td>按它說的加 log 或檢查變數，跑一次看是否符合</td></tr>
+        <tr><td>邏輯 bug 原因（確信度中／低）</td><td>不要直接信，先用第 11 類縮小範圍</td></tr>
+        <tr><td>分治定位的「最可能塊」</td><td>在該塊入口加它建議的 log，跑一次看行為</td></tr>
+        <tr><td>效能瓶頸方向</td><td>按它說的量測，有數據再決定改不改</td></tr>
+        <tr><td>API 骨架</td><td>拿它給的關鍵詞去官方文件確認簽名</td></tr>
+        <tr><td>搜尋關鍵詞</td><td>直接搜，第一組零結果換第二組</td></tr>
+        <tr><td>靜默失敗的檢查鏈</td><td>按順序走，走到哪步資料消失，問題就在那之前</td></tr>
+        <tr><td>競態條件的重現方法</td><td>按它說的提高重現率，能穩定重現 = 找到了</td></tr>
+        </tbody>
+      </table>
+
+      <h3>第 4 層：什麼時候放棄</h3>
+      <div class="note" style="background:#1e2229;border-left:3px solid var(--accent);padding:10px 12px;border-radius:5px;margin:10px 0;color:var(--text);font-size:14px;">
+        同一個模板追問超過 <strong>2 次</strong>還沒進展，換模板或換<strong>第 6 類（搜尋引導）</strong>。
+        <br>不要在一個模板上死磕。
+      </div>
+
+      <h3>考場閉環 SOP（使用順序）</h3>
+      <p>📌 <strong>拿到題目要寫程式碼：</strong>直接用 <strong>第 0-2 類（生成）</strong> 讓它寫出第一版。</p>
+      <p>📌 <strong>寫程式／編譯：</strong>有紅字用第 1 類；不確定 API 用第 4 類。</p>
+      <p>📌 <strong>程式行為不對（進入除錯）：</strong></p>
+      <p style="margin-left: 15px; color: var(--accent);">• 知道問題在哪 👉 切 <strong>第 0-1 類（修復）</strong>。</p>
+      <p style="margin-left: 15px; color: var(--accent);">• 不知道問題在哪 👉 13 類 → 11 類 → 2/7/12 類。</p>
+      <p style="margin-left: 15px; color: var(--accent);">• 找到原因後 👉 切回 <strong>第 0-1 類</strong> 讓它改。</p>
+      <p>📌 <strong>程式對了但慢：</strong>切 <strong>第 0-3 類</strong> 或第 3 類。</p>
+      <p>📌 <strong>提交階段：</strong>第 8 類（錄製）、第 9 類（CI）。</p>
+      <p>📌 <strong>全程卡住超過 10 分鐘：</strong>第 6 類。</p>
+
+        <h3>快速跳轉</h3>
+        <table class="ref-table">
+            <tbody>
+            <tr><td>🛠️ 技術骨架</td><td class="cat"><a href="techniques.html" style="color:var(--accent);">應用技術</a></td></tr>
+            <tr><td>📖 API 速查</td><td class="cat"><a href="api-ref.html" style="color:var(--accent);">API 速查</a></td></tr>
+            <tr><td>🎲 猜題預測</td><td class="cat"><a href="guessing.html" style="color:var(--accent);">猜題專區</a></td></tr>
+            <tr><td>🔧 指令/版本控制</td><td class="cat"><a href="commands.html" style="color:var(--accent);">工作流</a></td></tr>
+            </tbody>
+        </table>
+
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  // ==================== 複製 ====================
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast() {
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (!targetEl) return;
+      copyText(targetEl.textContent);
+      const original = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+
+  // ==================== 右側收合 ====================
+  const layout = document.getElementById('layout');
+  const collapseBtn = document.getElementById('collapseBtn');
+
+  const stored = localStorage.getItem('refpanelCollapsed');
+  if (stored === '1') {
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  }
+
+  collapseBtn.addEventListener('click', () => {
+    layout.classList.toggle('panel-collapsed');
+    const collapsed = layout.classList.contains('panel-collapsed');
+    collapseBtn.textContent = collapsed ? '‹ 展開' : '收合 ›';
+    localStorage.setItem('refpanelCollapsed', collapsed ? '1' : '0');
+    if (window.innerWidth <= 1024) {
+      document.getElementById('refpanel').classList.toggle('open', !collapsed);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth > 1024) return;
+    const refpanel = document.getElementById('refpanel');
+    if (!refpanel.classList.contains('open')) return;
+    if (refpanel.contains(e.target) || collapseBtn.contains(e.target)) return;
+    refpanel.classList.remove('open');
+    layout.classList.add('panel-collapsed');
+    collapseBtn.textContent = '‹ 展開';
+  });
+</script>
+</body>
+</html>
