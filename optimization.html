@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C 語言優化與防超時指南</title>
+<style>
+  :root {
+    --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+    --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+    --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+    --danger: #ef4444; --success: #22c55e; --warn: #eab308;
+    --sidebar-w: 220px; --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+  .sidebar h2 { font-size: 13px; color: #6b7280; margin: 20px 8px 6px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
+    color: var(--text-dim); text-decoration: none; font-size: 15px;
+    transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+  .main { margin-left: var(--sidebar-w); margin-right: var(--refpanel-w); flex: 1; padding: 28px 40px 80px; max-width: 1000px; }
+  .page-title { font-size: 30px; font-weight: 700; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .page-subtitle { color: var(--text-dim); font-size: 16px; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+  .search-bar {
+    display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 24px; position: sticky; top: 20px; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; background: var(--pre-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 16px; font-family: "SF Mono", "Consolas", monospace;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+  .search-bar .search-icon { font-size: 20px; color: var(--text-dim); }
+  .copy-all-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; background: linear-gradient(135deg, #1e2a3a, #1e2229);
+    border: 1px solid var(--accent-dim); border-radius: 10px; margin-bottom: 12px;
+  }
+  .copy-all-bar .copy-all-text { flex: 1; font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  .copy-all-bar .copy-all-text b { color: var(--accent); }
+  .btn-copy-all {
+    padding: 10px 22px; background: var(--accent-dim); border: 1px solid var(--accent);
+    border-radius: 8px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+  .btn-copy-all:hover { background: var(--accent); }
+  .btn-copy-all:active { transform: scale(0.97); }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+  .error-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s;
+  }
+  .error-card:hover { border-color: #4b5563; }
+  .error-card.hidden { display: none; }
+  .card-header {
+    padding: 16px 20px; background: #1e2229; border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700; color: #93c5fd;
+    font-family: "SF Mono", "Consolas", monospace; word-break: break-all;
+  }
+  .card-header .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; margin-right: 10px; vertical-align: middle;
+    font-family: -apple-system, sans-serif; background: rgba(79,156,249,0.2); color: #93c5fd;
+  }
+  .card-body { padding: 20px; }
+  .info-row { margin-bottom: 16px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .info-label.look { background: rgba(79,156,249,0.2); color: #93c5fd; }
+  .info-label.why { background: rgba(234,179,8,0.2); color: #fde047; }
+  .info-label.fix { background: rgba(34,197,94,0.2); color: #86efac; }
+  .info-label.warn { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .info-content { font-size: 16px; color: var(--text); line-height: 1.6; }
+  .info-content code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; font-size: 14px; color: #d4d8de;
+  }
+  .code-wrap { position: relative; margin: 8px 0; }
+  .code-wrap pre {
+    background: var(--pre-bg); padding: 12px 16px; padding-right: 56px;
+    border-radius: 8px; border: 1px solid var(--border);
+    font-family: "SF Mono", "Consolas", monospace; font-size: 14px;
+    color: #86efac; overflow-x: auto; margin: 0; line-height: 1.5;
+  }
+  .code-wrap pre .cmt { color: #6b7280; }
+  .code-wrap pre .kw { color: #fca5a5; }
+  .btn-copy-code {
+    position: absolute; top: 8px; right: 8px; padding: 4px 10px;
+    background: #2a3038; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, color 0.15s; font-family: -apple-system, sans-serif;
+  }
+  .btn-copy-code:hover { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+  .btn-copy-code.copied { background: var(--success); color: #fff; border-color: var(--success); }
+  .info-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  .info-content th, .info-content td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  .info-content th { background: #1e2229; color: #93c5fd; font-weight: 700; }
+  .info-content td { color: var(--text-dim); }
+  .info-content td code { font-size: 13px; }
+  .tool-card { background: var(--panel-bg); border: 1px solid var(--accent-dim); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .tool-card h3 { margin: 0 0 14px; font-size: 18px; color: var(--accent); }
+  .tool-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+  .tool-field { display: flex; flex-direction: column; gap: 4px; }
+  .tool-field label { font-size: 13px; color: var(--text-dim); }
+  .tool-field input, .tool-field select {
+    padding: 8px 12px; background: var(--pre-bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 15px;
+    font-family: "SF Mono", monospace; width: 140px;
+  }
+  .tool-field input:focus, .tool-field select:focus { outline: none; border-color: var(--accent); }
+  .tool-btn {
+    padding: 9px 20px; background: var(--accent-dim); border: 1px solid var(--accent);
+    border-radius: 6px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .tool-btn:hover { background: var(--accent); }
+  .tool-result {
+    margin-top: 8px; padding: 14px 16px; border-radius: 8px;
+    background: var(--pre-bg); border: 1px solid var(--border); font-size: 15px; line-height: 1.7;
+  }
+  .tool-result .verdict { font-weight: 700; font-size: 17px; }
+  .verdict.ok { color: var(--success); }
+  .verdict.warn { color: var(--warn); }
+  .verdict.bad { color: var(--danger); }
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--refpanel-w);
+    background: var(--sidebar-bg); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+  }
+  .refpanel-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .refpanel-body { flex: 1; overflow-y: auto; padding: 18px; font-size: 14.5px; line-height: 1.7; }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body ul { padding-left: 20px; margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body li { margin-bottom: 6px; }
+  .refpanel-body code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; color: #86efac; font-size: 13px;
+  }
+  .refpanel-body .highlight { color: var(--warn); font-weight: bold; }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff; padding: 12px 28px;
+    border-radius: 10px; font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 1200px) {
+    .main { margin-right: 0; }
+    .refpanel { position: static; width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    .refpanel-body { overflow-y: visible; }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .search-bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="guide.html">🧭 考場不慌指南</a>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="optimization.html">⚡ C 優化與防超時</a>
+        <a class="nav-item" href="systems-c.html">🔩 C 系統程式速查</a>
+        <a class="nav-item" href="python-errors.html">🐍 Python 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <main class="main">
+    <h1 class="page-title">⚡ C 語言優化與防超時指南</h1>
+    <p class="page-subtitle">
+      考場超時不是玄學。先判斷是「演算法太慢」還是「常數太大」，再對症下藥。
+    </p>
+
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜尋優化技巧（例如：I/O、快速讀入、strlen、malloc、-O2、複雜度）">
+    </div>
+
+    <div class="copy-all-bar">
+      <div class="copy-all-text">
+        <b>📋 總表複製</b>：把所有優化技巧整理成一張表，貼給 AI 說「請根據下表幫我優化程式碼」。<br>
+        <b>📦 全部複製</b>：把頁面上所有程式碼片段串成一份，直接丟給 AI 分析。
+      </div>
+      <button class="btn-copy-all" onclick="copySummaryTable()">📋 複製優化總表</button>
+      <button class="btn-copy-all" onclick="copyAllCode()" style="background:#2c5a94;">📦 複製全部程式碼</button>
+    </div>
+
+    <!-- ==================== 0. 先搞懂超時 ==================== -->
+    <h2 class="section-title">🛑 先搞懂：考場超時的兩大原因</h2>
+
+    <div class="error-card" data-search="超時 原因 演算法 複雜度 常數 time limit 判斷">
+      <div class="card-header">
+        <span class="badge">觀念</span>
+        為什麼會超時？先分清「演算法」與「常數」
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼判斷</div>
+          <div class="info-content">
+            考場超時（TLE）幾乎都來自兩類問題：
+            <ol style="margin:8px 0; padding-left:22px;">
+              <li><b>演算法複雜度估錯</b>（主因，佔絕大多數）：例如 n = 10⁵，你寫了 O(n²) 的雙層迴圈，那就是 10¹⁰ 次操作，必定超時。</li>
+              <li><b>常數因子太大</b>（次因）：演算法對了，但 I/O 太慢、迴圈裡重複計算、一直 malloc，導致實際執行時間被放大好幾倍。</li>
+            </ol>
+            <b>優化順序永遠是：先換演算法，再壓常數。</b>演算法錯了，再怎麼微優化都救不回來。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">
+            考場時限通常 1～2 秒，而 C 語言在 1 秒內大約能完成 <b>10⁸ 次簡單操作</b>。所以看到 n 的大小，就要立刻反推「我最多能用多複雜的演算法」。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 複雜度 vs n 大小對照表</div>
+          <div class="info-content">
+            <table>
+              <tr><th>n 的大小</th><th>可接受的複雜度</th><th>常見演算法</th></tr>
+              <tr><td>n ≤ 10</td><td>O(n!)</td><td>全排列、暴力回溯</td></tr>
+              <tr><td>n ≤ 20</td><td>O(2ⁿ)</td><td>位元 DP、子集枚舉</td></tr>
+              <tr><td>n ≤ 500</td><td>O(n³)</td><td>Floyd-Warshall、區間 DP</td></tr>
+              <tr><td>n ≤ 5000</td><td>O(n²)</td><td>雙層迴圈、簡單 DP</td></tr>
+              <tr><td>n ≤ 10⁶</td><td>O(n log n)</td><td>排序、二分搜尋、線段樹</td></tr>
+              <tr><td>n ≤ 10⁷</td><td>O(n)</td><td>前綴和、滑動窗口、線性掃描</td></tr>
+              <tr><td>n ≥ 10⁸</td><td>O(log n) 或 O(1)</td><td>數學公式、快速冪、二分</td></tr>
+            </table>
+            <span style="color:var(--warn);">記住：這張表是「上限」。實際還要看你的常數因子，常數大就要往下一階降。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1. 怎麼看出複雜度 ==================== -->
+    <h2 class="section-title">🔍 怎麼看出程式碼的複雜度</h2>
+
+    <div class="error-card" data-search="複雜度 判斷 迴圈層數 單層 雙層 三層 O(n) O(n2)">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        看迴圈層數：最直接的線索
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看</div>
+          <div class="info-content">
+            複雜度基本上就是<b>迴圈執行次數</b>的成長趨勢。幾層巢狀迴圈，通常就是幾次方。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 範例</div>
+          <div class="info-content">
+            <b>單層迴圈 → O(n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++) { ... }</pre></div>
+            <b>雙層迴圈 → O(n²)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; n; j++) { ... }</pre></div>
+            <b>三層迴圈 → O(n³)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; n; j++)
+        <span class="kw">for</span> (<span class="kw">int</span> k = 0; k &lt; n; k++) { ... }</pre></div>
+            <b>內層只跑一半 → 還是 O(n²)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = i; j &lt; n; j++) { ... }
+<span class="cmt">// 總次數 n+(n-1)+...+1 = n(n+1)/2，常數 1/2 忽略 → O(n²)</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 迴圈變數 i*=2 log n i++ 線性">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        看迴圈變數怎麼變：i++ 還是 i*=2
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看</div>
+          <div class="info-content">
+            迴圈變數每次「加固定值」是線性；每次「乘 2」或「除以 2」是對數。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 範例</div>
+          <div class="info-content">
+            <b>i 每次乘 2 → O(log n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 1; i &lt; n; i *= 2) { ... }
+<span class="cmt">// i = 1,2,4,8,...,n，跑 log₂n 次 → O(log n)</span></pre></div>
+            <b>i 每次加固定值 → O(n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i += 3) { ... }
+<span class="cmt">// 跑 n/3 次，常數忽略 → O(n)</span></pre></div>
+            <b>外層 n、內層 log n → O(n log n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = 1; j &lt; n; j *= 2) { ... }</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 遞迴 砍半 log n 減一 分支 2^n fib">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        看遞迴：砍半、減一、分兩支
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看</div>
+          <div class="info-content">
+            遞迴看兩件事：<b>每次問題縮小多少</b>（深度）和<b>每層分幾支</b>（分支數）。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 範例</div>
+          <div class="info-content">
+            <b>每次砍半 → O(log n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">int</span> f(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= 1) <span class="kw">return</span> 1;
+    <span class="kw">return</span> f(n / 2);   <span class="cmt">// 深度 log₂n</span>
+}</pre></div>
+            <b>每次減 1 → O(n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">int</span> f(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n == 0) <span class="kw">return</span> 0;
+    <span class="kw">return</span> f(n - 1) + 1;   <span class="cmt">// 遞迴 n 層</span>
+}</pre></div>
+            <b>分兩半、各遞迴一次 → O(n log n)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">void</span> f(<span class="kw">int</span> l, <span class="kw">int</span> r) {
+    <span class="kw">if</span> (l &gt;= r) <span class="kw">return</span>;
+    <span class="kw">int</span> mid = (l + r) / 2;
+    f(l, mid);
+    f(mid + 1, r);
+}</pre></div>
+            <b>分兩支、各遞迴兩次 → O(2ⁿ)</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">int</span> fib(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n &lt;= 1) <span class="kw">return</span> n;
+    <span class="kw">return</span> fib(n - 1) + fib(n - 2);   <span class="cmt">// 每層 ×2，深度 n → O(2ⁿ)</span>
+}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 隱藏函式 strlen strcmp qsort memcpy printf O(n)">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        看隱藏迴圈：這些函式其實是 O(n)
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼看</div>
+          <div class="info-content">
+            很多函式看起來一行，其實內部是 O(n)。放在迴圈裡就會變成 O(n²)。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 常見函式成本表</div>
+          <div class="info-content">
+            <table>
+              <tr><th>寫法</th><th>實際複雜度</th><th>原因</th></tr>
+              <tr><td><code>strlen(s)</code></td><td>O(n)</td><td>從頭掃到 <code>\0</code></td></tr>
+              <tr><td><code>strcmp(a, b)</code></td><td>O(n)</td><td>逐字比對</td></tr>
+              <tr><td><code>memcpy(dst, src, n)</code></td><td>O(n)</td><td>複製 n bytes</td></tr>
+              <tr><td><code>qsort(a, n, ...)</code></td><td>O(n log n)</td><td>排序</td></tr>
+              <tr><td><code>printf("%s", s)</code></td><td>O(n)</td><td>逐字輸出</td></tr>
+            </table>
+            <b>陷阱：</b><code>for (int i = 0; i &lt; strlen(s); i++)</code> 看起來 O(n)，但每次條件都呼叫 <code>strlen</code>，實際是 <b>O(n²)</b>。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 加減乘除 分開迴圈相加 巢狀相乘 常數忽略">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        加減乘除規則：分開相加、巢狀相乘、常數忽略
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 規則</div>
+          <div class="info-content">
+            <ul style="margin:8px 0; padding-left:22px;">
+              <li><b>分開的迴圈</b>：相加，取最大項。</li>
+              <li><b>巢狀迴圈</b>：相乘。</li>
+              <li><b>常數與低階項</b>：忽略。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 範例</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 兩個分開的迴圈 → O(n) + O(n) = O(n)</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++) { ... }
+<span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; n; j++) { ... }
+
+<span class="cmt">// 巢狀迴圈 → O(n) × O(m) = O(n×m)</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; m; j++) { ... }
+
+<span class="cmt">// O(3n² + 5n + 100) → 忽略常數與低階 → O(n²)</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 反推 n 大小 期望複雜度 題目範圍">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        對照 n 的大小，反推出題者期望的複雜度
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼用</div>
+          <div class="info-content">
+            考場看到題目的 n 範圍，就要立刻反推「出題者期望的複雜度」。如果你的程式比這張表「大一階」，就是超時高危險群。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 反推表</div>
+          <div class="info-content">
+            <table>
+              <tr><th>題目給的 n</th><th>出題者期望的複雜度</th></tr>
+              <tr><td>n ≤ 10</td><td>O(n!) 或 O(2ⁿ)</td></tr>
+              <tr><td>n ≤ 20</td><td>O(2ⁿ)</td></tr>
+              <tr><td>n ≤ 500</td><td>O(n³)</td></tr>
+              <tr><td>n ≤ 5000</td><td>O(n²)</td></tr>
+              <tr><td>n ≤ 10⁶</td><td>O(n log n) 或 O(n)</td></tr>
+              <tr><td>n ≥ 10⁸</td><td>O(log n) 或 O(1)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="複雜度 常見誤判 錯誤判斷 break worst case">
+      <div class="card-header">
+        <span class="badge">複雜度</span>
+        常見誤判：你以為的 O(n) 其實不是
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label warn">❌ 常見誤判表</div>
+          <div class="info-content">
+            <table>
+              <tr><th>你以為</th><th>實際</th><th>為什麼</th></tr>
+              <tr><td>雙層迴圈內層跑一半 → O(n²/2)</td><td>O(n²)</td><td>常數忽略</td></tr>
+              <tr><td>兩個分開迴圈 → O(n²)</td><td>O(n)</td><td>相加不是相乘</td></tr>
+              <tr><td>遞迴就是 O(n)</td><td>看分支數</td><td>fib 是 O(2ⁿ)</td></tr>
+              <tr><td><code>strlen</code> 一行就是 O(1)</td><td>O(n)</td><td>內部有迴圈</td></tr>
+              <tr><td>迴圈裡有 <code>break</code> 就一定快</td><td>看最壞情況</td><td>複雜度看 worst case</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. I/O 優化 ==================== -->
+    <h2 class="section-title">⚡ I/O 優化（考場最常見的隱形殺手）</h2>
+
+    <div class="error-card" data-search="scanf printf 太慢 大量輸入 快速讀入 getchar_unlocked fread">
+      <div class="card-header">
+        <span class="badge">I/O</span>
+        大量輸入時 scanf / printf 會拖慢速度
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼判斷</div>
+          <div class="info-content">
+            當輸入資料量很大（例如 n = 10⁶ 個整數），用 <code>scanf("%d")</code> 逐個讀取可能會吃掉 0.5～1 秒以上，導致本來演算法沒問題卻 TLE。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼會發生</div>
+          <div class="info-content">
+            <code>scanf</code> 內部要解析格式字串、處理空白、鎖定檔案等，每次呼叫都有固定開銷。讀 10⁶ 次，開銷就累積起來了。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：快速讀入模板（可直接複製）</div>
+          <div class="info-content">
+            <b>版本一：<code>getchar_unlocked</code>（簡單、夠快）</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">#include &lt;stdio.h&gt;</span>
+
+<span class="kw">inline</span> <span class="kw">int</span> read_int(<span class="kw">void</span>) {
+    <span class="kw">int</span> x = 0, f = 1;
+    <span class="kw">char</span> c = getchar_unlocked();
+    <span class="kw">while</span> (c &lt; <span class="cmt">'0'</span> || c &gt; <span class="cmt">'9'</span>) {
+        <span class="kw">if</span> (c == <span class="cmt">'-'</span>) f = -1;
+        c = getchar_unlocked();
+    }
+    <span class="kw">while</span> (c &gt;= <span class="cmt">'0'</span> &amp;&amp; c &lt;= <span class="cmt">'9'</span>) {
+        x = x * 10 + (c - <span class="cmt">'0'</span>);
+        c = getchar_unlocked();
+    }
+    <span class="kw">return</span> x * f;
+}</pre></div>
+            <b>版本二：<code>fread</code> 緩衝（極快，適合超大輸入）</b>
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">#include &lt;stdio.h&gt;</span>
+
+<span class="kw">static</span> <span class="kw">char</span> buf[1 &lt;&lt; 20];
+<span class="kw">static</span> <span class="kw">int</span> pos = 0, len = 0;
+
+<span class="kw">inline</span> <span class="kw">char</span> read_char(<span class="kw">void</span>) {
+    <span class="kw">if</span> (pos == len) {
+        len = fread(buf, 1, <span class="kw">sizeof</span>(buf), stdin);
+        pos = 0;
+        <span class="kw">if</span> (len == 0) <span class="kw">return</span> 0;
+    }
+    <span class="kw">return</span> buf[pos++];
+}
+
+<span class="kw">inline</span> <span class="kw">int</span> read_int(<span class="kw">void</span>) {
+    <span class="kw">int</span> x = 0, f = 1;
+    <span class="kw">char</span> c = read_char();
+    <span class="kw">while</span> (c &lt; <span class="cmt">'0'</span> || c &gt; <span class="cmt">'9'</span>) {
+        <span class="kw">if</span> (c == <span class="cmt">'-'</span>) f = -1;
+        c = read_char();
+    }
+    <span class="kw">while</span> (c &gt;= <span class="cmt">'0'</span> &amp;&amp; c &lt;= <span class="cmt">'9'</span>) {
+        x = x * 10 + (c - <span class="cmt">'0'</span>);
+        c = read_char();
+    }
+    <span class="kw">return</span> x * f;
+}</pre></div>
+            <span style="color:var(--warn);">注意：考場若不允許使用 <code>getchar_unlocked</code>（非標準函式），就用 <code>fread</code> 版本。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="printf 輸出太慢 緩衝區 逐字輸出 大量輸出">
+      <div class="card-header">
+        <span class="badge">I/O</span>
+        大量輸出時逐次 printf 會變慢
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：手動組裝輸出緩衝區</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">char</span> out[1 &lt;&lt; 20];
+<span class="kw">int</span> out_len = 0;
+
+<span class="kw">inline</span> <span class="kw">void</span> write_int(<span class="kw">int</span> x) {
+    <span class="kw">if</span> (x == 0) { out[out_len++] = <span class="cmt">'0'</span>; <span class="kw">return</span>; }
+    <span class="kw">if</span> (x &lt; 0) { out[out_len++] = <span class="cmt">'-'</span>; x = -x; }
+    <span class="kw">char</span> tmp[12]; <span class="kw">int</span> t = 0;
+    <span class="kw">while</span> (x) { tmp[t++] = <span class="cmt">'0'</span> + x % 10; x /= 10; }
+    <span class="kw">while</span> (t) out[out_len++] = tmp[--t];
+}
+
+<span class="cmt">// 全部算完後：</span>
+fwrite(out, 1, out_len, stdout);</pre></div>
+            <b>考場鐵律：</b>正式提交前，把所有除錯用的 <code>printf</code> 全部刪掉或註解掉。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. 記憶體 ==================== -->
+    <h2 class="section-title">🧠 記憶體與資料結構優化</h2>
+
+    <div class="error-card" data-search="大型陣列 stack overflow 區域變數 global static 記憶體">
+      <div class="card-header">
+        <span class="badge">記憶體</span>
+        大型陣列放區域變數會 Stack Overflow
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：移到全域</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 錯誤：放在 main 裡面，可能爆 Stack</span>
+<span class="kw">int</span> main(<span class="kw">void</span>) {
+    <span class="kw">int</span> a[1000000];
+}
+
+<span class="cmt">// 正確：放在全域（BSS 段，空間大）</span>
+<span class="kw">int</span> a[1000000];
+<span class="kw">int</span> main(<span class="kw">void</span>) { ... }</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="二維陣列 cache 行優先 存取順序 效能">
+      <div class="card-header">
+        <span class="badge">快取</span>
+        二維陣列存取順序影響效能
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：行優先存取</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 慢：外層 j、內層 i，跳著存取</span>
+<span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; n; j++)
+    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+        sum += a[i][j];
+
+<span class="cmt">// 快：外層 i、內層 j，連續存取</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; n; i++)
+    <span class="kw">for</span> (<span class="kw">int</span> j = 0; j &lt; n; j++)
+        sum += a[i][j];</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="malloc free 熱迴圈 動態配置 效能 開銷">
+      <div class="card-header">
+        <span class="badge">記憶體</span>
+        熱迴圈裡反覆 malloc / free
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改</div>
+          <div class="info-content">
+            1. 在迴圈外一次性配置足夠大的緩衝區，迴圈內重複使用。<br>
+            2. 若需要很多小節點（如鏈結串列），改用「陣列模擬」或「記憶體池」。<br>
+            3. 考場若資料量固定，直接用全域陣列最簡單也最快。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. 迴圈 ==================== -->
+    <h2 class="section-title">🔁 迴圈與分支優化</h2>
+
+    <div class="error-card" data-search="strlen 迴圈條件 重複計算 提出迴圈">
+      <div class="card-header">
+        <span class="badge">迴圈</span>
+        迴圈條件裡反覆呼叫 strlen
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：把不變量提出迴圈</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 慢：每次迭代都算 strlen → O(n²)</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; strlen(s); i++) ...
+
+<span class="cmt">// 快：先算一次存起來 → O(n)</span>
+<span class="kw">int</span> len = strlen(s);
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; len; i++) ...
+
+<span class="cmt">// 更快：直接用 '\0' 判斷</span>
+<span class="kw">for</span> (<span class="kw">int</span> i = 0; s[i]; i++) ...</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="inline 函式呼叫開銷 小函式 巨集">
+      <div class="card-header">
+        <span class="badge">函式</span>
+        熱迴圈裡頻繁呼叫小函式
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改</div>
+          <div class="info-content">
+            加上 <code>inline</code> 關鍵字。<code>-O2</code> 編譯時編譯器通常會自動把簡單小函式 inline，所以<b>多數情況不用手動做</b>。若考場沒開優化，才需要考慮手動展開或改用巨集（但巨集容易出錯，慎用）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. 字串 ==================== -->
+    <h2 class="section-title">📝 字串處理優化</h2>
+
+    <div class="error-card" data-search="strcpy strcat memcpy 字串拼接 效能 長度已知">
+      <div class="card-header">
+        <span class="badge">字串</span>
+        大量字串拼接用 strcat 很慢
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改：用 memcpy 取代 strcat</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">char</span> buf[100000];
+<span class="kw">int</span> pos = 0;
+
+<span class="cmt">// 每次拼接：</span>
+memcpy(buf + pos, s, len);
+pos += len;
+
+<span class="cmt">// 最後補上結尾：</span>
+buf[pos] = <span class="cmt">'\0'</span>;</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 6. 編譯旗標 ==================== -->
+    <h2 class="section-title">🔧 編譯器優化旗標</h2>
+
+    <div class="error-card" data-search="gcc -O2 -O3 優化旗標 march native 編譯">
+      <div class="card-header">
+        <span class="badge">編譯</span>
+        -O2 與 -O3 的差異
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 怎麼改</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>gcc main.c -o main -O2 -pthread</pre></div>
+            <ul style="margin:8px 0; padding-left:22px;">
+              <li><code>-O2</code>：考場標配，安全且效果明顯。</li>
+              <li><code>-O3</code>：更激進，多數情況更快，但編譯時間長、少數情況可能變慢。考場若允許可試。</li>
+              <li><code>-march=native</code>：針對本機 CPU 優化，<b>考場不建議</b>，因為評測機可能不同，有相容性風險。</li>
+            </ul>
+            <span style="color:var(--warn);">考場若沒規定，預設先用 <code>-O2</code>。別忘了把 <code>-pthread</code>、<code>-lm</code> 等連結參數放在最後。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 7. 防超時檢查表 ==================== -->
+    <h2 class="section-title">⏱️ 防超時實戰檢查表</h2>
+
+    <div class="error-card" data-search="檢查表 提交前 checklist 超時 排查 clock 計時">
+      <div class="card-header">
+        <span class="badge">檢查表</span>
+        提交前逐項確認
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 提交前檢查清單</div>
+          <div class="info-content">
+            <ol style="margin:8px 0; padding-left:22px;">
+              <li><b>複雜度對了嗎？</b>用 n 的最大值反推，確認不超過 10⁸ 次操作。</li>
+              <li><b>有沒有無窮迴圈？</b>檢查 <code>while</code> 條件是否永遠為真、迴圈變數有沒有更新。</li>
+              <li><b>I/O 夠快嗎？</b>大量輸入是否用了快速讀入？大量輸出是否用緩衝區？</li>
+              <li><b>除錯 printf 拿掉了嗎？</b>正式提交前全部刪除或註解。</li>
+              <li><b>陣列大小夠嗎？</b>是否放在全域避免 Stack 爆掉？</li>
+              <li><b>編譯有加 -O2 嗎？</b>確認考場編譯指令。</li>
+              <li><b>有沒有重複計算？</b>迴圈內的不變量是否提到迴圈外？</li>
+            </ol>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 用 clock() 測實際執行時間</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">#include &lt;time.h&gt;</span>
+
+<span class="kw">clock_t</span> start = clock();
+<span class="cmt">// ... 你的程式碼 ...</span>
+<span class="kw">clock_t</span> end = clock();
+
+<span class="kw">double</span> elapsed = (<span class="kw">double</span>)(end - start) / CLOCKS_PER_SEC;
+fprintf(stderr, <span class="cmt">"執行時間: %.3f 秒\n"</span>, elapsed);</pre></div>
+            用 <code>fprintf(stderr, ...)</code> 輸出到標準錯誤，不會混進正式輸出。正式提交前記得拿掉。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 8. 迷思 ==================== -->
+    <h2 class="section-title">🐛 常見優化迷思（別浪費時間）</h2>
+
+    <div class="error-card" data-search="迷思 位元運算 x<<1 乘2 編譯器自動優化 微優化">
+      <div class="card-header">
+        <span class="badge">迷思</span>
+        這些「優化」其實編譯器會自動做
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label warn">❌ 別浪費時間手動做的事</div>
+          <div class="info-content">
+            <ul style="margin:8px 0; padding-left:22px;">
+              <li><code>x &lt;&lt; 1</code> 代替 <code>x * 2</code>：<code>-O2</code> 下編譯器自動轉成移位，手動寫反而降低可讀性。</li>
+              <li>手動迴圈展開（unroll）：編譯器會做，手動展開容易出錯。</li>
+              <li><code>++i</code> 代替 <code>i++</code>：對 <code>int</code> 完全沒差。</li>
+              <li>把 <code>int</code> 改成 <code>register</code>：現代編譯器完全忽略這個關鍵字。</li>
+              <li>手動 <code>inline</code> 每個小函式：<code>-O2</code> 會自動判斷。</li>
+            </ul>
+            <b>結論：</b>把時間花在「換演算法」和「改 I/O」上，微優化交給編譯器。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 9. 小工具 ==================== -->
+    <h2 class="section-title">🧮 複雜度 vs n 大小估算器</h2>
+
+    <div class="tool-card">
+      <h3>輸入 n 與複雜度，估算會不會超時</h3>
+      <div class="tool-row">
+        <div class="tool-field">
+          <label>n 的大小</label>
+          <input type="number" id="toolN" value="100000" min="1">
+        </div>
+        <div class="tool-field">
+          <label>時間複雜度</label>
+          <select id="toolComplexity">
+            <option value="1">O(1)</option>
+            <option value="log">O(log n)</option>
+            <option value="n">O(n)</option>
+            <option value="nlogn">O(n log n)</option>
+            <option value="n2">O(n²)</option>
+            <option value="n3">O(n³)</option>
+            <option value="2n">O(2ⁿ)</option>
+          </select>
+        </div>
+        <button class="tool-btn" onclick="estimate()">估算</button>
+      </div>
+      <div class="tool-result" id="toolResult" style="display:none;"></div>
+    </div>
+
+  </main>
+
+  <!-- 右側說明欄 -->
+  <aside class="refpanel">
+    <div class="refpanel-header">
+      <div class="refpanel-title">📖 考場優化生存說明</div>
+    </div>
+    <div class="refpanel-body">
+      <h3>🚑 超時了，第一步做什麼？</h3>
+      <p>不要盲目改程式。先問自己兩個問題：</p>
+      <ul>
+        <li><b>我的演算法複雜度是多少？</b>用 n 的最大值代入，估算總操作次數。</li>
+        <li><b>超過 10⁸ 次了嗎？</b>超過就幾乎一定 TLE，必須換演算法。</li>
+      </ul>
+      <p>如果複雜度沒問題，才去看 I/O、迴圈、記憶體這些常數因子。</p>
+
+      <h3>🔍 怎麼快速看複雜度</h3>
+      <ul>
+        <li><b>數迴圈層數</b>：一層 O(n)、兩層 O(n²)、三層 O(n³)。</li>
+        <li><b>看變數變化</b>：<code>i++</code> 線性、<code>i*=2</code> 對數。</li>
+        <li><b>看遞迴</b>：砍半 O(log n)、減一 O(n)、分兩支 O(2ⁿ)。</li>
+        <li><b>看隱藏函式</b>：<code>strlen</code>、<code>strcmp</code>、<code>qsort</code> 都有成本。</li>
+        <li><b>分開相加、巢狀相乘、常數忽略</b>。</li>
+      </ul>
+
+      <h3>🔥 考場三大超時元凶</h3>
+      <ul>
+        <li><b>O(n²) 當 O(n) 用</b><br>n = 10⁵ 還寫雙層迴圈，10¹⁰ 次操作必死。先想有沒有前綴和、二分、排序後雙指標等 O(n log n) 解法。</li>
+        <li><b>I/O 太慢</b><br>大量輸入用 <code>scanf</code> 逐個讀，或大量輸出逐次 <code>printf</code>。改用快速讀入或緩衝輸出。</li>
+        <li><b>迴圈裡重複計算</b><br><code>strlen</code> 放迴圈條件、迴圈內反覆 <code>malloc</code>。把不變量提到迴圈外。</li>
+      </ul>
+
+      <h3>🧠 優化優先順序</h3>
+      <ol style="padding-left:22px; color:var(--text-dim);">
+        <li><b>換演算法</b>（影響最大，通常差一個數量級）</li>
+        <li><b>改 I/O</b>（大量資料時效果明顯）</li>
+        <li><b>壓常數</b>（迴圈、記憶體、字串處理）</li>
+        <li><b>編譯器旗標</b>（-O2，考場通常已固定）</li>
+      </ol>
+      <p>不要顛倒順序：先微優化再換演算法，等於白忙。</p>
+
+      <h3>⏱️ 時間估算速記</h3>
+      <p>C 語言 1 秒約可完成 <span class="highlight">10⁸ 次簡單操作</span>。所以：</p>
+      <ul>
+        <li>n = 10⁶，O(n log n) 約 2×10⁷ 次 → 安全</li>
+        <li>n = 10⁶，O(n²) 約 10¹² 次 → 必死</li>
+        <li>n = 10⁵，O(n²) 約 10¹⁰ 次 → 必死</li>
+        <li>n = 5000，O(n²) 約 2.5×10⁷ 次 → 安全</li>
+      </ul>
+
+      <h3>🤖 求救 Prompt 範例</h3>
+      <p>如果優化後還是超時，把這段丟給考場 AI：</p>
+      <p style="background: var(--pre-bg); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border);">
+        「我在考場用 C 寫題目，n 最大到 10⁵，目前用 O(n²) 會超時。題目是：（描述題目）。請告訴我：1. 應該用什麼演算法降到 O(n log n) 或 O(n)？2. 給我 C 語言的實作框架。3. 有沒有 I/O 或常數優化的建議？」
+      </p>
+
+      <h3>📌 考場鐵律</h3>
+      <ul>
+        <li>正式提交前，刪掉所有除錯 <code>printf</code>。</li>
+        <li>大型陣列放全域，別放區域變數。</li>
+        <li>不確定複雜度時，先寫暴力解測小資料，再想優化。</li>
+        <li>編譯指令別忘了 <code>-O2</code>、<code>-pthread</code>、<code>-lm</code>。</li>
+      </ul>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+  // ==================== 搜尋過濾 ====================
+  const searchInput = document.getElementById('searchInput');
+  const cards = document.querySelectorAll('.error-card');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    cards.forEach(card => {
+      const searchText = (card.dataset.search || '') + ' ' + card.textContent.toLowerCase();
+      if (query === '' || searchText.includes(query)) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  });
+
+  // ==================== Toast ====================
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // ==================== 複製單一程式碼 ====================
+  function copyCode(btn) {
+    const pre = btn.parentElement.querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '已複製';
+      btn.classList.add('copied');
+      showToast('程式碼已複製');
+      setTimeout(() => {
+        btn.textContent = '複製';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('程式碼已複製');
+    });
+  }
+
+  // ==================== 複製全部程式碼 ====================
+  function copyAllCode() {
+    const pres = document.querySelectorAll('.code-wrap pre');
+    let out = '/* ===== C 語言優化與防超時：全部程式碼片段 ===== */\n\n';
+    pres.forEach((pre, i) => {
+      out += '/* --- 片段 ' + (i + 1) + ' --- */\n';
+      out += pre.innerText + '\n\n';
+    });
+    out += '/* ===== 請根據以下需求幫我優化： ===== */\n';
+    out += '/* 1. 檢查時間複雜度是否過高（n 最大到多少？） */\n';
+    out += '/* 2. 是否有 I/O 太慢、迴圈重複計算、記憶體配置問題 */\n';
+    out += '/* 3. 請給我優化後的 C 程式碼，並說明改了什麼 */\n';
+
+    navigator.clipboard.writeText(out).then(() => {
+      showToast('已複製全部程式碼，可直接貼給 AI');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = out; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('已複製全部程式碼');
+    });
+  }
+
+  // ==================== 複製優化總表 ====================
+  function copySummaryTable() {
+    const table = `
+【C 語言考場優化總表】
+
+■ 一、複雜度判斷
+1. 數迴圈層數：一層 O(n)、兩層 O(n²)、三層 O(n³)。
+2. 看迴圈變數：i++ 線性 O(n)；i*=2 對數 O(log n)；外 n 內 log → O(n log n)。
+3. 看遞迴：每次砍半 O(log n)；每次減一 O(n)；分兩支各遞迴兩次 O(2ⁿ)；分兩半各一次 O(n log n)。
+4. 看隱藏函式：strlen O(n)、strcmp O(n)、memcpy O(n)、qsort O(n log n)、printf("%s") O(n)。
+5. 規則：分開迴圈相加取最大、巢狀迴圈相乘、常數與低階項忽略。
+6. 反推：n≤10 可用 O(n!)；n≤20 可用 O(2ⁿ)；n≤500 可用 O(n³)；n≤5000 可用 O(n²)；n≤10⁶ 需 O(n log n) 或 O(n)；n≥10⁸ 需 O(log n) 或 O(1)。
+
+■ 二、I/O 優化
+1. 大量輸入：用 getchar_unlocked 或 fread 自訂快速讀入，取代逐次 scanf。
+2. 大量輸出：手動組裝緩衝區，最後 fwrite 一次印出，取代逐次 printf。
+3. 正式提交前刪除所有除錯 printf。
+
+■ 三、記憶體優化
+1. 大型陣列放全域（或 static），不要放區域變數，避免 Stack Overflow。
+2. 二維陣列用行優先存取（外層 i、內層 j），避免 cache miss。
+3. 熱迴圈裡避免反覆 malloc/free；需要多個小節點時用陣列模擬或記憶體池。
+
+■ 四、迴圈優化
+1. 迴圈條件裡的不變量（如 strlen(s)）提到迴圈外。
+2. 熱迴圈裡的小函式加 inline（-O2 通常會自動處理）。
+
+■ 五、字串優化
+1. 大量拼接用 memcpy + 手動位置指標，取代 strcat。
+2. 避免在迴圈條件裡呼叫 strlen。
+
+■ 六、編譯旗標
+1. 考場標配：gcc main.c -o main -O2
+2. 需要執行緒：加 -pthread；需要數學函式：加 -lm（放最後）。
+3. 不建議 -march=native（跨機器風險）。
+
+■ 七、防超時檢查表
+1. 複雜度對了嗎？（n 最大值代入，不超過 10⁸ 次操作）
+2. 有沒有無窮迴圈？
+3. I/O 夠快嗎？
+4. 除錯 printf 拿掉了嗎？
+5. 陣列放全域了嗎？
+6. 編譯有加 -O2 嗎？
+7. 迴圈內有不變量沒提出來嗎？
+
+■ 八、優化優先順序
+1. 換演算法（影響最大）
+2. 改 I/O
+3. 壓常數（迴圈、記憶體、字串）
+4. 編譯器旗標
+
+■ 九、常見迷思（別浪費時間手動做）
+x<<1 代替 x*2、手動迴圈展開、++i 代替 i++、register 關鍵字、手動 inline 每個小函式——這些 -O2 都會自動處理。
+
+■ 十、時間估算
+C 語言 1 秒約 10⁸ 次簡單操作。n=10⁶ 的 O(n log n) 約 2×10⁷ 次（安全）；n=10⁵ 的 O(n²) 約 10¹⁰ 次（必死）。
+
+【請根據以上總表，幫我優化以下程式碼：】
+（貼上你的程式碼）
+
+請告訴我：
+1. 目前時間複雜度是多少？會不會超時？
+2. 應該換成什麼演算法或資料結構？
+3. I/O、記憶體、迴圈、字串有哪些可以優化？
+4. 給我優化後的完整 C 程式碼，並說明改了什麼。
+`;
+    navigator.clipboard.writeText(table).then(() => {
+      showToast('已複製優化總表，可直接貼給 AI');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = table; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('已複製優化總表');
+    });
+  }
+
+  // ==================== 複雜度估算器 ====================
+  function estimate() {
+    const n = parseFloat(document.getElementById('toolN').value);
+    const type = document.getElementById('toolComplexity').value;
+    const resultEl = document.getElementById('toolResult');
+
+    if (!n || n <= 0) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<span class="verdict bad">請輸入有效的 n（正整數）。</span>';
+      return;
+    }
+
+    let ops = 0, label = '';
+    switch (type) {
+      case '1': ops = 1; label = 'O(1)'; break;
+      case 'log': ops = Math.log2(n); label = 'O(log n)'; break;
+      case 'n': ops = n; label = 'O(n)'; break;
+      case 'nlogn': ops = n * Math.log2(n); label = 'O(n log n)'; break;
+      case 'n2': ops = n * n; label = 'O(n²)'; break;
+      case 'n3': ops = n * n * n; label = 'O(n³)'; break;
+      case '2n': ops = Math.pow(2, n); label = 'O(2ⁿ)'; break;
+    }
+
+    let opsStr;
+    if (ops >= 1e15) opsStr = ops.toExponential(2);
+    else if (ops >= 1e12) opsStr = (ops / 1e12).toFixed(2) + ' 兆';
+    else if (ops >= 1e8) opsStr = (ops / 1e8).toFixed(2) + ' 億';
+    else if (ops >= 1e4) opsStr = (ops / 1e4).toFixed(2) + ' 萬';
+    else opsStr = Math.round(ops).toString();
+
+    const seconds = ops / 1e8;
+    let secStr;
+    if (seconds >= 1) secStr = seconds.toFixed(2) + ' 秒';
+    else if (seconds >= 1e-3) secStr = (seconds * 1000).toFixed(2) + ' 毫秒';
+    else secStr = (seconds * 1e6).toFixed(2) + ' 微秒';
+
+    let verdict, verdictClass;
+    if (seconds <= 0.5) { verdict = '✅ 安全'; verdictClass = 'ok'; }
+    else if (seconds <= 2) { verdict = '⚠️ 邊緣，可能超時'; verdictClass = 'warn'; }
+    else { verdict = '❌ 幾乎必定超時'; verdictClass = 'bad'; }
+
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div class="verdict ${verdictClass}">${verdict}</div>
+      <div style="margin-top:8px; color:var(--text-dim);">
+        n = <b style="color:var(--text);">${n.toLocaleString()}</b>，
+        複雜度 <b style="color:var(--accent);">${label}</b><br>
+        預估操作次數：<b style="color:var(--text);">${opsStr}</b> 次<br>
+        預估執行時間（以 10⁸ 次/秒估算）：<b style="color:var(--text);">${secStr}</b>
+      </div>
+      <div style="margin-top:10px; font-size:13px; color:#6b7280;">
+        註：實際時間受常數因子、機器效能、I/O 影響，此估算僅供參考。考場時限通常 1～2 秒。
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>

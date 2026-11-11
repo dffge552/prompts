@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 考場錯誤百科</title>
+<style>
+  :root {
+    --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+    --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+    --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+    --danger: #ef4444; --success: #22c55e; --warn: #eab308;
+    --sidebar-w: 220px; --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+  .sidebar h2 { font-size: 13px; color: #6b7280; margin: 20px 8px 6px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
+    color: var(--text-dim); text-decoration: none; font-size: 15px;
+    transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+  .main { margin-left: var(--sidebar-w); margin-right: var(--refpanel-w); flex: 1; padding: 28px 40px 80px; max-width: 1000px; }
+  .page-title { font-size: 30px; font-weight: 700; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .page-subtitle { color: var(--text-dim); font-size: 16px; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+  .search-bar {
+    display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 24px; position: sticky; top: 20px; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; background: var(--pre-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 16px; font-family: "SF Mono", "Consolas", monospace;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+  .search-bar .search-icon { font-size: 20px; color: var(--text-dim); }
+  .copy-all-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; background: linear-gradient(135deg, #1e2a3a, #1e2229);
+    border: 1px solid var(--accent-dim); border-radius: 10px; margin-bottom: 24px;
+  }
+  .copy-all-bar .copy-all-text { flex: 1; font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  .copy-all-bar .copy-all-text b { color: var(--accent); }
+  .btn-copy-all {
+    padding: 10px 22px; background: var(--accent-dim); border: 1px solid var(--accent);
+    border-radius: 8px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+  .btn-copy-all:hover { background: var(--accent); }
+  .btn-copy-all:active { transform: scale(0.97); }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+  .error-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s;
+  }
+  .error-card:hover { border-color: #4b5563; }
+  .error-card.hidden { display: none; }
+  .card-header {
+    padding: 16px 20px; background: #1e2229; border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700; color: #93c5fd;
+    font-family: "SF Mono", "Consolas", monospace; word-break: break-all;
+  }
+  .card-header .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; margin-right: 10px; vertical-align: middle;
+    font-family: -apple-system, sans-serif; background: rgba(79,156,249,0.2); color: #93c5fd;
+  }
+  .card-body { padding: 20px; }
+  .info-row { margin-bottom: 16px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .info-label.wrong { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .info-label.why { background: rgba(234,179,8,0.2); color: #fde047; }
+  .info-label.fix { background: rgba(34,197,94,0.2); color: #86efac; }
+  .info-content { font-size: 16px; color: var(--text); line-height: 1.6; }
+  .info-content code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; font-size: 14px; color: #d4d8de;
+  }
+  .code-wrap { position: relative; margin: 8px 0; }
+  .code-wrap pre {
+    background: var(--pre-bg); padding: 12px 16px; padding-right: 56px;
+    border-radius: 8px; border: 1px solid var(--border);
+    font-family: "SF Mono", "Consolas", monospace; font-size: 14px;
+    color: #86efac; overflow-x: auto; margin: 0; line-height: 1.5;
+  }
+  .code-wrap.bad pre { color: #fca5a5; border-color: rgba(239,68,68,0.4); }
+  .code-wrap.good pre { color: #86efac; border-color: rgba(34,197,94,0.4); }
+  .code-wrap pre .cmt { color: #6b7280; }
+  .code-wrap pre .kw { color: #fca5a5; }
+  .code-wrap pre .str { color: #fde047; }
+  .btn-copy-code {
+    position: absolute; top: 8px; right: 8px; padding: 4px 10px;
+    background: #2a3038; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, color 0.15s; font-family: -apple-system, sans-serif;
+  }
+  .btn-copy-code:hover { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+  .btn-copy-code.copied { background: var(--success); color: #fff; border-color: var(--success); }
+  .info-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  .info-content th, .info-content td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  .info-content th { background: #1e2229; color: #93c5fd; font-weight: 700; }
+  .info-content td { color: var(--text-dim); }
+  .info-content td code { font-size: 13px; }
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--refpanel-w);
+    background: var(--sidebar-bg); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+  }
+  .refpanel-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .refpanel-body { flex: 1; overflow-y: auto; padding: 18px; font-size: 14.5px; line-height: 1.7; }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body ul { padding-left: 20px; margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body li { margin-bottom: 6px; }
+  .refpanel-body code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; color: #86efac; font-size: 13px;
+  }
+  .refpanel-body .highlight { color: var(--warn); font-weight: bold; }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff; padding: 12px 28px;
+    border-radius: 10px; font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 1200px) {
+    .main { margin-right: 0; }
+    .refpanel { position: static; width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    .refpanel-body { overflow-y: visible; }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .search-bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="guide.html">🧭 考場不慌指南</a>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="optimization.html">⚡ C 優化與防超時</a>
+        <a class="nav-item" href="systems-c.html">🔩 C 系統程式速查</a>
+        <a class="nav-item" href="python-errors.html">🐍 Python 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <main class="main">
+    <h1 class="page-title">🐍 Python 考場錯誤百科</h1>
+    <p class="page-subtitle">
+      考場最常見的 Python 錯誤：語法、縮排、型別、超時、邏輯陷阱。每張卡片都有「錯誤示範」與「正確寫法」。
+    </p>
+
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜尋錯誤（例如：IndentationError、TypeError、超時、is、浮點數）">
+    </div>
+
+    <div class="copy-all-bar">
+      <div class="copy-all-text">
+        <b>📋 複製全部錯誤清單</b>：把所有錯誤整理成一份文字清單，貼給 AI 說「請根據這份清單檢查我的程式碼」。
+      </div>
+      <button class="btn-copy-all" onclick="copyAllErrors()">📋 複製全部錯誤清單</button>
+    </div>
+
+    <!-- ==================== 1. 語法與縮排 ==================== -->
+    <h2 class="section-title">🛑 語法與縮排（考場直接 0 分的元凶）</h2>
+
+    <div class="error-card" data-search="IndentationError 縮排 tab 空格 不一致">
+      <div class="card-header">
+        <span class="badge">縮排</span>
+        IndentationError：縮排不一致 / 混用 Tab 與空格
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x &gt; 0:
+    print(<span class="str">"正數"</span>)
+   print(<span class="str">"再印一次"</span>)   <span class="cmt"># 縮排 3 空格，與上面 4 空格不一致</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            Python 用縮排定義區塊，同一區塊的縮排必須完全一致。混用 Tab 與空格、或空格數不一致，都會拋出 <code>IndentationError</code>。複製貼上程式碼時最容易發生。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x &gt; 0:
+    print(<span class="str">"正數"</span>)
+    print(<span class="str">"再印一次"</span>)   <span class="cmt"># 統一 4 個空格</span></pre></div>
+            考場鐵律：全檔案統一用 <b>4 個空格</b>縮排；把編輯器的 Tab 設為自動轉空格。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="SyntaxError 全形符號 中文括號 逗號 冒號">
+      <div class="card-header">
+        <span class="badge">全形符號</span>
+        SyntaxError：混入中文全形標點
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>print（<span class="str">"hello"</span>）      <span class="cmt"># 全形括號</span>
+<span class="kw">if</span> a &gt; 0，b &lt; 10:      <span class="cmt"># 全形逗號</span>
+    <span class="kw">pass</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            Python 只接受半角（ASCII）符號。全形括號 <code>（）</code>、逗號 <code>，</code>、冒號 <code>：</code> 都會被視為非法字元，拋出 <code>SyntaxError: invalid character</code>。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>print(<span class="str">"hello"</span>)
+<span class="kw">if</span> a &gt; 0 <span class="kw">and</span> b &lt; 10:
+    <span class="kw">pass</span></pre></div>
+            打程式碼前先切回英文輸入法；複製 AI 的程式碼後，務必檢查標點是否為半角。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="SyntaxError 少冒號 少括號 = 與 == 混淆">
+      <div class="card-header">
+        <span class="badge">語法</span>
+        SyntaxError：少冒號、少括號、= 與 == 混淆
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x &gt; 0          <span class="cmt"># 少冒號</span>
+    print(<span class="str">"a"</span>       <span class="cmt"># 少右括號</span>
+
+<span class="kw">if</span> a = 1:         <span class="cmt"># 把比較寫成賦值</span>
+    <span class="kw">pass</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            <code>if</code> / <code>for</code> / <code>while</code> / <code>def</code> / <code>class</code> 結尾都必須有冒號 <code>:</code>；括號必須成對；比較相等用 <code>==</code>，<code>=</code> 是賦值。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x &gt; 0:
+    print(<span class="str">"a"</span>)
+
+<span class="kw">if</span> a == 1:
+    <span class="kw">pass</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="input 字串 轉 int TypeError">
+      <div class="card-header">
+        <span class="badge">型別</span>
+        TypeError：input() 拿到的是字串，不是數字
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>a = input()
+b = a + 1          <span class="cmt"># TypeError: can only concatenate str to str</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            <code>input()</code> 永遠回傳字串（<code>str</code>），即使你輸入的是數字。字串不能直接和整數做算術運算。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>a = int(input())
+b = a + 1
+
+<span class="cmt"># 一行讀多個整數：</span>
+x, y = map(int, input().split())
+
+<span class="cmt"># 讀一整行整數成 list：</span>
+nums = list(map(int, input().split()))</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="考場 input 提示字串 print 格式 超時">
+      <div class="card-header">
+        <span class="badge">考場</span>
+        考場禁止多餘的 input() 提示與 print()
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>n = int(input(<span class="str">"請輸入 n："</span>))   <span class="cmt"># 提示字串會混進輸出</span>
+print(<span class="str">"答案是："</span>, ans)            <span class="cmt"># 多印了題目沒要求的文字</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            考場系統透過 stdin 餵資料，<code>input()</code> 的提示字串會出現在 stdout，造成**輸出格式錯誤**；若程式等待互動，還可能**卡住直到超時**。輸出必須與題目要求**一字不差**。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>n = int(input())
+print(ans)                     <span class="cmt"># 只印題目要的答案</span></pre></div>
+            正式提交前，把所有除錯用的 <code>print</code> 與 <code>input</code> 提示字串全部刪掉。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. 超時 ==================== -->
+    <h2 class="section-title">⏱️ 考場高頻超時原因（Python 比 C 更容易 TLE）</h2>
+
+    <div class="error-card" data-search="for 迴圈 超時 列表推導式 向量化 numpy">
+      <div class="card-header">
+        <span class="badge">超時</span>
+        用 for 迴圈逐個處理大數據
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>result = []
+<span class="kw">for</span> x <span class="kw">in</span> big_list:
+    result.append(x ** 2)      <span class="cmt"># 100 萬次以上就可能超時</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            Python 的 for 迴圈有直譯器開銷，每次迭代都比 C 慢很多。資料量大時，同樣的邏輯用內建函式或向量化可以快數十倍。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt"># 列表推導式（比 for + append 快約 30%）</span>
+result = [x ** 2 <span class="kw">for</span> x <span class="kw">in</span> big_list]
+
+<span class="cmt"># 若考場允許 numpy：向量化，快數十倍以上</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+result = np.array(big_list) ** 2
+
+<span class="cmt"># 只是求和：用內建 sum，不要自己寫迴圈</span>
+total = sum(big_list)</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="迴圈內重複計算 sum max any all 內建函式">
+      <div class="card-header">
+        <span class="badge">超時</span>
+        在迴圈裡反覆做「可以一次做完」的事
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>total = 0
+<span class="kw">for</span> s <span class="kw">in</span> strings:
+    total += len(s)            <span class="cmt"># 可以一次 sum(map(len, strings))</span>
+
+found = <span class="kw">False</span>
+<span class="kw">for</span> x <span class="kw">in</span> nums:
+    <span class="kw">if</span> x &gt; 100:
+        found = <span class="kw">True</span>         <span class="cmt"># 可以 any(x &gt; 100 for x in nums)</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>total = sum(map(len, strings))
+found = any(x &gt; 100 <span class="kw">for</span> x <span class="kw">in</span> nums)
+
+<span class="cmt"># 其他常用內建：max、min、all、sorted</span></pre></div>
+            把迴圈內「不依賴每次迭代變數」的計算，移到迴圈外或改用內建函式。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="try except 日常查找 get in KeyError 超時">
+      <div class="card-header">
+        <span class="badge">超時</span>
+        用 try/except 處理「預期內」的查找
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">try</span>:
+    <span class="kw">return</span> d[key]
+<span class="kw">except</span> KeyError:
+    <span class="kw">return</span> 0             <span class="cmt"># 頻繁觸發異常 → 拖慢速度</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            異常的拋出與捕獲在 Python 中代價很高。把「key 不存在」這種預期內的日常分支用異常處理，會明顯拖慢速度。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">return</span> d.get(key, 0)      <span class="cmt"># 不存在就回 0，一行搞定</span>
+
+<span class="cmt"># 或先判斷：</span>
+<span class="kw">if</span> key <span class="kw">in</span> d:
+    <span class="kw">return</span> d[key]
+<span class="kw">return</span> 0</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. 邏輯陷阱 ==================== -->
+    <h2 class="section-title">🧠 資料型態與邏輯陷阱</h2>
+
+    <div class="error-card" data-search="is 比較值 記憶體位址 == None">
+      <div class="card-header">
+        <span class="badge">邏輯</span>
+        用 is 比較「值」
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x <span class="kw">is</span> 5:              <span class="cmt"># 小整數可能剛好對，但不可靠</span>
+    <span class="kw">pass</span>
+
+<span class="kw">if</span> s <span class="kw">is</span> <span class="str">"hello"</span>:        <span class="cmt"># 幾乎一定錯</span>
+    <span class="kw">pass</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            <code>is</code> 比較的是**記憶體位址**（是否同一個物件），不是值。小整數、短字串可能因快取而剛好相同，但這是實作細節，不可依賴。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> x == 5:
+    <span class="kw">pass</span>
+
+<span class="kw">if</span> s == <span class="str">"hello"</span>:
+    <span class="kw">pass</span>
+
+<span class="cmt"># is 只用來判斷 None：</span>
+<span class="kw">if</span> x <span class="kw">is</span> <span class="kw">None</span>:
+    <span class="kw">pass</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="單元素元組 逗號 tuple">
+      <div class="card-header">
+        <span class="badge">型別</span>
+        單元素元組漏了逗號
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>t = (5)        <span class="cmt"># 這是 int，不是 tuple</span>
+print(type(t)) <span class="cmt"># &lt;class 'int'&gt;</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            括號不是元組的關鍵，**逗號**才是。只有一個元素時，必須寫成 <code>(5,)</code>。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>t = (5,)
+print(type(t)) <span class="cmt"># &lt;class 'tuple'&gt;</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="可變預設參數 list dict 共用">
+      <div class="card-header">
+        <span class="badge">陷阱</span>
+        可變預設參數（進階陷阱）
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">def</span> f(lst=[]):
+    lst.append(1)
+    <span class="kw">return</span> lst
+
+print(f())   <span class="cmt"># [1]</span>
+print(f())   <span class="cmt"># [1, 1] ← 共用同一個 list！</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            預設參數只在函式**定義時**求值一次。可變物件（list、dict）會在所有呼叫間共用，導致結果不斷累加。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">def</span> f(lst=<span class="kw">None</span>):
+    <span class="kw">if</span> lst <span class="kw">is</span> <span class="kw">None</span>:
+        lst = []
+    lst.append(1)
+    <span class="kw">return</span> lst</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="淺拷貝 深拷貝 copy deepcopy list">
+      <div class="card-header">
+        <span class="badge">陷阱</span>
+        淺拷貝 vs 深拷貝
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>a = [1, 2, 3]
+b = a
+b.append(4)
+print(a)        <span class="cmt"># [1, 2, 3, 4] ← a 也跟著變</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            <code>b = a</code> 只是讓 <code>b</code> 指向同一個 list 物件，不是複製。修改 <code>b</code> 等於修改 <code>a</code>。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt"># 一維：用 copy()</span>
+b = a.copy()
+<span class="cmt"># 或 b = a[:]</span>
+
+<span class="cmt"># 嵌套結構：用 deepcopy</span>
+<span class="kw">import</span> copy
+b = copy.deepcopy(a)</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. 浮點數 ==================== -->
+    <h2 class="section-title">🔢 浮點數與精確度</h2>
+
+    <div class="error-card" data-search="浮點數 == 比較 0.1 0.2 精度">
+      <div class="card-header">
+        <span class="badge">浮點</span>
+        用 == 比較浮點數
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> 0.1 + 0.2 == 0.3:
+    print(<span class="str">"相等"</span>)    <span class="cmt"># 不會印！0.1+0.2 = 0.30000000000000004</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼錯</div>
+          <div class="info-content">
+            二進位浮點無法精確表示 0.1、0.2，<code>0.1 + 0.2</code> 的結果與 <code>0.3</code> 有微小誤差，<code>==</code> 判等失敗。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> abs(0.1 + 0.2 - 0.3) &lt; 1e-9:
+    print(<span class="str">"近似相等"</span>)
+
+<span class="cmt"># 金額相關：用整數（分）或 decimal</span>
+<span class="kw">from</span> decimal <span class="kw">import</span> Decimal
+price = Decimal(<span class="str">"19.99"</span>)</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. 其他高頻錯誤 ==================== -->
+    <h2 class="section-title">📌 其他考場高頻錯誤</h2>
+
+    <div class="error-card" data-search="IndexError 索引越界 邊界 range">
+      <div class="card-header">
+        <span class="badge">索引</span>
+        IndexError：索引越界
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>a = [1, 2, 3]
+print(a[3])          <span class="cmt"># IndexError：合法索引是 0~2</span>
+
+<span class="kw">for</span> i <span class="kw">in</span> range(len(a) + 1):
+    print(a[i])      <span class="cmt"># 最後一次 i=3 越界</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>a = [1, 2, 3]
+print(a[2])          <span class="cmt"># 最大索引 = len(a) - 1</span>
+
+<span class="kw">for</span> i <span class="kw">in</span> range(len(a)):
+    print(a[i])
+
+<span class="cmt"># 或直接遍歷元素，避免索引：</span>
+<span class="kw">for</span> x <span class="kw">in</span> a:
+    print(x)</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="KeyError 字典 鍵不存在 get">
+      <div class="card-header">
+        <span class="badge">字典</span>
+        KeyError：字典鍵不存在
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>d = {<span class="str">"a"</span>: 1}
+print(d[<span class="str">"b"</span>])        <span class="cmt"># KeyError: 'b'</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>d = {<span class="str">"a"</span>: 1}
+print(d.get(<span class="str">"b"</span>, 0))   <span class="cmt"># 不存在回 0</span>
+
+<span class="kw">if</span> <span class="str">"b"</span> <span class="kw">in</span> d:
+    print(d[<span class="str">"b"</span>])</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="NameError 未定義 變數 拼錯">
+      <div class="card-header">
+        <span class="badge">變數</span>
+        NameError：變數未定義或拼錯
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>counter = 0
+print(Counter)       <span class="cmt"># NameError：大小寫不一致</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>counter = 0
+print(counter)       <span class="cmt"># 大小寫一致</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="除以零 ZeroDivisionError 邊界">
+      <div class="card-header">
+        <span class="badge">數學</span>
+        ZeroDivisionError：除以零
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>avg = total / count    <span class="cmt"># count 為 0 時崩潰</span></pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">if</span> count == 0:
+    avg = 0
+<span class="kw">else</span>:
+    avg = total / count</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="range 邊界 差一錯誤 off by one">
+      <div class="card-header">
+        <span class="badge">邊界</span>
+        range 的邊界搞錯（差一錯誤）
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label wrong">❌ 錯誤示範</div>
+          <div class="info-content">
+            <div class="code-wrap bad"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">for</span> i <span class="kw">in</span> range(1, n):    <span class="cmt"># 只跑到 n-1，漏了 n</span>
+    print(i)
+
+<span class="kw">for</span> i <span class="kw">in</span> range(n + 1):    <span class="cmt"># 多跑了 n，可能越界</span>
+    print(a[i])</pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確寫法</div>
+          <div class="info-content">
+            <div class="code-wrap good"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt"># range(start, stop) 不包含 stop</span>
+<span class="kw">for</span> i <span class="kw">in</span> range(1, n + 1):   <span class="cmt"># 1 到 n（含）</span>
+    print(i)
+
+<span class="kw">for</span> i <span class="kw">in</span> range(len(a)):     <span class="cmt"># 0 到 len(a)-1</span>
+    print(a[i])</pre></div>
+            記住：<code>range(a, b)</code> 是 <code>a</code> 到 <code>b-1</code>。
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 右側說明欄 -->
+  <aside class="refpanel">
+    <div class="refpanel-header">
+      <div class="refpanel-title">📖 Python 考場生存說明</div>
+    </div>
+    <div class="refpanel-body">
+      <h3>🚑 遇到錯誤的第一步</h3>
+      <p>看錯誤訊息的**最後一行**，那是錯誤類型與原因；往上看**行號**，那是最後出錯的位置。</p>
+      <p>常見錯誤類型：<code>SyntaxError</code>（語法）、<code>IndentationError</code>（縮排）、<code>TypeError</code>（型別）、<code>NameError</code>（變數未定義）、<code>IndexError</code>（索引越界）、<code>KeyError</code>（字典鍵不存在）。</p>
+
+      <h3>🔥 考場三大致命錯誤</h3>
+      <ul>
+        <li><b>縮排不一致</b><br>混用 Tab 與空格，直接 <code>IndentationError</code>。全檔案統一 4 空格。</li>
+        <li><b>全形符號</b><br>中文括號、逗號、冒號，直接 <code>SyntaxError</code>。打程式碼前切回英文輸入法。</li>
+        <li><b>input() 拿到字串</b><br>忘了 <code>int()</code> 轉型，後面算術全部 <code>TypeError</code>。</li>
+      </ul>
+
+      <h3>⏱️ Python 為什麼容易超時</h3>
+      <p>Python 是直譯語言，同樣的迴圈比 C 慢幾十倍。考場防超時優先順序：</p>
+      <ol style="padding-left:22px; color:var(--text-dim);">
+        <li><b>換演算法</b>（跟 C 一樣，先降複雜度）</li>
+        <li><b>用內建函式</b>（<code>sum</code>、<code>max</code>、<code>any</code>、<code>sorted</code>）</li>
+        <li><b>用列表推導式</b>取代 for + append</li>
+        <li><b>用 dict / set</b> 取代線性查找</li>
+        <li><b>考場允許就用 numpy</b> 向量化</li>
+      </ol>
+
+      <h3>🧠 邏輯陷阱速記</h3>
+      <ul>
+        <li>比較值用 <code>==</code>，<code>is</code> 只用在 <code>None</code>。</li>
+        <li>單元素元組要加逗號：<code>(5,)</code>。</li>
+        <li>可變預設參數用 <code>None</code> 代替 <code>[]</code>。</li>
+        <li>拷貝 list 用 <code>.copy()</code> 或 <code>copy.deepcopy()</code>。</li>
+        <li>浮點數比較用 <code>abs(a - b) &lt; 1e-9</code>。</li>
+        <li><code>range(a, b)</code> 不含 <code>b</code>。</li>
+      </ul>
+
+      <h3>🤖 求救 Prompt 範例</h3>
+      <p>把這段丟給考場 AI：</p>
+      <p style="background: var(--pre-bg); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border);">
+        「我在考場寫 Python，遇到以下錯誤：（貼上錯誤訊息）。我的程式碼是：（貼上程式碼）。請告訴我：1. 這是哪一類錯誤？2. 為什麼會發生？3. 給我修正後的完整 Python 程式碼。4. 有沒有其他考場常見陷阱我可能也中了？」
+      </p>
+
+      <h3>📌 考場鐵律</h3>
+      <ul>
+        <li>提交前刪掉所有除錯 <code>print</code>。</li>
+        <li><code>input()</code> 不加提示字串。</li>
+        <li>輸出格式與題目要求一字不差。</li>
+        <li>縮排統一 4 空格，標點確認半角。</li>
+        <li>大量資料先用內建函式或推導式，別硬寫 for 迴圈。</li>
+      </ul>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+  // ==================== 搜尋過濾 ====================
+  const searchInput = document.getElementById('searchInput');
+  const cards = document.querySelectorAll('.error-card');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    cards.forEach(card => {
+      const searchText = (card.dataset.search || '') + ' ' + card.textContent.toLowerCase();
+      if (query === '' || searchText.includes(query)) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  });
+
+  // ==================== Toast ====================
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // ==================== 複製單一程式碼 ====================
+  function copyCode(btn) {
+    const pre = btn.parentElement.querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '已複製';
+      btn.classList.add('copied');
+      showToast('程式碼已複製');
+      setTimeout(() => {
+        btn.textContent = '複製';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('程式碼已複製');
+    });
+  }
+
+  // ==================== 複製全部錯誤清單 ====================
+  function copyAllErrors() {
+    const text = `【Python 考場常見錯誤清單】
+
+■ 一、語法與縮排
+1. IndentationError：縮排不一致 / 混用 Tab 與空格。修復：全檔案統一 4 空格。
+2. SyntaxError：混入中文全形標點（括號、逗號、冒號）。修復：切回英文輸入法，確認半角。
+3. SyntaxError：少冒號、少括號、= 與 == 混淆。修復：if/for/while/def/class 結尾加冒號，比較用 ==。
+4. TypeError：input() 拿到的是字串。修復：int(input())、map(int, input().split())。
+5. 考場禁止多餘 input() 提示與 print()。修復：input() 不加提示字串，輸出格式與題目一字不差。
+
+■ 二、考場高頻超時
+6. 用 for 迴圈逐個處理大數據。修復：列表推導式、numpy 向量化、內建 sum/max/any。
+7. 迴圈內重複做可一次完成的事。修復：用 sum(map(len, strings))、any(...)。
+8. 用 try/except 處理日常查找。修復：d.get(key, 0) 或 if key in d。
+
+■ 三、邏輯陷阱
+9. 用 is 比較值。修復：比較用 ==，is 只用在 None。
+10. 單元素元組漏逗號。修復：(5,)。
+11. 可變預設參數共用。修復：def f(lst=None): if lst is None: lst = []。
+12. 淺拷貝導致意外修改。修復：a.copy() 或 copy.deepcopy()。
+
+■ 四、浮點數
+13. 用 == 比較浮點數。修復：abs(a - b) < 1e-9；金額用整數或 decimal。
+
+■ 五、其他高頻錯誤
+14. IndexError：索引越界。修復：最大索引 len(a)-1，或直接遍歷元素。
+15. KeyError：字典鍵不存在。修復：d.get(key, 0) 或 if key in d。
+16. NameError：變數未定義或拼錯。修復：檢查大小寫與宣告。
+17. ZeroDivisionError：除以零。修復：先判斷分母是否為 0。
+18. range 差一錯誤。修復：range(a, b) 不含 b。
+
+【請根據以上清單，檢查我的程式碼中了哪幾條，並用純 Python 給我修正後的完整程式碼。】
+（貼上你的程式碼）
+`;
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已複製全部錯誤清單');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('已複製全部錯誤清單');
+    });
+  }
+</script>
+</body>
+</html>

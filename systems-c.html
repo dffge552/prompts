@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C 系統程式考場速查</title>
+<style>
+  :root {
+    --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+    --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+    --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+    --danger: #ef4444; --success: #22c55e; --warn: #eab308;
+    --sidebar-w: 220px; --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+  .sidebar h2 { font-size: 13px; color: #6b7280; margin: 20px 8px 6px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
+    color: var(--text-dim); text-decoration: none; font-size: 15px;
+    transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+  .main { margin-left: var(--sidebar-w); margin-right: var(--refpanel-w); flex: 1; padding: 28px 40px 80px; max-width: 1000px; }
+  .page-title { font-size: 30px; font-weight: 700; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .page-subtitle { color: var(--text-dim); font-size: 16px; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+  .search-bar {
+    display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 24px; position: sticky; top: 20px; z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; background: var(--pre-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 16px; font-family: "SF Mono", "Consolas", monospace;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--accent); }
+  .search-bar .search-icon { font-size: 20px; color: var(--text-dim); }
+  .copy-all-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 18px; background: linear-gradient(135deg, #1e2a3a, #1e2229);
+    border: 1px solid var(--accent-dim); border-radius: 10px; margin-bottom: 24px;
+  }
+  .copy-all-bar .copy-all-text { flex: 1; font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  .copy-all-bar .copy-all-text b { color: var(--accent); }
+  .btn-copy-all {
+    padding: 10px 22px; background: var(--accent-dim); border: 1px solid var(--accent);
+    border-radius: 8px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: background 0.15s, transform 0.1s; white-space: nowrap;
+  }
+  .btn-copy-all:hover { background: var(--accent); }
+  .btn-copy-all:active { transform: scale(0.97); }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+  .error-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.2s;
+  }
+  .error-card:hover { border-color: #4b5563; }
+  .error-card.hidden { display: none; }
+  .card-header {
+    padding: 16px 20px; background: #1e2229; border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700; color: #93c5fd;
+    font-family: "SF Mono", "Consolas", monospace; word-break: break-all;
+  }
+  .card-header .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; font-weight: 700; margin-right: 10px; vertical-align: middle;
+    font-family: -apple-system, sans-serif; background: rgba(79,156,249,0.2); color: #93c5fd;
+  }
+  .card-body { padding: 20px; }
+  .info-row { margin-bottom: 16px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .info-label.look { background: rgba(79,156,249,0.2); color: #93c5fd; }
+  .info-label.why { background: rgba(234,179,8,0.2); color: #fde047; }
+  .info-label.fix { background: rgba(34,197,94,0.2); color: #86efac; }
+  .info-label.warn { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .info-content { font-size: 16px; color: var(--text); line-height: 1.6; }
+  .info-content code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; font-size: 14px; color: #d4d8de;
+  }
+  .code-wrap { position: relative; margin: 8px 0; }
+  .code-wrap pre {
+    background: var(--pre-bg); padding: 12px 16px; padding-right: 56px;
+    border-radius: 8px; border: 1px solid var(--border);
+    font-family: "SF Mono", "Consolas", monospace; font-size: 14px;
+    color: #86efac; overflow-x: auto; margin: 0; line-height: 1.5;
+  }
+  .code-wrap pre .cmt { color: #6b7280; }
+  .code-wrap pre .kw { color: #fca5a5; }
+  .code-wrap pre .str { color: #fde047; }
+  .btn-copy-code {
+    position: absolute; top: 8px; right: 8px; padding: 4px 10px;
+    background: #2a3038; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, color 0.15s; font-family: -apple-system, sans-serif;
+  }
+  .btn-copy-code:hover { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+  .btn-copy-code.copied { background: var(--success); color: #fff; border-color: var(--success); }
+  .info-content table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  .info-content th, .info-content td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  .info-content th { background: #1e2229; color: #93c5fd; font-weight: 700; }
+  .info-content td { color: var(--text-dim); }
+  .info-content td code { font-size: 13px; }
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--refpanel-w);
+    background: var(--sidebar-bg); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+  }
+  .refpanel-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .refpanel-body { flex: 1; overflow-y: auto; padding: 18px; font-size: 14.5px; line-height: 1.7; }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body ul { padding-left: 20px; margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body li { margin-bottom: 6px; }
+  .refpanel-body code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; color: #86efac; font-size: 13px;
+  }
+  .refpanel-body .highlight { color: var(--warn); font-weight: bold; }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff; padding: 12px 28px;
+    border-radius: 10px; font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 1200px) {
+    .main { margin-right: 0; }
+    .refpanel { position: static; width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    .refpanel-body { overflow-y: visible; }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .search-bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <h1>提示詞查閱</h1>
+        <a class="nav-item" href="guide.html">🧭 考場不慌指南</a>
+        <a class="nav-item" href="index.html">考前測試</a>
+        <a class="nav-item" href="llama3.html">Llama 3</a>
+        <a class="nav-item" href="gemma4.html">Gemma 4</a>
+        <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+        <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+        <a class="nav-item" href="muse.html">Muse</a>
+        <a class="nav-item" href="midhigh.html">中高端模型</a>
+        <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+        <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+        <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+        <a class="nav-item" href="optimization.html">⚡ C 優化與防超時</a>
+        <a class="nav-item" href="systems-c.html">🔩 C 系統程式速查</a>
+        <a class="nav-item" href="python-errors.html">🐍 Python 錯誤百科</a>
+        <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+        <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+        <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="commands.html">🔧 工作流</a>
+        <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+    </aside>
+
+  <main class="main">
+    <h1 class="page-title">🔩 C 系統程式考場速查</h1>
+    <p class="page-subtitle">
+      位元運算、pthread 臨界區、DMA 搬運引擎、ROS2 CLI。對應成大資工上機考演練試題。
+    </p>
+
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜尋（例如：設位、spinlock、DMA、ros2 topic echo）">
+    </div>
+
+    <div class="copy-all-bar">
+      <div class="copy-all-text">
+        <b>📋 複製全部速查表</b>：把四大主題整理成一份文字，貼給 AI 說「請根據這份速查表幫我寫 C 程式」。
+      </div>
+      <button class="btn-copy-all" onclick="copyAll()">📋 複製全部速查表</button>
+    </div>
+
+    <!-- ==================== 1. 位元運算 ==================== -->
+    <h2 class="section-title">🔢 位元運算（Bitwise Operations）</h2>
+
+    <div class="error-card" data-search="位元運算 AND OR XOR NOT 移位 基本運算子">
+      <div class="card-header">
+        <span class="badge">基本</span>
+        六個基本運算子（以 x = 0xA5 = 1010 0101 為例）
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼用</div>
+          <div class="info-content">
+            <table>
+              <tr><th>運算</th><th>結果</th><th>用途</th></tr>
+              <tr><td><code>x &amp; 0x0F</code></td><td>0x05</td><td>AND：只留低 4 位（遮罩）</td></tr>
+              <tr><td><code>x | 0x0F</code></td><td>0xAF</td><td>OR：低 4 位全設 1</td></tr>
+              <tr><td><code>x ^ 0xFF</code></td><td>0x5A</td><td>XOR：每一位反轉</td></tr>
+              <tr><td><code>~x</code></td><td>0x5A（低 8 位）</td><td>NOT：位元反相</td></tr>
+              <tr><td><code>x &lt;&lt; 4</code></td><td>0xA50</td><td>左移 4 位（乘 2⁴）</td></tr>
+              <tr><td><code>x &gt;&gt; 4</code></td><td>0x0A</td><td>右移 4 位（除 2⁴）</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 可複製範例</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+
+<span class="kw">int</span> main(<span class="kw">void</span>) {
+    <span class="kw">unsigned</span> x = 0xA5;   <span class="cmt">// 1010 0101</span>
+    printf(<span class="str">"x &amp; 0x0F  = 0x%02X\n"</span>, x &amp; 0x0F);   <span class="cmt">// 0x05</span>
+    printf(<span class="str">"x | 0x0F  = 0x%02X\n"</span>, x | 0x0F);   <span class="cmt">// 0xAF</span>
+    printf(<span class="str">"x ^ 0xFF  = 0x%02X\n"</span>, x ^ 0xFF);   <span class="cmt">// 0x5A</span>
+    printf(<span class="str">"~x        = 0x%02X\n"</span>, (~x) &amp; 0xFF);<span class="cmt">// 0x5A</span>
+    printf(<span class="str">"x &lt;&lt; 4    = 0x%03X\n"</span>, x &lt;&lt; 4);      <span class="cmt">// 0xA50</span>
+    printf(<span class="str">"x &gt;&gt; 4    = 0x%02X\n"</span>, x &gt;&gt; 4);      <span class="cmt">// 0x0A</span>
+    <span class="kw">return</span> 0;
+}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="設位 清位 取位 取一段 合併 set clear get bit mask">
+      <div class="card-header">
+        <span class="badge">常用</span>
+        設位、清位、取位、取一段、合併
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 五個必背公式</div>
+          <div class="info-content">
+            <table>
+              <tr><th>目的</th><th>寫法</th><th>說明</th></tr>
+              <tr><td>設定第 n 位</td><td><code>x |= (1u &lt;&lt; n)</code></td><td>把第 n 位設為 1</td></tr>
+              <tr><td>清除第 n 位</td><td><code>x &amp;= ~(1u &lt;&lt; n)</code></td><td>把第 n 位設為 0</td></tr>
+              <tr><td>取出第 n 位</td><td><code>(x &gt;&gt; n) &amp; 1</code></td><td>回傳 0 或 1</td></tr>
+              <tr><td>取出一段（hi 到 lo）</td><td><code>(x &gt;&gt; lo) &amp; ((1u &lt;&lt; (hi-lo+1)) - 1)</code></td><td>先右移再用遮罩</td></tr>
+              <tr><td>合併兩個窄值</td><td><code>(a &lt;&lt; 8) | b</code></td><td>a 放高位、b 放低位</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 可複製範例</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+
+<span class="cmt">// 設定第 n 位</span>
+<span class="kw">#define</span> SET_BIT(x, n)    ((x) |= (1u &lt;&lt; (n)))
+<span class="cmt">// 清除第 n 位</span>
+<span class="kw">#define</span> CLEAR_BIT(x, n)  ((x) &amp;= ~(1u &lt;&lt; (n)))
+<span class="cmt">// 取出第 n 位</span>
+<span class="kw">#define</span> GET_BIT(x, n)    (((x) &gt;&gt; (n)) &amp; 1u)
+<span class="cmt">// 取出 [lo, hi] 這一段（含頭含尾）</span>
+<span class="kw">#define</span> GET_FIELD(x, hi, lo) \
+    (((x) &gt;&gt; (lo)) &amp; ((1u &lt;&lt; ((hi) - (lo) + 1)) - 1u))
+<span class="cmt">// 合併：a 放高位、b 放低位</span>
+<span class="kw">#define</span> MERGE(a, b)      (((a) &lt;&lt; 8) | (b))
+
+<span class="kw">int</span> main(<span class="kw">void</span>) {
+    <span class="kw">unsigned</span> x = 0;
+    SET_BIT(x, 3);              <span class="cmt">// x = 0b00001000</span>
+    printf(<span class="str">"設第3位: 0x%X\n"</span>, x);
+
+    CLEAR_BIT(x, 3);            <span class="cmt">// x = 0</span>
+    printf(<span class="str">"清第3位: 0x%X\n"</span>, x);
+
+    x = 0xA5;                   <span class="cmt">// 1010 0101</span>
+    printf(<span class="str">"第2位: %u\n"</span>, GET_BIT(x, 2));       <span class="cmt">// 1</span>
+    printf(<span class="str">"第1位: %u\n"</span>, GET_BIT(x, 1));       <span class="cmt">// 0</span>
+
+    printf(<span class="str">"取[6:4]: 0x%X\n"</span>, GET_FIELD(x, 6, 4)); <span class="cmt">// 0x2 (010)</span>
+
+    <span class="kw">unsigned</span> a = 0x12, b = 0x34;
+    printf(<span class="str">"合併: 0x%X\n"</span>, MERGE(a, b));      <span class="cmt">// 0x1234</span>
+    <span class="kw">return</span> 0;
+}</pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label warn">⚠️ 注意</div>
+          <div class="info-content">
+            <code>1u &lt;&lt; n</code> 的 <code>u</code> 很重要：確保是無號移位，避免有號整數左移的未定義行為。清除位時用 <code>~</code> 反相遮罩，不要寫成 <code>x &amp; (1u &lt;&lt; n)</code>（那是保留該位、清掉其他位）。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="位元運算 優先順序 precedence 括號">
+      <div class="card-header">
+        <span class="badge">陷阱</span>
+        優先順序：位元運算比比較運算低
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label warn">❌ 常見錯誤</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 錯誤：& 的優先順序比 == 低</span>
+<span class="kw">if</span> (x &amp; 1 == 1) { ... }    <span class="cmt">// 實際被解析成 x &amp; (1 == 1) → x &amp; 1</span>
+
+<span class="cmt">// 正確：加括號</span>
+<span class="kw">if</span> ((x &amp; 1) == 1) { ... }</pre></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼</div>
+          <div class="info-content">
+            C 的優先順序：<code>==</code> 高於 <code>&amp;</code>、<code>^</code>、<code>|</code>。所以 <code>x &amp; 1 == 1</code> 會先算 <code>1 == 1</code>，再算 <code>x &amp; 1</code>。雖然結果剛好一樣，但邏輯是錯的，遇到其他數值就爆。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 記法</div>
+          <div class="info-content">
+            <b>位元運算一律加括號。</b>沒有例外。可讀性也更好。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. pthread 臨界區 ==================== -->
+    <h2 class="section-title">🔒 pthread 臨界區（Critical Section）</h2>
+
+    <div class="error-card" data-search="counter++ 不是原子 資料競爭 data race lost update">
+      <div class="card-header">
+        <span class="badge">觀念</span>
+        counter++ 為什麼不是原子操作
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 三步拆解</div>
+          <div class="info-content">
+            <code>counter++</code> 在 CPU 層面是三步：
+            <ol style="margin:8px 0; padding-left:22px;">
+              <li><b>讀</b>：把 counter 的值從記憶體讀到暫存器</li>
+              <li><b>加</b>：暫存器加 1</li>
+              <li><b>寫</b>：把結果寫回記憶體</li>
+            </ol>
+            兩個執行緒可能同時讀到同一個舊值，各自加 1 再寫回，其中一次更新就消失了（lost update）。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 實測數據（PDF 範例）</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre>expected counter = 40000
+1. no lock,          counter = 39734   LOST UPDATES   70.3 ms
+2. lock, short hold, counter = 40000   ok             67.2 ms
+3. lock, long hold,  counter = 40000   ok            155.6 ms</pre></div>
+            沒鎖 → 少了一些；短鎖 → 正確且快；長鎖 → 正確但慢一倍以上。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="pthread_spin_lock 範例 短鎖 長鎖 critical section">
+      <div class="card-header">
+        <span class="badge">範例</span>
+        pthread_spin_lock 完整範例（短鎖 vs 長鎖）
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 可複製範例</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;pthread.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;time.h&gt;</span>
+
+<span class="kw">#define</span> ITER 20000
+<span class="kw">static</span> <span class="kw">long</span> counter = 0;
+<span class="kw">static</span> pthread_spinlock_t lock;
+
+<span class="cmt">// 模擬耗時計算（故意放在鎖外面）</span>
+<span class="kw">static</span> <span class="kw">void</span> heavy_work(<span class="kw">void</span>) {
+    <span class="kw">volatile</span> <span class="kw">long</span> s = 0;
+    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; 1000; i++) s += i;
+}
+
+<span class="kw">void</span>* worker_short(<span class="kw">void</span>* arg) {
+    (<span class="kw">void</span>)arg;
+    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; ITER; i++) {
+        heavy_work();                    <span class="cmt">// 耗時計算放鎖外</span>
+        pthread_spin_lock(&amp;lock);
+        counter++;                       <span class="cmt">// 只鎖真正共用的一行</span>
+        pthread_spin_unlock(&amp;lock);
+    }
+    <span class="kw">return</span> NULL;
+}
+
+<span class="kw">void</span>* worker_long(<span class="kw">void</span>* arg) {
+    (<span class="kw">void</span>)arg;
+    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; ITER; i++) {
+        pthread_spin_lock(&amp;lock);
+        heavy_work();                    <span class="cmt">// 耗時計算也放進鎖裡（錯誤示範）</span>
+        counter++;
+        pthread_spin_unlock(&amp;lock);
+    }
+    <span class="kw">return</span> NULL;
+}
+
+<span class="kw">static</span> <span class="kw">double</span> run(<span class="kw">void</span>* (*fn)(<span class="kw">void</span>*)) {
+    pthread_spin_init(&amp;lock, 0);
+    counter = 0;
+    <span class="kw">struct</span> timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &amp;t0);
+    pthread_t a, b;
+    pthread_create(&amp;a, NULL, fn, NULL);
+    pthread_create(&amp;b, NULL, fn, NULL);
+    pthread_join(a, NULL);
+    pthread_join(b, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &amp;t1);
+    pthread_spin_destroy(&amp;lock);
+    <span class="kw">double</span> ms = (t1.tv_sec - t0.tv_sec) * 1000.0
+                + (t1.tv_nsec - t0.tv_nsec) / 1e6;
+    printf(<span class="str">"counter = %ld   %.1f ms\n"</span>, counter, ms);
+    <span class="kw">return</span> ms;
+}
+
+<span class="kw">int</span> main(<span class="kw">void</span>) {
+    printf(<span class="str">"short hold: "</span>);
+    run(worker_short);
+    printf(<span class="str">"long hold:  "</span>);
+    run(worker_long);
+    <span class="kw">return</span> 0;
+}</pre></div>
+            編譯：<code>gcc main.c -o main -pthread</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="鎖的範圍 短鎖 長鎖 效能 critical section 越短越好">
+      <div class="card-header">
+        <span class="badge">原則</span>
+        鎖的範圍要短：只鎖真正共用的那一行
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 原則</div>
+          <div class="info-content">
+            <ul style="margin:8px 0; padding-left:22px;">
+              <li>鎖保護的程式碼叫<b>臨界區（critical section）</b></li>
+              <li>臨界區<b>越短越好</b>：只鎖真正讀寫共用資料的那幾行</li>
+              <li>耗時計算、I/O、記憶體配置，全部放到鎖外面</li>
+            </ul>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼</div>
+          <div class="info-content">
+            鎖的本質是「讓別人等你」。你鎖得越久，其他執行緒等得越久，平行度越低。長鎖會讓多執行緒退化為單執行緒，甚至比單執行緒更慢（因為多了鎖的開銷）。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 對照</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// ❌ 長鎖：耗時計算也在鎖裡</span>
+pthread_spin_lock(&amp;lock);
+heavy_work();
+counter++;
+pthread_spin_unlock(&amp;lock);
+
+<span class="cmt">// ✅ 短鎖：只鎖共用變數</span>
+heavy_work();
+pthread_spin_lock(&amp;lock);
+counter++;
+pthread_spin_unlock(&amp;lock);</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="pthread_spin_lock pthread_mutex_lock 差異 選擇">
+      <div class="card-header">
+        <span class="badge">選擇</span>
+        spinlock 與 mutex 的差異
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 怎麼選</div>
+          <div class="info-content">
+            <table>
+              <tr><th></th><th>pthread_spin_lock</th><th>pthread_mutex_lock</th></tr>
+              <tr><td>等待方式</td><td>忙等（busy-wait），一直迴圈檢查</td><td>睡眠，讓出 CPU</td></tr>
+              <tr><td>適合</td><td>臨界區極短（幾行）</td><td>臨界區較長、可能阻塞</td></tr>
+              <tr><td>不適合</td><td>臨界區長（浪費 CPU）</td><td>極短臨界區（切換開銷大）</td></tr>
+              <tr><td>單核環境</td><td>效果差（忙等沒意義）</td><td>正常</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 考場建議</div>
+          <div class="info-content">
+            題目若明確要求 spinlock 就用 <code>pthread_spin_lock</code>；沒特別要求，預設用 <code>pthread_mutex_lock</code> 更安全。兩者都要 <code>-pthread</code> 編譯。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. DMA / 搬運引擎 ==================== -->
+    <h2 class="section-title">📦 DMA / 搬運引擎（Transfer Engine）</h2>
+
+    <div class="error-card" data-search="DMA 四拍 configure start wait 取結果 transfer engine">
+      <div class="card-header">
+        <span class="badge">觀念</span>
+        四拍流程：configure → start → wait → 取結果
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 四拍</div>
+          <div class="info-content">
+            <ol style="margin:8px 0; padding-left:22px;">
+              <li><b>描述（configure）</b>：從哪讀、寫到哪、幾筆、每筆多大、位址要不要遞增</li>
+              <li><b>啟動（start）</b>：描述完就啟動，CPU 可去做別的事</li>
+              <li><b>等待（wait / busy）</b>：之後回來等它完成</li>
+              <li><b>取用結果</b>：讀取搬運後的資料</li>
+            </ol>
+            這四拍是 DMA 類周邊的通用節奏，考場若給 DMA 相關題目，先確認這四步有沒有寫對。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼要 DMA</div>
+          <div class="info-content">
+            真正的硬體 DMA 消耗的是<b>記憶體匯流排頻寬</b>，不是 CPU 指令。搬運期間 CPU 是真正空出來的，可以處理完全不相干的工作。用執行緒模擬的版本仍佔一顆核心，這是模擬與真實硬體的差異。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="DMA count 單位 筆 位元組 最常見錯誤">
+      <div class="card-header">
+        <span class="badge">陷阱</span>
+        count 的單位是「幾筆」不是「幾個位元組」
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label warn">❌ 最常見錯誤</div>
+          <div class="info-content">
+            PDF 原文：「count 的單位是『幾筆傳輸』，不是『幾個位元組』。這是最常見的錯誤。make mistake 會示範把位元組數據進去會發生什麼事，引擎不會抱怨，只是忠實地照描述做了四倍的量。」
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 為什麼</div>
+          <div class="info-content">
+            搬運引擎的描述包含「每筆大小」（只能是 1、2、4 位元組）。count 指的是「要搬幾筆」，總位元組數 = count × 每筆大小。若把位元組數直接填進 count，實際搬運量會是預期的 4 倍（以每筆 4 位元組為例）。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確算法</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 要搬 4096 個位元組，每筆 4 位元組 → count = 1024 筆</span>
+<span class="kw">size_t</span> total_bytes = 4096;
+<span class="kw">size_t</span> item_size   = 4;
+<span class="kw">size_t</span> count       = total_bytes / item_size;   <span class="cmt">// 1024</span>
+
+<span class="cmt">// 若誤把 4096 填進 count，實際會搬 4096 * 4 = 16384 位元組</span></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="DMA 位址對齊 alignment 1 2 4 位元組">
+      <div class="card-header">
+        <span class="badge">規則</span>
+        每筆大小只能是 1、2、4 位元組，位址須對齊
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 規則</div>
+          <div class="info-content">
+            <ul style="margin:8px 0; padding-left:22px;">
+              <li>每筆大小只能是 <b>1、2 或 4 位元組</b></li>
+              <li>來源與目的位址必須<b>對齊</b>到每筆大小的倍數（4 位元組的搬運，位址要是 4 的倍數）</li>
+              <li>填錯引擎會直接停下並告知違反哪條規則</li>
+            </ul>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 檢查</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 檢查位址是否對齊 item_size</span>
+<span class="kw">if</span> (((<span class="kw">uintptr_t</span>)src % item_size) != 0 ||
+    ((<span class="kw">uintptr_t</span>)dst % item_size) != 0) {
+    fprintf(stderr, <span class="str">"位址未對齊 item_size=%zu\n"</span>, item_size);
+    <span class="kw">return</span> -1;
+}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="DMA 通道 channel 有限資源 取得 歸還">
+      <div class="card-header">
+        <span class="badge">資源</span>
+        通道是有限資源：用前取得、用完歸還
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 規則</div>
+          <div class="info-content">
+            PDF 原文：「通道是有限資源，用之前要取得、用完要歸還，本引擎僅有四個通道。」
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label why">💡 類比</div>
+          <div class="info-content">
+            這跟一般的有限資源管理一樣：檔案描述符、資料庫連線、執行緒池，都是「取得 → 使用 → 歸還」。若四個通道都被佔用，第五個請求要排隊等待或直接拒絕，不能硬搶。
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label fix">✅ 正確流程</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt">// 1. 取得通道（有限資源，可能失敗）</span>
+<span class="kw">int</span> ch = dma_claim_channel();
+<span class="kw">if</span> (ch &lt; 0) {
+    fprintf(stderr, <span class="str">"沒有可用通道\n"</span>);
+    <span class="kw">return</span> -1;
+}
+
+<span class="cmt">// 2. 描述 + 啟動 + 等待</span>
+dma_configure(ch, src, dst, count, item_size, src_inc, dst_inc);
+dma_start(ch);
+dma_wait(ch);
+
+<span class="cmt">// 3. 用完歸還</span>
+dma_release_channel(ch);</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. ROS2 CLI ==================== -->
+    <h2 class="section-title">🤖 ROS2 CLI 速查</h2>
+
+    <div class="error-card" data-search="ros2 node list topic list info interface show 指令表">
+      <div class="card-header">
+        <span class="badge">指令</span>
+        六大常用指令
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 指令表</div>
+          <div class="info-content">
+            <table>
+              <tr><th>指令</th><th>功能</th></tr>
+              <tr><td><code>ros2 node list</code></td><td>列出目前正在執行的 node</td></tr>
+              <tr><td><code>ros2 topic list</code></td><td>列出目前存在的 topic</td></tr>
+              <tr><td><code>ros2 node info &lt;node&gt;</code></td><td>查看某個 node 發佈與訂閱的 topic</td></tr>
+              <tr><td><code>ros2 topic info &lt;topic&gt;</code></td><td>查看 topic 的 message type，以及 publisher / subscriber 數量</td></tr>
+              <tr><td><code>ros2 interface show &lt;type&gt;</code></td><td>查看某種 message type 包含哪些欄位</td></tr>
+              <tr><td><code>ros2 topic echo &lt;topic&gt;</code></td><td>顯示 topic 上收到的資料</td></tr>
+              <tr><td><code>ros2 topic hz &lt;topic&gt;</code></td><td>顯示 topic 的發布頻率</td></tr>
+              <tr><td><code>ros2 topic pub &lt;topic&gt; &lt;type&gt; &lt;data&gt;</code></td><td>由 CLI 自行發布特定 message</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="ROS2 排查順序 node topic 連線 數量 資料">
+      <div class="card-header">
+        <span class="badge">排查</span>
+        資料沒出現時的排查順序
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label look">🎯 五步排查</div>
+          <div class="info-content">
+            <ol style="margin:8px 0; padding-left:22px;">
+              <li><b>node 是否存在</b> → <code>ros2 node list</code></li>
+              <li><b>topic 是否存在</b> → <code>ros2 topic list</code></li>
+              <li><b>兩端是否連到相同 topic</b> → <code>ros2 node info &lt;node&gt;</code></li>
+              <li><b>publisher / subscriber 數量是否合理</b> → <code>ros2 topic info &lt;topic&gt;</code></li>
+              <li><b>實際是否有資料傳輸</b> → <code>ros2 topic echo &lt;topic&gt;</code>、<code>ros2 topic hz &lt;topic&gt;</code></li>
+            </ol>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label warn">⚠️ 最常見錯誤</div>
+          <div class="info-content">
+            <b>topic 名稱打錯一個字元。</b>ROS2 會把它視為另一個完全不同的 topic，程式本身<b>不會報錯</b>，但兩端就是接不上。用 <code>ros2 topic list</code> 逐一核對名稱。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error-card" data-search="ros2 topic pub echo 範例 once data Int32">
+      <div class="card-header">
+        <span class="badge">範例</span>
+        用 CLI 發布與觀察訊息
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <div class="info-label fix">✅ 可複製指令</div>
+          <div class="info-content">
+            <div class="code-wrap"><button class="btn-copy-code" onclick="copyCode(this)">複製</button><pre><span class="cmt"># 觀察 topic 上收到的資料（相當於暫時建立 subscriber）</span>
+ros2 topic echo /number
+
+<span class="cmt"># 觀察發布頻率</span>
+ros2 topic hz /number
+
+<span class="cmt"># 由 CLI 發布一筆訊息（相當於暫時建立 publisher）</span>
+ros2 topic pub --once /number std_msgs/msg/Int32 <span class="str">"{data: 21}"</span>
+
+<span class="cmt"># 查 message type 與欄位</span>
+ros2 interface show std_msgs/msg/Int32
+
+<span class="cmt"># 查 topic 的 publisher / subscriber 數量</span>
+ros2 topic info /number
+
+<span class="cmt"># 查某個 node 發佈與訂閱了哪些 topic</span>
+ros2 node info /publisher</pre></div>
+            考場除錯時，不一定要另外寫測試程式，直接用 CLI 就能測試某個 node 的輸入或輸出。
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 右側說明欄 -->
+  <aside class="refpanel">
+    <div class="refpanel-header">
+      <div class="refpanel-title">📖 考場排查與速記</div>
+    </div>
+    <div class="refpanel-body">
+      <h3>🔢 位元運算速記</h3>
+      <ul>
+        <li>設位：<code>x |= (1u &lt;&lt; n)</code></li>
+        <li>清位：<code>x &amp;= ~(1u &lt;&lt; n)</code></li>
+        <li>取位：<code>(x &gt;&gt; n) &amp; 1</code></li>
+        <li>取一段：<code>(x &gt;&gt; lo) &amp; mask</code></li>
+        <li>合併：<code>(a &lt;&lt; 8) | b</code></li>
+        <li><span class="highlight">位元運算一律加括號</span>，避免優先順序陷阱</li>
+      </ul>
+
+      <h3>🔒 pthread 速記</h3>
+      <ul>
+        <li><code>counter++</code> 是「讀、加、寫」三步，不是原子操作</li>
+        <li>沒鎖 → lost update；短鎖 → 正確且快；長鎖 → 正確但慢</li>
+        <li>臨界區越短越好，只鎖真正共用的那一行</li>
+        <li>編譯要加 <code>-pthread</code></li>
+        <li>極短臨界區用 spinlock，較長或可能阻塞用 mutex</li>
+      </ul>
+
+      <h3>📦 DMA 速記</h3>
+      <ul>
+        <li>四拍：configure → start → wait → 取結果</li>
+        <li><span class="highlight">count 單位是「筆」不是「位元組」</span>（最常見錯誤）</li>
+        <li>每筆大小只能是 1、2、4 位元組，位址須對齊</li>
+        <li>通道有限（範例 4 個），用前取得、用完歸還</li>
+        <li>真硬體消耗記憶體頻寬，不佔 CPU 指令</li>
+      </ul>
+
+      <h3>🤖 ROS2 速記</h3>
+      <ul>
+        <li>排查順序：node → topic → 連線 → 數量 → 資料</li>
+        <li><span class="highlight">topic 名稱打錯一個字元，程式不會報錯但接不上</span></li>
+        <li><code>ros2 topic echo</code> = 暫時 subscriber</li>
+        <li><code>ros2 topic pub</code> = 暫時 publisher</li>
+        <li>除錯不一定要寫程式，CLI 就能測</li>
+      </ul>
+
+      <h3>🚑 考場遇到系統程式題</h3>
+      <ol style="padding-left:22px; color:var(--text-dim);">
+        <li>先確認題目要的是位元運算、pthread、DMA 還是 ROS2</li>
+        <li>位元運算：先寫公式，再加括號，再編譯測試</li>
+        <li>pthread：先確認有沒有加鎖、鎖的範圍對不對</li>
+        <li>DMA：先確認 count 單位、位址對齊、通道取得歸還</li>
+        <li>ROS2：照五步排查順序，先看 node 和 topic 是否存在</li>
+      </ol>
+
+      <h3>🤖 求救 Prompt 範例</h3>
+      <p>把這段丟給考場 AI：</p>
+      <p style="background: var(--pre-bg); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border);">
+        「我在考場寫 C 系統程式，題目涉及（位元運算 / pthread / DMA / ROS2）。我的程式碼是：（貼上）。請根據 C 系統程式考場速查表，告訴我：1. 哪裡寫錯了？2. 給我修正後的完整 C 程式碼。3. 編譯指令要不要加 -pthread？」
+      </p>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+  // ==================== 搜尋過濾 ====================
+  const searchInput = document.getElementById('searchInput');
+  const cards = document.querySelectorAll('.error-card');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+    cards.forEach(card => {
+      const searchText = (card.dataset.search || '') + ' ' + card.textContent.toLowerCase();
+      if (query === '' || searchText.includes(query)) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  });
+
+  // ==================== Toast ====================
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // ==================== 複製單一程式碼 ====================
+  function copyCode(btn) {
+    const pre = btn.parentElement.querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '已複製';
+      btn.classList.add('copied');
+      showToast('程式碼已複製');
+      setTimeout(() => {
+        btn.textContent = '複製';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('程式碼已複製');
+    });
+  }
+
+  // ==================== 複製全部速查表 ====================
+  function copyAll() {
+    const text = `【C 系統程式考場速查表】
+
+■ 一、位元運算
+1. 基本運算子：& (AND)、| (OR)、^ (XOR)、~ (NOT)、<< (左移)、>> (右移)。
+2. 設位：x |= (1u << n)
+3. 清位：x &= ~(1u << n)
+4. 取位：(x >> n) & 1
+5. 取一段：(x >> lo) & ((1u << (hi-lo+1)) - 1)
+6. 合併：(a << 8) | b
+7. 陷阱：位元運算優先順序低於 ==，一律加括號。
+8. 注意：1u << n 的 u 很重要，確保無號移位。
+
+■ 二、pthread 臨界區
+1. counter++ 不是原子操作，是「讀、加、寫」三步。
+2. 沒鎖會 lost update；短鎖正確且快；長鎖正確但慢一倍以上。
+3. 臨界區越短越好，只鎖真正共用的那一行。
+4. spinlock 適合極短臨界區；mutex 適合較長或可能阻塞的臨界區。
+5. 編譯要加 -pthread：gcc main.c -o main -pthread
+6. 範例框架：
+   pthread_spinlock_t lock;
+   pthread_spin_init(&lock, 0);
+   pthread_spin_lock(&lock);
+   counter++;
+   pthread_spin_unlock(&lock);
+   pthread_spin_destroy(&lock);
+
+■ 三、DMA / 搬運引擎
+1. 四拍：configure（描述）→ start（啟動）→ wait（等待）→ 取結果。
+2. count 單位是「幾筆傳輸」不是「幾個位元組」（最常見錯誤）。
+   總位元組 = count × 每筆大小。
+3. 每筆大小只能是 1、2、4 位元組，位址須對齊。
+4. 通道是有限資源（範例 4 個），用前取得、用完歸還。
+5. 真硬體消耗記憶體頻寬，不佔 CPU 指令。
+
+■ 四、ROS2 CLI
+1. ros2 node list：列出 node
+2. ros2 topic list：列出 topic
+3. ros2 node info <node>：查看 node 發佈與訂閱的 topic
+4. ros2 topic info <topic>：查看 message type 與 publisher/subscriber 數量
+5. ros2 interface show <type>：查看 message 欄位
+6. ros2 topic echo <topic>：顯示收到的資料
+7. ros2 topic hz <topic>：顯示發布頻率
+8. ros2 topic pub <topic> <type> <data>：由 CLI 發布訊息
+9. 排查順序：node 是否存在 → topic 是否存在 → 兩端是否連到相同 topic → publisher/subscriber 數量 → 實際是否有資料
+10. 最常見錯誤：topic 名稱打錯一個字元，程式不報錯但接不上。
+
+【請根據以上速查表，幫我寫或修正 C 系統程式。】
+（貼上你的程式碼或描述題目）
+`;
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已複製全部速查表');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('已複製全部速查表');
+    });
+  }
+</script>
+</body>
+</html>
