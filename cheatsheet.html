@@ -249,6 +249,7 @@
         <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
         <a class="nav-item" href="api-ref.html">📖 API 速查</a>
         <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
         <a class="nav-item" href="commands.html">🔧 工作流</a>
         <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
     </aside>
@@ -282,219 +283,156 @@
       </div>
     </div>
 
-    <!-- ==================== 前言 ==================== -->
-    <details>
-      <summary>
-        <span>📖 前言與導讀：《100 個 C++ 語言典型錯誤》</span>
-        <span class="arrow">▼</span>
-      </summary>
-      <div class="detail-body">
-        <div class="block">
-          <div class="block-header">
-            <span class="block-title">前言與導讀</span>
-            <button class="copy-btn" data-target="ch0">📋 複製</button>
+      <!-- ==================== 前言 ==================== -->
+      <details>
+          <summary>
+              <span>📖 錯誤目錄索引（105 條，13 章）</span>
+              <span class="arrow">▼</span>
+          </summary>
+          <div class="detail-body">
+              <div class="block">
+                  <div class="block-header">
+                      <span class="block-title">錯誤目錄索引</span>
+                      <button class="copy-btn" data-target="ch0">📋 複製</button>
+                  </div>
+                  <pre id="ch0">【C/C++ 典型錯誤目錄，共 105 條，13 章】
+
+第 1 章 代碼與項目組織 #1–#6
+#1 include guard / #pragma once
+#2 頭文件定義非 inline 函數
+#3 頭文件 using namespace std
+#4 模板定義放 .cpp 導致鏈接錯誤
+#5 跨翻譯單元全局對象初始化順序
+#6 most vexing parse
+
+第 2 章 基本類型與轉換 #7–#15
+#7 有符號/無符號混用比較
+#8 有符號整型溢出 UB
+#9 隱式窄化轉換
+#10 用 == 比較浮點數
+#11 用浮點表示金額
+#12 假設 char 有符號/無符號
+#13 位移超過位寬 UB
+#14 int 與 size_t 混用回繞
+#15 auto 丟失引用/const
+
+第 3 章 記憶體管理與 RAII #16–#25
+#16 new 後忘記 delete
+#17 new[] 用 delete 釋放 UB
+#18 重複 delete 雙重釋放
+#19 懸垂指針 use-after-free
+#20 使用未初始化指針
+#21 返回棧上對象地址/引用
+#22 異常路徑下手動 delete 洩漏
+#23 用裸 new/delete 而非 RAII
+#24 過度堆分配與記憶體碎片
+#25 delete 後不置空指針
+
+第 4 章 資源與所有權 #26–#36
+#26 違反 Rule of 0/3/5
+#27 拷貝 unique_ptr
+#28 裸指針與智能指針混用所有權
+#29 把 shared_ptr 當默認指針
+#30 shared_ptr 循環引用未用 weak_ptr
+#31 工廠函數返回裸擁有指針
+#32 對 unique_ptr 管理的記憶體再 delete
+#33 用 new 動態分配 STL 容器
+#34 所有權不清晰：誰負責釋放
+#35 不用 make_shared / make_unique
+#36 用 this 構造 shared_ptr 產生第二個控制塊
+
+第 5 章 移動語義與值類別 #37–#45
+#37 使用已被 move 的對象
+#38 move 構造/賦值未標 noexcept
+#39 對返回值濫用 std::move 抑制 NRVO
+#40 對 const 對象 std::move 退化為拷貝
+#41 實現移動構造卻漏了移動賦值
+#42 移動後未重置源對象狀態
+#43 按值傳參與完美轉發混淆
+#44 std::move 與 std::forward 誤用
+#45 對 moved-from 狀態假設過強
+
+第 6 章 類、對象與繼承 #46–#55
+#46 基類缺少虛析構
+#47 在構造/析構中調用虛函數
+#48 對象切片 object slicing
+#49 在構造/析構中調用純虛函數 UB
+#50 隱藏而非重寫（缺 override）
+#51 拷貝構造中的淺拷貝
+#52 成員初始化順序與聲明順序不一致
+#53 未處理自賦值
+#54 單參數構造函數未加 explicit
+#55 以值方式按基類傳遞派生對象
+
+第 7 章 模板與泛型 #56–#64
+#56 忘記 typename / template 消歧
+#57 ADL 引入意外重載
+#58 該用 concepts 卻硬寫 enable_if
+#59 轉發引用與 const& 重載歧義
+#60 模板約束缺失導致錯誤信息難讀
+#61 顯式實例化缺失導致鏈接錯誤
+#62 誤解依賴名的查找規則
+#63 可變參數模板遞歸展開寫錯
+#64 模板代碼膨脹
+
+第 8 章 標準庫容器與算法 #65–#74
+#65 迭代器失效後繼續使用
+#66 遍歷 vector 時改變大小
+#67 operator[] 越界不做邊界檢查
+#68 map::operator[] 意外插入默認值
+#69 erase-remove 慣用法誤用
+#70 std::vector<bool> 特化陷阱
+#71 傳遞失效的 end()
+#72 算法謂詞有副作用
+#73 缺少 reserve 導致多次重分配
+#74 emplace_back 與 push_back 誤用
+
+第 9 章 併發 #75–#85
+#75 共享數據無同步的數據競爭
+#76 只保護寫不保護讀
+#77 原子變量與非原子訪問混用
+#78 誤解 memory order
+#79 鎖順序不一致導致死鎖
+#80 忘記 join / detach 導致 std::terminate
+#81 線程按引用捕獲局部變量導致懸垂
+#82 逃逸的 lambda 按引用/this 捕獲導致懸垂
+#83 條件變量虛假喚醒未循環判斷
+#84 在析構中做阻塞 I/O
+#85 試圖拷貝或移動 mutex / atomic
+
+第 10 章 錯誤處理 #86–#93
+#86 析構函數拋異常
+#87 從 move 操作拋異常
+#88 忽略返回的錯誤碼
+#89 catch(...) 吞掉異常
+#90 非異常安全的資源獲取順序
+#91 用異常處理正常控制流
+#92 noexcept 標註不當
+#93 跨模塊邊界拋異常
+
+第 11 章 標準庫與 API 使用 #94–#98
+#94 string_view / span 懸垂
+#95 c_str() 生命週期問題
+#96 std::chrono 單位混用
+#97 誤用 C 的 rand()
+#98 std::endl 頻繁刷新
+
+第 12 章 性能與優化 #99–#102
+#99 不必要的拷貝
+#100 循環內 string += 重複分配
+#101 忽視緩存局部性與數據佈局
+#102 未 profiling 的過早優化
+
+第 13 章 系統編程與 Linux I/O #103–#105
+#103 epoll ET 模式未循環讀到 EAGAIN
+#104 epoll_ctl 與 close(fd) 的競態
+#105 epoll_event.data.ptr 懸垂
+
+【用法】貼上你的程式碼或錯誤訊息，告訴我它最可能中了哪幾條，並用純 C 修復。
+（若在純 C 考場，請忽略 C++ 專屬條目，只提取底層邏輯）</pre>
+              </div>
           </div>
-          <pre id="ch0"># 《100 個 C++ 語言典型錯誤》
-
-> 借鑑 *100 Go Mistakes and How to Avoid Them* 的組織形式,為中文 C++ 開發者整理的一份「錯誤目錄」。
-
-## 前言
-
-C++ 常被形容為「易學難精」。它的手動記憶體模型、無處不在的未定義行為(undefined behavior, UB)、微妙的移動語義、複雜的模板機制以及併發陷阱,共同構成了一條即使是資深工程師也會反覆踩中的「長尾錯誤」。
-
-本書把這些典型錯誤歸納為 **13 章**,逐條給出**錯誤示例 → 為什麼錯 → 正確做法**,並標註該修復所依賴的 **C++ 標準版本**與(可選的)**ISO C++ Core Guidelines** 條目。
-
-書名取「100」是一個整數化的品牌稱呼;**本書實際收錄 100+ 條(約 105 條)典型錯誤**,編號 `#1`–`#105` 全局連續。多出來的幾條(如 `shared_from_this` 誤用、lambda 懸垂捕獲、Linux `epoll` 誤用)因實戰價值高而特意保留,而非刪掉較弱條目湊整。
-
-**面向讀者**:已經會寫 C++、但希望系統地了解「哪些地方最容易出錯」的開發者。本書不是語言教程,假設你已具備基本的 C++ 知識。
-
-**目標標準**:現代 C++(C++11 ~ C++20/23),同時標記出那些自 C++98 起就存在、至今仍在坑人的遺留問題。
-
-## 如何閱讀:條目格式
-
-全書每一條錯誤都遵循固定模板,便於掃讀:
-
-```
-### #N 標題（一句話概括錯誤）
-
-**現象 / 錯誤示例**
-（一段最小化的、只演示這一個錯誤的壞代碼）
-
-**為什麼錯**
-（解釋原因;若為未定義行為會明確標註「未定義行為(UB)」）
-
-**正確做法**
-（一段符合慣用法的、修復後的代碼）
-
-**適用標準**：C++11 / C++14 / C++17 / C++20 / C++23；或「C++98 遺留」；平台相關條目會標註「Linux 平台相關」
-
-**相關準則**：ISO C++ Core Guidelines 條目編號（如 C.35、ES.20；可選）
-```
-
-約定:**正文用簡體中文,代碼與標準庫名稱保持英文**。術語首次出現時給出英文原詞。若一個錯誤與其他章節相關,採用交叉引用而非重複條目。
-
-## 章節與編號區間
-
-| 章 | 文件 | 主題 | 編號區間 |
-|----|------|------|----------|
-| 1 | [ch01-organization.md](ch01-organization.md) | 代碼與項目組織 | #1–#6 |
-| 2 | [ch02-fundamental-types.md](ch02-fundamental-types.md) | 基本類型與轉換 | #7–#15 |
-| 3 | [ch03-memory-raii.md](ch03-memory-raii.md) | 記憶體管理與 RAII | #16–#25 |
-| 4 | [ch04-ownership.md](ch04-ownership.md) | 資源與所有權 | #26–#36 |
-| 5 | [ch05-move-semantics.md](ch05-move-semantics.md) | 移動語義與值類別 | #37–#45 |
-| 6 | [ch06-classes-inheritance.md](ch06-classes-inheritance.md) | 類、對象與繼承 | #46–#55 |
-| 7 | [ch07-templates.md](ch07-templates.md) | 模板與泛型 | #56–#64 |
-| 8 | [ch08-stl.md](ch08-stl.md) | 標準庫容器與算法 | #65–#74 |
-| 9 | [ch09-concurrency.md](ch09-concurrency.md) | 併發 | #75–#85 |
-| 10 | [ch10-error-handling.md](ch10-error-handling.md) | 錯誤處理 | #86–#93 |
-| 11 | [ch11-standard-library.md](ch11-standard-library.md) | 標準庫與 API 使用 | #94–#98 |
-| 12 | [ch12-performance.md](ch12-performance.md) | 性能與優化 | #99–#102 |
-| 13 | [ch13-systems-linux-io.md](ch13-systems-linux-io.md) | 系統編程與 Linux I/O(平台相關) | #103–#105 |
-
-## 完整目錄（100+ 條）
-
-### 第 1 章 代碼與項目組織
-- [#1 頭文件缺少 include guard / `#pragma once`](ch01-organization.md#1-頭文件缺少-include-guard--pragma-once)
-- [#2 在頭文件中定義非 inline 函數導致重複定義](ch01-organization.md#2-在頭文件中定義非-inline-函數導致重複定義)
-- [#3 在頭文件中使用 `using namespace std;`](ch01-organization.md#3-在頭文件中使用-using-namespace-std)
-- [#4 模板定義放在 .cpp 中導致鏈接錯誤](ch01-organization.md#4-模板定義放在-cpp-中導致鏈接錯誤)
-- [#5 跨翻譯單元的全局對象初始化順序問題](ch01-organization.md#5-跨翻譯單元的全局對象初始化順序問題)
-- [#6 聲明變量卻被解析為函數（most vexing parse）](ch01-organization.md#6-聲明變量卻被解析為函數most-vexing-parse)
-
-### 第 2 章 基本類型與轉換
-- [#7 有符號 / 無符號混用比較](ch02-fundamental-types.md#7-有符號--無符號混用比較)
-- [#8 有符號整型溢出是未定義行為](ch02-fundamental-types.md#8-有符號整型溢出是未定義行為)
-- [#9 隱式窄化轉換丟失數據](ch02-fundamental-types.md#9-隱式窄化轉換丟失數據)
-- [#10 用 `==` 比較浮點數](ch02-fundamental-types.md#10-用--比較浮點數)
-- [#11 用浮點表示貨幣金額](ch02-fundamental-types.md#11-用浮點表示貨幣金額)
-- [#12 假設 `char` 有符號或無符號](ch02-fundamental-types.md#12-假設-char-有符號或無符號)
-- [#13 位移超過位寬是未定義行為](ch02-fundamental-types.md#13-位移超過位寬是未定義行為)
-- [#14 `int` 與 `size_t` 混用導致回繞](ch02-fundamental-types.md#14-int-與-size_t-混用導致回繞)
-- [#15 誤用 `auto` 丟失引用 / const](ch02-fundamental-types.md#15-誤用-auto-丟失引用--const)
-
-### 第 3 章 記憶體管理與 RAII
-- [#16 `new` 後忘記 `delete` 造成洩漏](ch03-memory-raii.md#16-new-後忘記-delete-造成洩漏)
-- [#17 `new[]` 用 `delete` 釋放是未定義行為](ch03-memory-raii.md#17-new-用-delete-釋放是未定義行為)
-- [#18 重複 `delete` 造成雙重釋放](ch03-memory-raii.md#18-重複-delete-造成雙重釋放)
-- [#19 懸垂指針 use-after-free](ch03-memory-raii.md#19-懸垂指針-use-after-free)
-- [#20 使用未初始化的指針](ch03-memory-raii.md#20-使用未初始化的指針)
-- [#21 返回棧上對象的地址或引用](ch03-memory-raii.md#21-返回棧上對象的地址或引用)
-- [#22 異常路徑下手動 `delete` 洩漏](ch03-memory-raii.md#22-異常路徑下手動-delete-洩漏)
-- [#23 用裸 `new/delete` 而非 RAII](ch03-memory-raii.md#23-用裸-newdelete-而非-raii)
-- [#24 過度堆分配與記憶體碎片](ch03-memory-raii.md#24-過度堆分配與記憶體碎片)
-- [#25 `delete` 後不置空指針](ch03-memory-raii.md#25-delete-後不置空指針)
-
-### 第 4 章 資源與所有權
-- [#26 違反 Rule of 0/3/5](ch04-ownership.md#26-違反-rule-of-035)
-- [#27 拷貝 `unique_ptr`](ch04-ownership.md#27-拷貝-unique_ptr)
-- [#28 裸指針與智能指針混用所有權](ch04-ownership.md#28-裸指針與智能指針混用所有權)
-- [#29 把 `shared_ptr` 當默認指針類型](ch04-ownership.md#29-把-shared_ptr-當默認指針類型)
-- [#30 `shared_ptr` 循環引用未用 `weak_ptr`](ch04-ownership.md#30-shared_ptr-循環引用未用-weak_ptr)
-- [#31 工廠函數返回裸擁有指針](ch04-ownership.md#31-工廠函數返回裸擁有指針)
-- [#32 對 `unique_ptr` 管理的記憶體再 `delete`](ch04-ownership.md#32-對-unique_ptr-管理的記憶體再-delete)
-- [#33 用 `new` 動態分配 STL 容器](ch04-ownership.md#33-用-new-動態分配-stl-容器)
-- [#34 所有權不清晰：誰負責釋放](ch04-ownership.md#34-所有權不清晰誰負責釋放)
-- [#35 不用 `make_shared` / `make_unique`](ch04-ownership.md#35-不用-make_shared--make_unique)
-- [#36 用 `this` 構造 shared_ptr 產生第二個控制塊](ch04-ownership.md#36-用-this-構造-shared_ptr-產生第二個控制塊)
-
-### 第 5 章 移動語義與值類別
-- [#37 使用已被 move 的對象](ch05-move-semantics.md#37-使用已被-move-的對象)
-- [#38 move 構造 / 賦值未標 `noexcept`](ch05-move-semantics.md#38-move-構造--賦值未標-noexcept)
-- [#39 對返回值濫用 `std::move` 抑制 NRVO](ch05-move-semantics.md#39-對返回值濫用-stdmove-抑制-nrvo)
-- [#40 對 `const` 對象 `std::move` 靜默退化為拷貝](ch05-move-semantics.md#40-對-const-對象-stdmove-靜默退化為拷貝)
-- [#41 實現了移動構造卻漏了移動賦值](ch05-move-semantics.md#41-實現了移動構造卻漏了移動賦值)
-- [#42 移動後未重置源對象狀態](ch05-move-semantics.md#42-移動後未重置源對象狀態)
-- [#43 按值傳參與完美轉發混淆](ch05-move-semantics.md#43-按值傳參與完美轉發混淆)
-- [#44 `std::move` 與 `std::forward` 誤用](ch05-move-semantics.md#44-stdmove-與-stdforward-誤用)
-- [#45 對 moved-from 狀態假設過強](ch05-move-semantics.md#45-對-moved-from-狀態假設過強)
-
-### 第 6 章 類、對象與繼承
-- [#46 基類缺少虛析構函數](ch06-classes-inheritance.md#46-基類缺少虛析構函數)
-- [#47 在構造 / 析構中調用虛函數](ch06-classes-inheritance.md#47-在構造--析構中調用虛函數)
-- [#48 對象切片（object slicing）](ch06-classes-inheritance.md#48-對象切片object-slicing)
-- [#49 在構造 / 析構中調用純虛函數是 UB](ch06-classes-inheritance.md#49-在構造--析構中調用純虛函數是-ub)
-- [#50 隱藏而非重寫（缺 `override`）](ch06-classes-inheritance.md#50-隱藏而非重寫缺-override)
-- [#51 拷貝構造中的淺拷貝](ch06-classes-inheritance.md#51-拷貝構造中的淺拷貝)
-- [#52 成員初始化順序與聲明順序不一致](ch06-classes-inheritance.md#52-成員初始化順序與聲明順序不一致)
-- [#53 未處理自賦值](ch06-classes-inheritance.md#53-未處理自賦值)
-- [#54 單參數構造函數未加 `explicit`](ch06-classes-inheritance.md#54-單參數構造函數未加-explicit)
-- [#55 以值方式按基類傳遞派生對象](ch06-classes-inheritance.md#55-以值方式按基類傳遞派生對象)
-
-### 第 7 章 模板與泛型
-- [#56 忘記 `typename` / `template` 消歧](ch07-templates.md#56-忘記-typename--template-消歧)
-- [#57 ADL 引入意外重載](ch07-templates.md#57-adl-引入意外重載)
-- [#58 該用 concepts 卻硬寫 `enable_if`](ch07-templates.md#58-該用-concepts-卻硬寫-enable_if)
-- [#59 轉發引用與 `const&` 重載歧義](ch07-templates.md#59-轉發引用與-const-重載歧義)
-- [#60 模板約束缺失導致錯誤信息難讀](ch07-templates.md#60-模板約束缺失導致錯誤信息難讀)
-- [#61 顯式實例化缺失導致鏈接錯誤](ch07-templates.md#61-顯式實例化缺失導致鏈接錯誤)
-- [#62 誤解依賴名的查找規則](ch07-templates.md#62-誤解依賴名的查找規則)
-- [#63 可變參數模板遞歸展開寫錯](ch07-templates.md#63-可變參數模板遞歸展開寫錯)
-- [#64 模板代碼膨脹](ch07-templates.md#64-模板代碼膨脹)
-
-### 第 8 章 標準庫容器與算法
-- [#65 迭代器失效後繼續使用](ch08-stl.md#65-迭代器失效後繼續使用)
-- [#66 遍歷 `vector` 時改變其大小](ch08-stl.md#66-遍歷-vector-時改變其大小)
-- [#67 `operator[]` 越界不做邊界檢查](ch08-stl.md#67-operator-越界不做邊界檢查)
-- [#68 `map::operator[]` 意外插入默認值](ch08-stl.md#68-mapoperator-意外插入默認值)
-- [#69 `erase-remove` 慣用法誤用](ch08-stl.md#69-erase-remove-慣用法誤用)
-- [#70 `std::vector<bool>` 特化陷阱](ch08-stl.md#70-stdvectorbool-特化陷阱)
-- [#71 傳遞失效的 `end()`](ch08-stl.md#71-傳遞失效的-end)
-- [#72 算法謂詞有副作用](ch08-stl.md#72-算法謂詞有副作用)
-- [#73 缺少 `reserve` 導致多次重分配](ch08-stl.md#73-缺少-reserve-導致多次重分配)
-- [#74 `emplace_back` 與 `push_back` 誤用](ch08-stl.md#74-emplace_back-與-push_back-誤用)
-
-### 第 9 章 併發
-- [#75 共享數據無同步的數據競爭](ch09-concurrency.md#75-共享數據無同步的數據競爭)
-- [#76 只保護寫不保護讀](ch09-concurrency.md#76-只保護寫不保護讀)
-- [#77 原子變量與非原子訪問混用](ch09-concurrency.md#77-原子變量與非原子訪問混用)
-- [#78 誤解 memory order](ch09-concurrency.md#78-誤解-memory-order)
-- [#79 鎖順序不一致導致死鎖](ch09-concurrency.md#79-鎖順序不一致導致死鎖)
-- [#80 忘記 `join` / `detach` 導致 `std::terminate`](ch09-concurrency.md#80-忘記-join--detach-導致-stdterminate)
-- [#81 線程按引用捕獲局部變量導致懸垂](ch09-concurrency.md#81-線程按引用捕獲局部變量導致懸垂)
-- [#82 逃逸的 lambda 按引用 / `this` 捕獲導致懸垂](ch09-concurrency.md#82-逃逸的-lambda-按引用--this-捕獲導致懸垂)
-- [#83 條件變量虛假喚醒未循環判斷](ch09-concurrency.md#83-條件變量虛假喚醒未循環判斷)
-- [#84 在析構中做阻塞 I/O](ch09-concurrency.md#84-在析構中做阻塞-io)
-- [#85 試圖拷貝或移動 `mutex` / `atomic`](ch09-concurrency.md#85-試圖拷貝或移動-mutex--atomic)
-
-### 第 10 章 錯誤處理
-- [#86 析構函數拋異常](ch10-error-handling.md#86-析構函數拋異常)
-- [#87 從 move 操作拋異常](ch10-error-handling.md#87-從-move-操作拋異常)
-- [#88 忽略返回的錯誤碼](ch10-error-handling.md#88-忽略返回的錯誤碼)
-- [#89 `catch(...)` 吞掉異常](ch10-error-handling.md#89-catch-吞掉異常)
-- [#90 非異常安全的資源獲取順序](ch10-error-handling.md#90-非異常安全的資源獲取順序)
-- [#91 用異常處理正常控制流](ch10-error-handling.md#91-用異常處理正常控制流)
-- [#92 `noexcept` 標註不當](ch10-error-handling.md#92-noexcept-標註不當)
-- [#93 跨模塊邊界拋異常](ch10-error-handling.md#93-跨模塊邊界拋異常)
-
-### 第 11 章 標準庫與 API 使用
-- [#94 `string_view` / `span` 懸垂](ch11-standard-library.md#94-string_view--span-懸垂)
-- [#95 `c_str()` 生命週期問題](ch11-standard-library.md#95-c_str-生命週期問題)
-- [#96 `std::chrono` 單位混用](ch11-standard-library.md#96-stdchrono-單位混用)
-- [#97 誤用 C 的 `rand()`](ch11-standard-library.md#97-誤用-c-的-rand)
-- [#98 `std::endl` 頻繁刷新](ch11-standard-library.md#98-stdendl-頻繁刷新)
-
-### 第 12 章 性能與優化
-- [#99 不必要的拷貝](ch12-performance.md#99-不必要的拷貝)
-- [#100 循環內 `string +=` 重複分配](ch12-performance.md#100-循環內-string--重複分配)
-- [#101 忽視緩存局部性與數據佈局](ch12-performance.md#101-忽視緩存局部性與數據佈局)
-- [#102 未 profiling 的過早優化](ch12-performance.md#102-未-profiling-的過早優化)
-
-### 第 13 章 系統編程與 Linux I/O（平台相關）
-- [#103 epoll ET 模式未循環讀到 `EAGAIN`](ch13-systems-linux-io.md#103-epoll-et-模式未循環讀到-eagain)
-- [#104 `epoll_ctl` 與 `close(fd)` 的競態](ch13-systems-linux-io.md#104-epoll_ctl-與-closefd-的競態)
-- [#105 `epoll_event.data.ptr` 懸垂](ch13-systems-linux-io.md#105-epoll_eventdataptr-懸垂)
-
-## 參考與致謝
-
-本書在**組織形式與選題**上參考了以下資料,但所有正文與代碼均為原創,未逐字抄襲:
-
-- *100 Go Mistakes and How to Avoid Them*, Teiva Harsanyi(章節組織範式)
-- [ISO C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
-- *Effective Modern C++*, Scott Meyers(移動語義、智能指針相關主題)</pre>
-        </div>
-      </div>
-    </details>
-
+      </details>
     <!-- ==================== 第一部分 ==================== -->
     <h2 class="section-title" style="font-size: 20px; color: var(--text-dim); margin-top: 32px; margin-bottom: 16px; border-bottom: none;">第一部分：基礎與內存</h2>
 

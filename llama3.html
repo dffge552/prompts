@@ -199,10 +199,10 @@
         <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
         <a class="nav-item" href="api-ref.html">📖 API 速查</a>
         <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+        <a class="nav-item" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
         <a class="nav-item" href="commands.html">🔧 工作流</a>
         <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
     </aside>
-
     <main class="main">
         <h1 class="page-title">Llama 3 8B <small>8K 上下文 · 參數不可調 · 單次對話</small></h1>
 
@@ -225,7 +225,7 @@
         </div>
 
         <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="🔍 搜尋區塊（例如：1、編譯、競態、層一…）">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋區塊（例如：1、編譯、競態、層一、分段…）">
         </div>
         <div class="no-result" id="noResult">找不到符合的區塊</div>
 
@@ -739,6 +739,52 @@
 - 你給的「最可能塊」有沒有具體的症狀依據？如果只是「看起來複雜」，刪掉。
 - 你給的驗證方式，是不是需要我寫新程式碼才能執行？如果是，換一個更輕量的。</pre>
         </section>
+        </section>
+
+        <section class="block" data-title="第14類 分段輸入 長程式碼 分批貼">
+            <div class="block-header">
+                <span class="block-title">第 14 類：分段輸入（長程式碼分批貼）</span>
+                <div class="btn-group">
+                    <button class="copy-btn" data-target="c14">📋 複製層二</button>
+                    <button class="copy-btn merged-btn" data-target="c14">📋 層一+層二</button>
+                    <button class="copy-btn full-btn" data-target="c14">📋 填空+層一+層二</button>
+                </div>
+            </div>
+            <pre id="c14">【第 14 類：分段輸入協議（同一對話框版）】
+我的程式碼太長，單次貼會超過上下文窗口。我會在同一個對話框分 K 次貼給你。
+
+【重要規則：每一段都只回覆一個「.」，不要分析，不要解釋】
+- 我貼第 1 段到第 K-1 段，你只回覆一個半形句點「.」。
+- 直到我貼最後一段並給出「最終指令」，你才開始分析。
+- 如果你中途開始分析，我會中斷你並重開對話框。
+
+【第 1 段到第 K-1 段的貼法】
+【分段 i/K】
+【範圍：第 X-Y 行】
+【這段在做什麼：（一句話，不確定就說不確定）】
+（貼上該段程式碼）
+
+【最後一段的貼法】
+【分段 K/K（最後一段）】
+【範圍：第 X-Y 行】
+【這段在做什麼：（一句話）】
+（貼上該段程式碼）
+
+【最終指令】
+現在你已經看過全部 K 段。請根據以下目標回答：
+- 目標 A：找出問題在哪（診斷）
+- 目標 B：寫出完整修正版（修復）
+- 目標 C：優化效能（優化）
+
+我這次的目標是：[A / B / C]
+請根據目標，給出對應的回答。
+
+【注意事項】
+- 每段多大由你決定，取決於你的 token 預算。
+- 如果 2-3 段加起來超過 8K 窗口，AI 會忘記第一段。這時候改成「每段開新對話框」。
+- 如果 AI 只回覆「.」，代表它已讀取。你可以繼續貼下一段。
+</pre>
+        </section>
     </main>
 
     <aside class="refpanel" id="refpanel">
@@ -792,6 +838,7 @@
                 <tr><td>卡住了，不知道下一步</td><td class="cat">第 6 類 搜尋引導</td><td>—</td></tr>
                 <tr><td>需要錄製 demo 用於提交</td><td class="cat">第 8 類 錄製確認</td><td>—</td></tr>
                 <tr><td>push 後 CI 沒跑／分數沒更新／看不懂 CI Log</td><td class="cat">第 9 類 CI／Judge</td><td>—</td></tr>
+                <tr><td>程式碼太長，單次貼會爆窗口</td><td class="cat">第 14 類 分段輸入</td><td>爆窗口就改每段新對話框</td></tr>
                 </tbody>
             </table>
 
@@ -825,6 +872,7 @@
             </div>
 
             <h3>考場閉環 SOP（使用順序）</h3>
+            <p>📌 <strong>程式碼太長貼不進去：</strong>用 <strong>第 14 類（分段輸入）</strong>，在同一個對話框分 2-3 次貼。每次貼完，AI 只會回覆一個「.」。最後貼完給「最終指令」，告訴 AI 這次是要診斷、修復還是優化。如果 2-3 段加起來爆窗口，改成每段開新對話框。</p>
             <p>📌 <strong>拿到題目要寫程式碼：</strong>直接用 <strong>第 0-2 類（生成）</strong> 讓它寫出第一版。新對話框。</p>
             <p>📌 <strong>寫程式／編譯：</strong>有紅字用第 1 類；不確定 API 用第 4 類。每個都是新對話框。</p>
             <p>📌 <strong>程式行為不對（進入除錯）：</strong></p>
@@ -1277,6 +1325,34 @@ Self-check:
 - Did you try to analyze code outside the code block list? If yes, delete it.
 - Does your "most likely block" have concrete symptom-based evidence? If it is just "looks complex", delete it.
 - Does your verification method require me to write new code? If yes, replace with something lighter.`
+        },
+        'c14': {
+            fill: `【總段數 K】：[例如 3]
+【這一段是第幾段】：[例如 1/3]
+【這段的範圍】：[例如 第 1-150 行]
+【這段在做什麼】：[一句話，不確定就說不確定]
+
+【這段程式碼】：
+[貼上該段程式碼]`,
+            rules: `[Type 14: Segmented Input Protocol (Same Conversation)]
+My code is too long to fit in one context window. I will paste K segments in the same conversation.
+
+[Priority Override]
+This rule overrides Layer-1 Rule 6 ("Output code only").
+For segments 1 to K-1, reply with ONLY a single "." — not code, not explanation, not pleasantries.
+
+[Critical Rule]
+- For segments 1 to K-1: reply with only a single "." and nothing else.
+- Wait until I paste the last segment and give the "Final Instruction".
+- If you start analyzing mid-way, I will interrupt you and restart the conversation.
+
+[Segment format]
+Segment i/K, lines X-Y.
+
+[Final Instruction format]
+After I paste the last segment and give the Final Instruction, analyze ALL segments together.
+Answer according to the goal I specify (diagnose / fix / optimize).
+End with one line: "Overall analysis confidence: high/medium/low. Uncertain segments: ___"`
         }
     };
 
@@ -1396,7 +1472,7 @@ Self-check:
             const titleAttr = (block.dataset.title || '').toLowerCase();
             const titleText = block.querySelector('.block-title').textContent.toLowerCase();
             const haystack = titleAttr + ' ' + titleText;
-            const matched = q === '' || haystack.includes(q) || (q === '0' && titleText.includes('第 0'));
+            const matched = q === '' || haystack.includes(q) || (q === '0' && titleText.includes('第 0')) || (q === '14' && titleText.includes('第 14'));
             block.style.display = matched ? '' : 'none';
             if (matched) visibleCount++;
         });

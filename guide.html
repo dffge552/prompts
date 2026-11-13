@@ -1,201 +1,201 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>考場不慌指南 — 遇到什麼，打開哪個檔案</title>
-<style>
-  :root {
-    --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
-    --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
-    --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
-    --danger: #ef4444; --success: #22c55e; --warn: #eab308;
-    --purple: #a78bfa; --orange: #f97316;
-    --sidebar-w: 220px;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
-  body {
-    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
-    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.7;
-  }
-  .layout { display: flex; min-height: 100vh; }
-
-  /* 左側欄 */
-  .sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
-    background: var(--sidebar-bg); border-right: 1px solid var(--border);
-    padding: 20px 12px; overflow-y: auto; z-index: 100;
-  }
-  .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
-  .sidebar h2 { font-size: 13px; color: #6b7280; margin: 20px 8px 6px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
-  .nav-item {
-    display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
-    color: var(--text-dim); text-decoration: none; font-size: 15px;
-    transition: background 0.15s, color 0.15s; cursor: pointer;
-  }
-  .nav-item:hover { background: #1f242c; color: var(--text); }
-  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
-
-  /* 主內容 */
-  .main {
-    margin-left: var(--sidebar-w); flex: 1;
-    padding: 32px 48px 100px; max-width: 1000px;
-  }
-  .page-title {
-    font-size: 34px; font-weight: 700; margin: 0 0 8px;
-    padding-bottom: 14px; border-bottom: 2px solid var(--border);
-  }
-  .page-subtitle {
-    color: var(--text-dim); font-size: 17px; margin: 0 0 32px;
-  }
-
-  /* 大區塊 */
-  .section {
-    background: var(--panel-bg); border: 1px solid var(--border);
-    border-radius: 14px; margin-bottom: 28px; overflow: hidden;
-  }
-  .section-header {
-    padding: 18px 24px; background: #1e2229;
-    border-bottom: 1px solid var(--border);
-    font-size: 21px; font-weight: 700;
-    display: flex; align-items: center; gap: 12px;
-  }
-  .section-header .num {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 9px;
-    color: #fff; font-size: 17px; font-weight: 700; flex-shrink: 0;
-  }
-  .section-header .num.blue { background: var(--accent); }
-  .section-header .num.green { background: var(--success); }
-  .section-header .num.orange { background: var(--orange); }
-  .section-header .num.red { background: var(--danger); }
-  .section-header .num.purple { background: var(--purple); }
-  .section-body { padding: 24px; }
-
-  /* 步驟流程 */
-  .steps { display: flex; flex-direction: column; gap: 14px; }
-  .step {
-    display: flex; gap: 16px; align-items: flex-start;
-    padding: 16px 20px; background: #1a1e25; border-radius: 10px;
-    border-left: 4px solid var(--accent-dim);
-  }
-  .step .step-num {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border-radius: 8px;
-    background: var(--accent-dim); color: #fff;
-    font-size: 16px; font-weight: 700; flex-shrink: 0;
-  }
-  .step .step-content { flex: 1; }
-  .step .step-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-  .step .step-desc { font-size: 16px; color: var(--text-dim); line-height: 1.7; }
-  .step .step-desc strong { color: var(--text); }
-  .step .step-desc code {
-    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
-    font-family: "SF Mono", monospace; font-size: 14px; color: #86efac;
-  }
-  .step .file-link {
-    display: inline-block; margin-top: 8px; padding: 6px 14px;
-    background: var(--accent-dim); color: #fff; text-decoration: none;
-    border-radius: 6px; font-size: 15px; font-weight: 600;
-    transition: background 0.15s;
-  }
-  .step .file-link:hover { background: var(--accent); }
-
-  /* 症狀表格 */
-  .symptom-table { width: 100%; border-collapse: collapse; font-size: 16px; }
-  .symptom-table th {
-    text-align: left; padding: 12px 16px;
-    background: #12151a; color: var(--text-dim);
-    font-weight: 600; border-bottom: 2px solid var(--border);
-    font-size: 15px; white-space: nowrap;
-  }
-  .symptom-table td {
-    padding: 14px 16px; border-bottom: 1px solid #262b34;
-    color: var(--text); vertical-align: top;
-  }
-  .symptom-table tr:last-child td { border-bottom: none; }
-  .symptom-table tr:hover td { background: #1f242c; }
-  .symptom-table .symptom { color: var(--text-dim); }
-  .symptom-table .file-link {
-    color: var(--accent); text-decoration: none; font-weight: 700;
-    white-space: nowrap;
-  }
-  .symptom-table .file-link:hover { text-decoration: underline; }
-
-  /* 提示框 */
-  .tip-box {
-    padding: 16px 20px; border-radius: 10px; margin: 16px 0;
-    font-size: 16.5px; line-height: 1.75;
-  }
-  .tip-box.info { background: rgba(79,156,249,0.1); border-left: 4px solid var(--accent); color: var(--text); }
-  .tip-box.warn { background: rgba(234,179,8,0.1); border-left: 4px solid var(--warn); color: #fde047; }
-  .tip-box.danger { background: rgba(239,68,68,0.1); border-left: 4px solid var(--danger); color: #fca5a5; }
-  .tip-box.success { background: rgba(34,197,94,0.1); border-left: 4px solid var(--success); color: #86efac; }
-  .tip-box strong { color: #fff; }
-
-  /* 檔案卡片 */
-  .file-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 14px; margin-top: 16px;
-  }
-  .file-card {
-    background: #1a1e25; border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px 18px;
-  }
-  .file-card .file-name {
-    font-size: 17px; font-weight: 700; color: var(--accent);
-    margin-bottom: 6px; font-family: "SF Mono", monospace;
-  }
-  .file-card .file-desc { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
-
-  /* 鐵律清單 */
-  .rules-list { list-style: none; padding: 0; margin: 0; }
-  .rules-list li {
-    padding: 14px 18px; margin: 10px 0;
-    background: #1a1e25; border-radius: 8px;
-    border-left: 4px solid var(--danger);
-    font-size: 17px; line-height: 1.7;
-  }
-  .rules-list li strong { color: var(--danger); }
-
-  /* 回頂端 */
-  .back-to-top {
-    position: fixed; bottom: 30px; right: 30px;
-    width: 50px; height: 50px; border-radius: 50%;
-    background: var(--accent); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; text-decoration: none; z-index: 200;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    transition: background 0.15s, transform 0.15s;
-  }
-  .back-to-top:hover { background: #3b82f6; transform: translateY(-3px); }
-
-  @media (max-width: 820px) {
-    .sidebar {
-      width: 100%; height: auto; bottom: auto; position: relative;
-      border-right: none; border-bottom: 1px solid var(--border);
-      display: flex; flex-wrap: wrap; padding: 12px;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>考場不慌指南 — 遇到什麼，打開哪個檔案</title>
+  <style>
+    :root {
+      --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+      --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+      --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+      --danger: #ef4444; --success: #22c55e; --warn: #eab308;
+      --purple: #a78bfa; --orange: #f97316;
+      --sidebar-w: 220px;
     }
-    .sidebar h1 { width: 100%; margin-bottom: 8px; }
-    .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
-    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
-    .main { margin-left: 0; padding: 20px 16px 60px; }
-    .page-title { font-size: 26px; }
-    .section-header { font-size: 18px; padding: 14px 16px; }
-    .section-body { padding: 16px; }
-    .symptom-table { font-size: 14px; }
-    .symptom-table th, .symptom-table td { padding: 10px 8px; }
-    .back-to-top { width: 44px; height: 44px; bottom: 20px; right: 20px; }
-  }
-</style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+      background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.7;
+    }
+    .layout { display: flex; min-height: 100vh; }
+
+    /* 左側欄 */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+      background: var(--sidebar-bg); border-right: 1px solid var(--border);
+      padding: 20px 12px; overflow-y: auto; z-index: 100;
+    }
+    .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+    .sidebar h2 { font-size: 13px; color: #6b7280; margin: 20px 8px 6px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+    .nav-item {
+      display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
+      color: var(--text-dim); text-decoration: none; font-size: 15px;
+      transition: background 0.15s, color 0.15s; cursor: pointer;
+    }
+    .nav-item:hover { background: #1f242c; color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+
+    /* 主內容 */
+    .main {
+      margin-left: var(--sidebar-w); flex: 1;
+      padding: 32px 48px 100px; max-width: 1000px;
+    }
+    .page-title {
+      font-size: 34px; font-weight: 700; margin: 0 0 8px;
+      padding-bottom: 14px; border-bottom: 2px solid var(--border);
+    }
+    .page-subtitle {
+      color: var(--text-dim); font-size: 17px; margin: 0 0 32px;
+    }
+
+    /* 大區塊 */
+    .section {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 14px; margin-bottom: 28px; overflow: hidden;
+    }
+    .section-header {
+      padding: 18px 24px; background: #1e2229;
+      border-bottom: 1px solid var(--border);
+      font-size: 21px; font-weight: 700;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-header .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 9px;
+      color: #fff; font-size: 17px; font-weight: 700; flex-shrink: 0;
+    }
+    .section-header .num.blue { background: var(--accent); }
+    .section-header .num.green { background: var(--success); }
+    .section-header .num.orange { background: var(--orange); }
+    .section-header .num.red { background: var(--danger); }
+    .section-header .num.purple { background: var(--purple); }
+    .section-body { padding: 24px; }
+
+    /* 步驟流程 */
+    .steps { display: flex; flex-direction: column; gap: 14px; }
+    .step {
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 16px 20px; background: #1a1e25; border-radius: 10px;
+      border-left: 4px solid var(--accent-dim);
+    }
+    .step .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--accent-dim); color: #fff;
+      font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .step .step-content { flex: 1; }
+    .step .step-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .step .step-desc { font-size: 16px; color: var(--text-dim); line-height: 1.7; }
+    .step .step-desc strong { color: var(--text); }
+    .step .step-desc code {
+      background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+      font-family: "SF Mono", monospace; font-size: 14px; color: #86efac;
+    }
+    .step .file-link {
+      display: inline-block; margin-top: 8px; padding: 6px 14px;
+      background: var(--accent-dim); color: #fff; text-decoration: none;
+      border-radius: 6px; font-size: 15px; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .step .file-link:hover { background: var(--accent); }
+
+    /* 症狀表格 */
+    .symptom-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+    .symptom-table th {
+      text-align: left; padding: 12px 16px;
+      background: #12151a; color: var(--text-dim);
+      font-weight: 600; border-bottom: 2px solid var(--border);
+      font-size: 15px; white-space: nowrap;
+    }
+    .symptom-table td {
+      padding: 14px 16px; border-bottom: 1px solid #262b34;
+      color: var(--text); vertical-align: top;
+    }
+    .symptom-table tr:last-child td { border-bottom: none; }
+    .symptom-table tr:hover td { background: #1f242c; }
+    .symptom-table .symptom { color: var(--text-dim); }
+    .symptom-table .file-link {
+      color: var(--accent); text-decoration: none; font-weight: 700;
+      white-space: nowrap;
+    }
+    .symptom-table .file-link:hover { text-decoration: underline; }
+
+    /* 提示框 */
+    .tip-box {
+      padding: 16px 20px; border-radius: 10px; margin: 16px 0;
+      font-size: 16.5px; line-height: 1.75;
+    }
+    .tip-box.info { background: rgba(79,156,249,0.1); border-left: 4px solid var(--accent); color: var(--text); }
+    .tip-box.warn { background: rgba(234,179,8,0.1); border-left: 4px solid var(--warn); color: #fde047; }
+    .tip-box.danger { background: rgba(239,68,68,0.1); border-left: 4px solid var(--danger); color: #fca5a5; }
+    .tip-box.success { background: rgba(34,197,94,0.1); border-left: 4px solid var(--success); color: #86efac; }
+    .tip-box strong { color: #fff; }
+
+    /* 檔案卡片 */
+    .file-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px; margin-top: 16px;
+    }
+    .file-card {
+      background: #1a1e25; border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px;
+    }
+    .file-card .file-name {
+      font-size: 17px; font-weight: 700; color: var(--accent);
+      margin-bottom: 6px; font-family: "SF Mono", monospace;
+    }
+    .file-card .file-desc { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
+
+    /* 鐵律清單 */
+    .rules-list { list-style: none; padding: 0; margin: 0; }
+    .rules-list li {
+      padding: 14px 18px; margin: 10px 0;
+      background: #1a1e25; border-radius: 8px;
+      border-left: 4px solid var(--danger);
+      font-size: 17px; line-height: 1.7;
+    }
+    .rules-list li strong { color: var(--danger); }
+
+    /* 回頂端 */
+    .back-to-top {
+      position: fixed; bottom: 30px; right: 30px;
+      width: 50px; height: 50px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; text-decoration: none; z-index: 200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .back-to-top:hover { background: #3b82f6; transform: translateY(-3px); }
+
+    @media (max-width: 820px) {
+      .sidebar {
+        width: 100%; height: auto; bottom: auto; position: relative;
+        border-right: none; border-bottom: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; padding: 12px;
+      }
+      .sidebar h1 { width: 100%; margin-bottom: 8px; }
+      .sidebar h2 { width: 100%; margin: 12px 8px 4px; }
+      .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+      .main { margin-left: 0; padding: 20px 16px 60px; }
+      .page-title { font-size: 26px; }
+      .section-header { font-size: 18px; padding: 14px 16px; }
+      .section-body { padding: 16px; }
+      .symptom-table { font-size: 14px; }
+      .symptom-table th, .symptom-table td { padding: 10px 8px; }
+      .back-to-top { width: 44px; height: 44px; bottom: 20px; right: 20px; }
+    }
+  </style>
 </head>
 <body>
 <div class="layout">
 
   <aside class="sidebar">
     <h1>提示詞查閱</h1>
-    <a class="nav-item" href="guide.html">🧭 考場不慌指南</a>
+    <a class="nav-item active" href="guide.html">🧭 考場不慌指南</a>
     <a class="nav-item" href="index.html">考前測試</a>
     <a class="nav-item" href="llama3.html">Llama 3</a>
     <a class="nav-item" href="gemma4.html">Gemma 4</a>
@@ -212,6 +212,7 @@
     <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
     <a class="nav-item" href="api-ref.html">📖 API 速查</a>
     <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+    <a class="nav-item" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
     <a class="nav-item" href="commands.html">🔧 工作流</a>
     <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
   </aside>
@@ -280,73 +281,78 @@
       <div class="section-body">
         <table class="symptom-table">
           <thead>
-            <tr>
-              <th style="width: 55%;">你現在的情況</th>
-              <th style="width: 25%;">打開這個</th>
-              <th style="width: 20%;">用途</th>
-            </tr>
+          <tr>
+            <th style="width: 55%;">你現在的情況</th>
+            <th style="width: 25%;">打開這個</th>
+            <th style="width: 20%;">用途</th>
+          </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="symptom">不知道問題屬於哪一類，需要對照表</td>
-              <td><a class="file-link" href="trigger.html">trigger.html</a></td>
-              <td>症狀 → 第幾類模板</td>
-            </tr>
-            <tr>
-              <td class="symptom">編譯器報錯、連結錯誤、Segfault、double free</td>
-              <td><a class="file-link" href="linux-errors.html">linux-errors.html</a></td>
-              <td>Linux 錯誤速查</td>
-            </tr>
-            <tr>
-              <td class="symptom">C/C++ 邏輯錯誤、記憶體問題、併發問題</td>
-              <td><a class="file-link" href="cheatsheet.html">cheatsheet.html</a></td>
-              <td>105 條典型錯誤</td>
-            </tr>
-            <tr>
-              <td class="symptom">程式太慢、TLE、複雜度估錯</td>
-              <td><a class="file-link" href="optimization.html">optimization.html</a></td>
-              <td>防超時 + 複雜度估算器</td>
-            </tr>
-            <tr>
-              <td class="symptom">位元運算、pthread、DMA、ROS2 CLI</td>
-              <td><a class="file-link" href="systems-c.html">systems-c.html</a></td>
-              <td>系統程式四大主題</td>
-            </tr>
-            <tr>
-              <td class="symptom">Python 語法、縮排、型別、超時錯誤</td>
-              <td><a class="file-link" href="python-errors.html">python-errors.html</a></td>
-              <td>18 種 Python 常見錯誤</td>
-            </tr>
-            <tr>
-              <td class="symptom">需要多執行緒、生產者消費者、PIO、ROS2 骨架</td>
-              <td><a class="file-link" href="techniques.html">techniques.html</a></td>
-              <td>六大板塊完整骨架</td>
-            </tr>
-            <tr>
-              <td class="symptom">想猜題、看學長血淚經驗、位元打包、QoS 陷阱</td>
-              <td><a class="file-link" href="guessing.html">guessing.html</a></td>
-              <td>猜題專區 + 生存指南</td>
-            </tr>
-            <tr>
-              <td class="symptom">需要編譯指令、Git 指令、版本備份</td>
-              <td><a class="file-link" href="commands.html">commands.html</a></td>
-              <td>指令總表 + 版本備份</td>
-            </tr>
-            <tr>
-              <td class="symptom">提示詞太長，怕超過 8K</td>
-              <td><a class="file-link" href="token-counter.html">token-counter.html</a></td>
-              <td>即時計算 token 數</td>
-            </tr>
-            <tr>
-              <td class="symptom">要貼提示詞給 AI，但不知道用哪一類</td>
-              <td><a class="file-link" href="llama3.html">llama3.html</a>（預設）</td>
-              <td>13 類模板 + 填空複製</td>
-            </tr>
-            <tr>
-              <td class="symptom">確定模型很強，想用進階模板</td>
-              <td><a class="file-link" href="midhigh.html">midhigh.html</a></td>
-              <td>中高端模型模板</td>
-            </tr>
+          <tr>
+            <td class="symptom">不知道問題屬於哪一類，需要對照表</td>
+            <td><a class="file-link" href="trigger.html">trigger.html</a></td>
+            <td>症狀 → 第幾類模板</td>
+          </tr>
+          <tr>
+            <td class="symptom">編譯器報錯、連結錯誤、Segfault、double free</td>
+            <td><a class="file-link" href="linux-errors.html">linux-errors.html</a></td>
+            <td>Linux 錯誤速查</td>
+          </tr>
+          <tr>
+            <td class="symptom">C/C++ 邏輯錯誤、記憶體問題、併發問題</td>
+            <td><a class="file-link" href="cheatsheet.html">cheatsheet.html</a></td>
+            <td>105 條典型錯誤</td>
+          </tr>
+          <tr>
+            <td class="symptom">程式太慢、TLE、複雜度估錯</td>
+            <td><a class="file-link" href="optimization.html">optimization.html</a></td>
+            <td>防超時 + 複雜度估算器</td>
+          </tr>
+          <tr>
+            <td class="symptom">位元運算、pthread、DMA、ROS2 CLI</td>
+            <td><a class="file-link" href="systems-c.html">systems-c.html</a></td>
+            <td>系統程式四大主題</td>
+          </tr>
+          <tr>
+            <td class="symptom">Python 語法、縮排、型別、超時錯誤</td>
+            <td><a class="file-link" href="python-errors.html">python-errors.html</a></td>
+            <td>18 種 Python 常見錯誤</td>
+          </tr>
+          <tr>
+            <td class="symptom">需要多執行緒、生產者消費者、PIO、ROS2 骨架</td>
+            <td><a class="file-link" href="techniques.html">techniques.html</a></td>
+            <td>六大板塊完整骨架</td>
+          </tr>
+          <tr>
+            <td class="symptom">想猜題、看學長血淚經驗、位元打包、QoS 陷阱</td>
+            <td><a class="file-link" href="guessing.html">guessing.html</a></td>
+            <td>猜題專區 + 生存指南</td>
+          </tr>
+          <tr>
+            <td class="symptom">Git push 被擋、Pipeline 卡住、不知道怎麼交卷</td>
+            <td><a class="file-link" href="gitlab-guide.html">gitlab-guide.html</a></td>
+            <td>GitLab 考場生存 SOP</td>
+          </tr>
+          <tr>
+            <td class="symptom">需要編譯指令、Git 指令、版本備份</td>
+            <td><a class="file-link" href="commands.html">commands.html</a></td>
+            <td>指令總表 + 版本備份</td>
+          </tr>
+          <tr>
+            <td class="symptom">提示詞太長，怕超過 8K</td>
+            <td><a class="file-link" href="token-counter.html">token-counter.html</a></td>
+            <td>即時計算 token 數</td>
+          </tr>
+          <tr>
+            <td class="symptom">要貼提示詞給 AI，但不知道用哪一類</td>
+            <td><a class="file-link" href="llama3.html">llama3.html</a>（預設）</td>
+            <td>13 類模板 + 填空複製</td>
+          </tr>
+          <tr>
+            <td class="symptom">確定模型很強，想用進階模板</td>
+            <td><a class="file-link" href="midhigh.html">midhigh.html</a></td>
+            <td>中高端模型模板</td>
+          </tr>
           </tbody>
         </table>
 
@@ -408,7 +414,8 @@
             <div class="step-content">
               <div class="step-title">提交階段</div>
               <div class="step-desc">
-                Git 指令 → <a href="commands.html" style="color:var(--accent);">commands.html</a><br>
+                提交代碼 → <a href="gitlab-guide.html" style="color:var(--accent);">gitlab-guide.html</a>（看 SOP、避開陷阱）<br>
+                需要更多指令 → <a href="commands.html" style="color:var(--accent);">commands.html</a><br>
                 OJ 策略 → <a href="guessing.html" style="color:var(--accent);">guessing.html</a>
               </div>
             </div>
@@ -515,6 +522,10 @@
           <div class="file-card">
             <div class="file-name">guessing.html</div>
             <div class="file-desc">學長生存指南、位元打包、QoS、DMA 陷阱。</div>
+          </div>
+          <div class="file-card">
+            <div class="file-name">gitlab-guide.html</div>
+            <div class="file-desc">GitLab 考場生存：五大陷阱、無腦 SOP、伺服器網址替換。</div>
           </div>
           <div class="file-card">
             <div class="file-name">commands.html</div>

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitLab 考場生存指南</title>
+<style>
+  :root {
+    --bg: #1a1d23; --sidebar-bg: #14171c; --panel-bg: #23272f;
+    --pre-bg: #12151a; --border: #2e333d; --text: #e6e8ec;
+    --text-dim: #9aa1ad; --accent: #4f9cf9; --accent-dim: #2c5a94;
+    --danger: #ef4444; --success: #22c55e; --warn: #eab308;
+    --sidebar-w: 220px; --refpanel-w: 340px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+    background: var(--sidebar-bg); border-right: 1px solid var(--border);
+    padding: 20px 12px; overflow-y: auto; z-index: 100;
+  }
+  .sidebar h1 { font-size: 16px; color: var(--text-dim); margin: 0 8px 16px; letter-spacing: 1px; font-weight: 600; }
+  .nav-item {
+    display: block; padding: 8px 14px; margin: 2px 0; border-radius: 8px;
+    color: var(--text-dim); text-decoration: none; font-size: 15px;
+    transition: background 0.15s, color 0.15s; cursor: pointer;
+  }
+  .nav-item:hover { background: #1f242c; color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: #fff; font-weight: 600; }
+  .main { margin-left: var(--sidebar-w); margin-right: var(--refpanel-w); flex: 1; padding: 28px 40px 80px; max-width: 1000px; }
+  .page-title { font-size: 30px; font-weight: 700; margin: 0 0 8px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .page-subtitle { color: var(--text-dim); font-size: 16px; margin: 0 0 24px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+
+  /* 設定輸入區 */
+  .config-bar {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 20px 22px; background: linear-gradient(135deg, #1e2a3a, #1e2229);
+    border: 2px solid var(--accent); border-radius: 12px; margin-bottom: 28px;
+  }
+  .config-row {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .config-row .label {
+    font-size: 15px; font-weight: 700; color: var(--accent);
+    white-space: nowrap; min-width: 130px;
+  }
+  .config-row input {
+    flex: 1; min-width: 220px; padding: 10px 16px;
+    background: var(--pre-bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 16px;
+    font-family: "SF Mono", "Consolas", monospace;
+  }
+  .config-row input:focus { outline: none; border-color: var(--accent); }
+  .config-row .reset-btn {
+    padding: 8px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 13px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .config-row .reset-btn:hover { border-color: var(--accent); color: var(--text); }
+  .config-hint {
+    font-size: 13px; color: var(--text-dim); line-height: 1.6;
+  }
+  .config-hint code {
+    background: var(--pre-bg); padding: 1px 5px; border-radius: 3px;
+    font-family: "SF Mono", monospace; font-size: 12px;
+  }
+
+  /* 區塊 */
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .section-title:first-of-type { margin-top: 0; }
+
+  /* 陷阱卡片 */
+  .trap-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-left: 5px solid var(--danger); border-radius: 12px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .trap-card .trap-header {
+    padding: 14px 20px; background: rgba(239,68,68,0.1);
+    border-bottom: 1px solid var(--border);
+    font-size: 17px; font-weight: 700; color: #fca5a5;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .trap-card .trap-header .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--danger); color: #fff; font-size: 15px; flex-shrink: 0;
+  }
+  .trap-card .trap-body { padding: 18px 20px; }
+  .trap-row { margin-bottom: 14px; }
+  .trap-row:last-child { margin-bottom: 0; }
+  .trap-label {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .trap-label.trap { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .trap-label.result { background: rgba(234,179,8,0.2); color: #fde047; }
+  .trap-label.fix { background: rgba(34,197,94,0.2); color: #86efac; }
+  .trap-content { font-size: 16px; color: var(--text); line-height: 1.7; }
+  .trap-content code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; font-size: 14px; color: #d4d8de;
+  }
+
+  /* 指令區塊 */
+  .cmd-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+  }
+  .cmd-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px; background: #1e2229;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700; color: var(--accent);
+  }
+  .cmd-header .copy-btn {
+    padding: 6px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); font-size: 14px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .cmd-header .copy-btn:hover { border-color: var(--accent); color: var(--text); }
+  .cmd-header .copy-btn.copied { background: var(--success); border-color: var(--success); color: #fff; }
+  .cmd-card pre {
+    margin: 0; padding: 16px 20px; background: var(--pre-bg);
+    font-family: "SF Mono", "Consolas", monospace;
+    font-size: 14.5px; line-height: 1.7; color: #86efac;
+    white-space: pre-wrap; word-wrap: break-word; overflow-x: auto;
+  }
+  .cmd-card pre .cmt { color: #6b7280; }
+  .cmd-card pre .kw { color: #fca5a5; }
+  .cmd-card pre .str { color: #fde047; }
+  .cmd-card pre .proj { color: #93c5fd; font-weight: 700; }
+  .cmd-card pre .srv { color: #f0abfc; font-weight: 700; }
+
+  /* 正常 vs 錯誤 對照表 */
+  .judge-table {
+    width: 100%; border-collapse: collapse; font-size: 14.5px;
+  }
+  .judge-table th {
+    text-align: left; padding: 10px 14px;
+    background: #12151a; color: var(--text-dim);
+    font-weight: 600; border-bottom: 2px solid var(--border);
+    font-size: 14px;
+  }
+  .judge-table td {
+    padding: 12px 14px; border-bottom: 1px solid #262b34;
+    vertical-align: top; line-height: 1.6;
+  }
+  .judge-table tr:last-child td { border-bottom: none; }
+  .judge-table td:first-child {
+    font-family: "SF Mono", monospace; color: #93c5fd;
+    font-size: 13.5px; white-space: nowrap; width: 18%;
+  }
+  .judge-table .ok { color: #86efac; }
+  .judge-table .bad { color: #fca5a5; }
+  .judge-table .ok-label, .judge-table .bad-label {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    padding: 1px 7px; border-radius: 4px; margin-right: 6px;
+  }
+  .judge-table .ok-label { background: rgba(34,197,94,0.2); color: #86efac; }
+  .judge-table .bad-label { background: rgba(239,68,68,0.2); color: #fca5a5; }
+  .judge-table code {
+    background: var(--pre-bg); padding: 1px 5px; border-radius: 3px;
+    font-family: "SF Mono", monospace; font-size: 13px; color: #d4d8de;
+  }
+
+  /* 提示框 */
+  .tip-box {
+    padding: 14px 18px; border-radius: 10px; margin: 16px 0;
+    font-size: 16px; line-height: 1.75;
+  }
+  .tip-box.info { background: rgba(79,156,249,0.1); border-left: 4px solid var(--accent); color: var(--text); }
+  .tip-box.warn { background: rgba(234,179,8,0.1); border-left: 4px solid var(--warn); color: #fde047; }
+  .tip-box.danger { background: rgba(239,68,68,0.1); border-left: 4px solid var(--danger); color: #fca5a5; }
+  .tip-box.success { background: rgba(34,197,94,0.1); border-left: 4px solid var(--success); color: #86efac; }
+  .tip-box strong { color: #fff; }
+
+  /* 右側說明欄 */
+  .refpanel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--refpanel-w);
+    background: var(--sidebar-bg); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 90;
+  }
+  .refpanel-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .refpanel-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .refpanel-body { flex: 1; overflow-y: auto; padding: 18px; font-size: 14.5px; line-height: 1.7; }
+  .refpanel-body h3 {
+    font-size: 15px; color: var(--accent); margin: 20px 0 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 700;
+  }
+  .refpanel-body h3:first-child { margin-top: 0; }
+  .refpanel-body p { margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body ul { padding-left: 20px; margin: 8px 0; color: var(--text-dim); }
+  .refpanel-body li { margin-bottom: 6px; }
+  .refpanel-body code {
+    background: var(--pre-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", monospace; color: #86efac; font-size: 13px;
+  }
+  .refpanel-body .highlight { color: var(--warn); font-weight: bold; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success); color: #fff; padding: 12px 28px;
+    border-radius: 10px; font-size: 16px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 1200px) {
+    .main { margin-right: 0; }
+    .refpanel { position: static; width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    .refpanel-body { overflow-y: visible; }
+  }
+  @media (max-width: 820px) {
+    .sidebar {
+      width: 100%; height: auto; bottom: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; padding: 12px;
+    }
+    .sidebar h1 { width: 100%; margin-bottom: 8px; }
+    .nav-item { padding: 6px 12px; font-size: 14px; margin: 2px; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .judge-table { font-size: 13px; }
+    .judge-table td:first-child { width: auto; }
+    .config-row .label { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>提示詞查閱</h1>
+    <a class="nav-item" href="guide.html">🧭 考場不慌指南</a>
+    <a class="nav-item" href="index.html">考前測試</a>
+    <a class="nav-item" href="llama3.html">Llama 3</a>
+    <a class="nav-item" href="gemma4.html">Gemma 4</a>
+    <a class="nav-item" href="mistral.html">Mistral Medium 3.5</a>
+    <a class="nav-item" href="gptoss.html">gpt-oss-120b</a>
+    <a class="nav-item" href="muse.html">Muse</a>
+    <a class="nav-item" href="midhigh.html">中高端模型</a>
+    <a class="nav-item" href="trigger.html">觸發詞對照表</a>
+    <a class="nav-item" href="cheatsheet.html">📚 C/C++ 錯誤百科</a>
+    <a class="nav-item" href="linux-errors.html">🐧 Linux 錯誤百科</a>
+    <a class="nav-item" href="optimization.html">⚡ C 優化與防超時</a>
+    <a class="nav-item" href="systems-c.html">🔩 C 系統程式速查</a>
+    <a class="nav-item" href="python-errors.html">🐍 Python 錯誤百科</a>
+    <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
+    <a class="nav-item" href="api-ref.html">📖 API 速查</a>
+    <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+    <a class="nav-item active" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
+    <a class="nav-item" href="commands.html">🔧 工作流</a>
+    <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
+  </aside>
+
+  <main class="main">
+    <h1 class="page-title">🚀 GitLab 考場生存指南</h1>
+    <p class="page-subtitle">
+      進考場先把伺服器網址和專案名稱填進去，底下所有指令會自動替換。照著做，不要碰分支、不要碰 Merge。
+    </p>
+
+    <!-- 設定輸入區 -->
+    <div class="config-bar">
+      <div class="config-row">
+        <span class="label">🌐 伺服器網址：</span>
+        <input type="text" id="serverUrl" placeholder="http://srecruit.csie.ncku.edu.tw:8000" value="http://srecruit.csie.ncku.edu.tw:8000">
+        <button class="reset-btn" id="resetServer">恢復預設</button>
+      </div>
+      <div class="config-row">
+        <span class="label">📁 專案名稱：</span>
+        <input type="text" id="projectName" placeholder="例如：srecruit-demo 或 team01-task1" value="">
+      </div>
+      <div class="config-hint">
+        填入後，底下所有指令的伺服器網址和專案名稱會自動替換。<br>
+        伺服器網址預設是 <code>http://srecruit.csie.ncku.edu.tw:8000</code>，如果考場換了伺服器，改上面那格就好。
+      </div>
+    </div>
+
+    <!-- ==================== 無腦 SOP（最常用，放最上面） ==================== -->
+    <h2 class="section-title">💡 考場無腦單線程 SOP（最常用，先看這個）</h2>
+
+    <div class="tip-box success">
+      <strong>明天考試，請徹底忘記 Git 的所有進階功能（分支、合併、Rebase、Web IDE）。</strong><br><br>
+      你只要做這三件事：
+    </div>
+
+    <div class="cmd-card" style="border-color: var(--success); border-width: 2px;">
+      <div class="cmd-header" style="background: rgba(34,197,94,0.15); color: #86efac;">
+        <span>三步驟完成一次提交（最常用）</span>
+        <button class="copy-btn" data-target="cmd-sop">📋 複製</button>
+      </div>
+      <pre id="cmd-sop"><span class="cmt"># 步驟 1：在本地編輯器改好 Code，確認 gcc 編譯通過</span>
+gcc main.c -o main -pthread
+
+<span class="cmt"># 步驟 2：貼上這行（一鍵提交）</span>
+git add . && git commit -m <span class="str">"update"</span> && git push origin main
+
+<span class="cmt"># 步驟 3：去 GitLab 看 Build → Pipelines</span>
+<span class="cmt"># 變綠 = 拿分，變紅 = 點進去看 Log 找 Bug</span>
+<span class="cmt"># 如果終端機 Push 被擋（403），立刻改用網頁版 Edit → Commit changes</span></pre>
+    </div>
+
+    <div class="tip-box danger">
+      <strong>🛑 絕對不要做的事：</strong><br>
+      • 不要開新分支<br>
+      • 不要用 Merge Request<br>
+      • 不要 Pipeline 還在跑的時候又 Push<br>
+      • 不要在本地沒編譯過就 Push<br>
+      • 不要亂打 commit message（先看 README.md 有沒有規定）
+    </div>
+
+    <!-- ==================== 核心通關指令 ==================== -->
+    <h2 class="section-title">🚀 核心通關指令（考場 99% 會用到）</h2>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>1. 獲取專案與初始化</span>
+        <button class="copy-btn" data-target="cmd-clone">📋 複製</button>
+      </div>
+      <pre id="cmd-clone"><span class="cmt"># 把考場專案下載到本地（考場會給你專屬網址）</span>
+git clone <span class="srv">http://srecruit.csie.ncku.edu.tw:8000</span>/demo/<span class="proj">&lt;你的專案名稱&gt;</span>.git
+<span class="kw">cd</span> <span class="proj">&lt;你的專案名稱&gt;</span>
+
+<span class="cmt"># ⚠️ 如果你是自己建資料夾，或是用 ZIP 解壓縮，才需要這幾行：</span>
+<span class="cmt"># git init</span>
+<span class="cmt"># git remote add origin <span class="srv">http://srecruit.csie.ncku.edu.tw:8000</span>/demo/<span class="proj">&lt;你的專案名稱&gt;</span>.git</span>
+<span class="cmt"># git pull origin main</span></pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>2. 提交與推送（一鍵連招）</span>
+        <button class="copy-btn" data-target="cmd-push">📋 複製</button>
+      </div>
+      <pre id="cmd-push"><span class="cmt"># 將所有修改加入暫存區</span>
+git add .
+
+<span class="cmt"># 建立提交紀錄（考場若有規定特定字眼，把 "update" 改成規定的字，如 "task1"）</span>
+git commit -m <span class="str">"update"</span>
+
+<span class="cmt"># 推送到考場伺服器</span>
+git push origin main
+
+<span class="cmt"># 如果你在 master 分支，請用：</span>
+<span class="cmt"># git push origin master:main</span></pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>3. 救命設定：讓 Git 記住帳號密碼</span>
+        <button class="copy-btn" data-target="cmd-cred">📋 複製</button>
+      </div>
+      <pre id="cmd-cred"><span class="cmt"># 進考場先打這行，輸入一次帳密後，之後 push 就免輸入</span>
+git config --global credential.helper store</pre>
+    </div>
+
+    <!-- ==================== 緊急救援指令 ==================== -->
+    <h2 class="section-title">🚨 緊急救援指令</h2>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>1. 改爛了，想退回上一個版本</span>
+        <button class="copy-btn" data-target="cmd-revert">📋 複製</button>
+      </div>
+      <pre id="cmd-revert"><span class="cmt"># 放棄目前所有「還沒 commit」的修改（適合改到一半發現全錯）</span>
+git checkout -- .
+
+<span class="cmt"># 查看過去的 commit 紀錄，準備回滾</span>
+git log --oneline</pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>2. 遇到「Unencrypted HTTP is not supported」或憑證錯誤</span>
+        <button class="copy-btn" data-target="cmd-ssl">📋 複製</button>
+      </div>
+      <pre id="cmd-ssl"><span class="cmt"># 考場用 HTTP 而非 HTTPS，Git 覺得不安全，先關掉驗證</span>
+git config --global http.sslVerify false</pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>3. 遇到「remote origin already exists」</span>
+        <button class="copy-btn" data-target="cmd-remote">📋 複製</button>
+      </div>
+      <pre id="cmd-remote"><span class="cmt"># 代表你之前已經設定過 origin，先刪除再重新加</span>
+git remote remove origin
+git remote add origin <span class="srv">http://srecruit.csie.ncku.edu.tw:8000</span>/demo/<span class="proj">&lt;你的專案名稱&gt;</span>.git</pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>4. 考場換了伺服器網址，要把 remote 改成新的</span>
+        <button class="copy-btn" data-target="cmd-seturl">📋 複製</button>
+      </div>
+      <pre id="cmd-seturl"><span class="cmt"># 不用刪掉 remote，直接改網址就好</span>
+git remote set-url origin <span class="srv">http://srecruit.csie.ncku.edu.tw:8000</span>/demo/<span class="proj">&lt;你的專案名稱&gt;</span>.git
+
+<span class="cmt"># 改完確認一下</span>
+git remote -v</pre>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>5. 遇到「not a git repository」</span>
+        <button class="copy-btn" data-target="cmd-notrepo">📋 複製</button>
+      </div>
+      <pre id="cmd-notrepo"><span class="cmt"># 確認你在正確的資料夾</span>
+<span class="kw">pwd</span>    <span class="cmt"># 看自己在哪</span>
+<span class="kw">ls -a</span>  <span class="cmt"># 看有沒有 .git 資料夾</span></pre>
+    </div>
+
+    <!-- ==================== 考場環境測試（正常 vs 錯誤） ==================== -->
+    <h2 class="section-title">🔍 考場環境測試（進考場先打）</h2>
+
+    <div class="cmd-card">
+      <div class="cmd-header">
+        <span>確認環境與分支</span>
+        <button class="copy-btn" data-target="cmd-env">📋 複製</button>
+      </div>
+      <pre id="cmd-env"><span class="cmt"># 確認編譯器版本</span>
+gcc --version
+g++ --version
+python3 --version
+
+<span class="cmt"># 確認你在哪個分支（一定要在 main 或 master）</span>
+git branch
+
+<span class="cmt"># 確認遠端伺服器狀態</span>
+git remote -v
+
+<span class="cmt"># 測試網路通不通</span>
+curl -I https://man7.org</pre>
+    </div>
+
+    <div class="tip-box info">
+      <strong>💡 打完後看什麼：</strong>下面這張表列出每個指令的「正常輸出」與「錯誤輸出」。看到錯誤，照「怎麼修」那欄做。
+    </div>
+
+    <div class="cmd-card" style="border-color: var(--accent);">
+      <div class="cmd-header" style="background: rgba(79,156,249,0.1);">
+        <span>判斷標準：正常 vs 錯誤</span>
+      </div>
+      <div style="padding: 0;">
+        <table class="judge-table">
+          <thead>
+            <tr>
+              <th style="width: 18%;">指令</th>
+              <th style="width: 32%;">✅ 正常長這樣</th>
+              <th style="width: 32%;">❌ 錯誤長這樣</th>
+              <th style="width: 18%;">怎麼修</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>gcc --version</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                第一行有版本號，例如：<br>
+                <code>gcc (Ubuntu 11.4.0) 11.4.0</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤</span>
+                <code>command not found</code><br>
+                或 <code>gcc: not found</code>
+              </td>
+              <td>環境沒裝 gcc，<strong>立刻舉手問助教</strong>。</td>
+            </tr>
+            <tr>
+              <td><code>g++ --version</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                第一行有版本號，例如：<br>
+                <code>g++ (Ubuntu 11.4.0) 11.4.0</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤</span>
+                <code>command not found</code>
+              </td>
+              <td>如果題目是純 C 就沒差；如果是 C++ 就舉手。</td>
+            </tr>
+            <tr>
+              <td><code>python3 --version</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                <code>Python 3.10.x</code> 或 <code>3.12.x</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤</span>
+                <code>command not found</code>
+              </td>
+              <td>純 C 考場沒差；如果有 Python 題就舉手。</td>
+            </tr>
+            <tr>
+              <td><code>git branch</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                只有一行，前面有 <code>*</code>，且是 <code>main</code> 或 <code>master</code>：<br>
+                <code>* main</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤</span>
+                出現多個分支，或 <code>*</code> 不在 main 上：<br>
+                <code>&nbsp;&nbsp;develop</code><br>
+                <code>* feature/task1</code><br>
+                <code>&nbsp;&nbsp;main</code>
+              </td>
+              <td>打 <code>git checkout main</code> 切回 main。</td>
+            </tr>
+            <tr>
+              <td><code>git remote -v</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                兩行，<code>origin</code> 後面接考場網址：<br>
+                <code>origin&nbsp;&nbsp;http://srecruit.csie.ncku.edu.tw:8000/demo/xxx.git (fetch)</code><br>
+                <code>origin&nbsp;&nbsp;http://srecruit.csie.ncku.edu.tw:8000/demo/xxx.git (push)</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤 A</span>
+                完全空白（沒設遠端）<br>
+                <span class="bad-label" style="margin-top:6px;">錯誤 B</span>
+                網址是 GitHub 或錯的伺服器
+              </td>
+              <td>
+                A：<code>git remote add origin &lt;考場網址&gt;</code><br>
+                B：<code>git remote set-url origin &lt;正確網址&gt;</code>
+              </td>
+            </tr>
+            <tr>
+              <td><code>curl -I https://man7.org</code></td>
+              <td class="ok">
+                <span class="ok-label">正常</span>
+                第一行有 <code>HTTP/2 200</code> 或 <code>HTTP/1.1 200 OK</code>
+              </td>
+              <td class="bad">
+                <span class="bad-label">錯誤</span>
+                <code>Could not resolve host</code><br>
+                或 <code>Connection timed out</code>
+              </td>
+              <td><strong>不影響提交</strong>。考場常封鎖對外網路，GitLab 是內網，所以 curl 失敗不用管。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tip-box success">
+      <strong>✅ 一句話總結：</strong>打完五個指令，你只需要確認三件事：<br>
+      ① <code>gcc --version</code> 有版本號（沒裝就舉手）<br>
+      ② <code>git branch</code> 的 <code>*</code> 在 <code>main</code> 上（不在就 <code>git checkout main</code>）<br>
+      ③ <code>git remote -v</code> 有考場網址（沒有就 <code>git remote add origin &lt;網址&gt;</code>）<br>
+      <strong>curl 失敗不用管</strong>，那是測對外網路，跟提交無關。
+    </div>
+
+    <!-- ==================== 5 大陷阱 ==================== -->
+    <h2 class="section-title">🚨 GitLab 考場 5 大必踩陷阱</h2>
+
+    <div class="trap-card">
+      <div class="trap-header">
+        <span class="num">1</span>
+        亂切分支與合併（Merge / Branch）
+      </div>
+      <div class="trap-body">
+        <div class="trap-row">
+          <div class="trap-label trap">❌ 陷阱</div>
+          <div class="trap-content">以為要開新分支才能改 Code，或者想用 Merge Request 合併。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label result">💥 後果</div>
+          <div class="trap-content">遇到 Merge Conflict，考場的爛 AI 絕對幫不了你，直接卡死。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label fix">✅ 解法</div>
+          <div class="trap-content">確認只有一個 <code>main</code> 分支（且是 default 和 protected），永遠只在 main 上無腦 Push。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trap-card">
+      <div class="trap-header">
+        <span class="num">2</span>
+        重複 Push 導致評測被取消
+      </div>
+      <div class="trap-body">
+        <div class="trap-row">
+          <div class="trap-label trap">❌ 陷阱</div>
+          <div class="trap-content">等不及 Pipeline 跑完，或者發現寫錯，立刻再 Push 一次。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label result">💥 後果</div>
+          <div class="trap-content">學長血淚警告，前一個評測會被 Canceled，兩頭空。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label fix">✅ 解法</div>
+          <div class="trap-content">Push 完，去 <code>Build → Pipelines</code> 看狀態。如果還在轉圈圈，<strong>絕對不要再 Push</strong>。等它跑完（綠或紅），再決定下一步。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trap-card">
+      <div class="trap-header">
+        <span class="num">3</span>
+        終端機 Push 權限不足（Protected Branch）
+      </div>
+      <div class="trap-body">
+        <div class="trap-row">
+          <div class="trap-label trap">❌ 陷阱</div>
+          <div class="trap-content">main 分支被設為 protected，你 <code>git push</code> 直接被 403 Forbidden 擋下。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label result">💥 後果</div>
+          <div class="trap-content">卡在終端機，浪費時間找原因。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label fix">✅ 解法</div>
+          <div class="trap-content">直接去 GitLab 網頁上點擊檔案 → <code>Edit</code> → <code>Commit changes</code>。這招可以繞過終端機的權限限制，直接觸發 Pipeline。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trap-card">
+      <div class="trap-header">
+        <span class="num">4</span>
+        本地測試沒過就亂 Push
+      </div>
+      <div class="trap-body">
+        <div class="trap-row">
+          <div class="trap-label trap">❌ 陷阱</div>
+          <div class="trap-content">改完 Code 沒在本地跑過，直接推上去。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label result">💥 後果</div>
+          <div class="trap-content">Pipeline 塞車（可能要排隊 10 分鐘），結果跑出來是紅色的，你又要重新排隊。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label fix">✅ 解法</div>
+          <div class="trap-content">Push 前，一定要在終端機 <code>gcc</code> 編譯過、跑過測試。確定邏輯無誤，才 Commit。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trap-card">
+      <div class="trap-header">
+        <span class="num">5</span>
+        Commit Message 亂打
+      </div>
+      <div class="trap-body">
+        <div class="trap-row">
+          <div class="trap-label trap">❌ 陷阱</div>
+          <div class="trap-content">系統規定 commit message 要打 <code>task1</code> 才能觸發對應的評測，你打了 <code>update</code>。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label result">💥 後果</div>
+          <div class="trap-content">Pipeline 跑了，但系統找不到要評測哪一題，直接報錯。</div>
+        </div>
+        <div class="trap-row">
+          <div class="trap-label fix">✅ 解法</div>
+          <div class="trap-content">進考場第一件事就是看 <code>README.md</code>。如果有規定，就在 commit 時打上正確的字。</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 右側說明欄 -->
+  <aside class="refpanel">
+    <div class="refpanel-header">
+      <div class="refpanel-title">📖 考場生存速記</div>
+    </div>
+    <div class="refpanel-body">
+      <h3>🚀 進考場第一步</h3>
+      <ul>
+        <li>看 <code>README.md</code> 有沒有規定 commit message</li>
+        <li>確認只有 <code>main</code> 一個分支</li>
+        <li>打 <code>git config --global credential.helper store</code></li>
+        <li>打 <code>gcc --version</code> 確認環境</li>
+      </ul>
+
+      <h3>🔥 五大陷阱速記</h3>
+      <ul>
+        <li><strong>不要開分支</strong>：永遠只在 main 上 Push</li>
+        <li><strong>不要重複 Push</strong>：Pipeline 跑完再決定</li>
+        <li><strong>403 被擋</strong>：改用網頁 Edit → Commit</li>
+        <li><strong>本地先編譯</strong>：gcc 過了才 Push</li>
+        <li><strong>commit message</strong>：先看 README 有沒有規定</li>
+      </ul>
+
+      <h3>🆘 卡住時的三招</h3>
+      <ul>
+        <li><strong>改爛了</strong>：<code>git checkout -- .</code></li>
+        <li><strong>SSL 錯誤</strong>：<code>git config --global http.sslVerify false</code></li>
+        <li><strong>換伺服器</strong>：<code>git remote set-url origin &lt;新網址&gt;</code></li>
+      </ul>
+
+      <h3>📌 考場鐵律</h3>
+      <ul>
+        <li>Pipeline 綠色 = 拿分</li>
+        <li>Pipeline 紅色 = 點進去看 Log</li>
+        <li>Pipeline 轉圈圈 = 絕對不要動</li>
+        <li>終端機 Push 被擋 = 改用網頁版</li>
+      </ul>
+
+      <h3>🤖 求救 Prompt 範例</h3>
+      <p>如果 Git 報錯看不懂，把這段丟給考場 AI：</p>
+      <p style="background: var(--pre-bg); padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid var(--border);">
+        「我在考場用 GitLab 提交程式碼，遇到以下錯誤：（貼上錯誤訊息）。我的操作是：（描述你做了什麼）。請告訴我：1. 這是什麼錯誤？2. 我該打什麼指令解決？3. 有沒有更安全的替代做法？」
+      </p>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">✅ 已複製</div>
+
+<script>
+  // ==================== 設定值 ====================
+  const DEFAULT_SERVER = 'http://srecruit.csie.ncku.edu.tw:8000';
+
+  const serverInput = document.getElementById('serverUrl');
+  const projectInput = document.getElementById('projectName');
+  const resetServerBtn = document.getElementById('resetServer');
+  const allPres = document.querySelectorAll('.cmd-card pre');
+
+  // 儲存原始模板（保留佔位符）
+  const originalTemplates = {};
+  allPres.forEach(pre => {
+    originalTemplates[pre.id] = pre.innerHTML;
+  });
+
+  // ==================== 即時替換 ====================
+  function updateAll() {
+    const server = serverInput.value.trim().replace(/\/+$/, '') || DEFAULT_SERVER;
+    const project = projectInput.value.trim() || '<你的專案名稱>';
+
+    allPres.forEach(pre => {
+      const original = originalTemplates[pre.id];
+      let updated = original;
+
+      // 替換伺服器網址：把 <span class="srv"> 裡的內容換掉
+      updated = updated.replace(
+        /<span class="srv">[^<]*<\/span>/g,
+        `<span class="srv">${escapeHtml(server)}</span>`
+      );
+
+      // 替換專案名稱：把 &lt;你的專案名稱&gt; 換掉
+      updated = updated.replace(
+        /&lt;你的專案名稱&gt;/g,
+        escapeHtml(project)
+      );
+
+      pre.innerHTML = updated;
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ==================== 事件綁定 ====================
+  serverInput.addEventListener('input', updateAll);
+  projectInput.addEventListener('input', updateAll);
+
+  resetServerBtn.addEventListener('click', () => {
+    serverInput.value = DEFAULT_SERVER;
+    updateAll();
+    showToast('已恢復預設伺服器網址');
+  });
+
+  // 頁面載入時先跑一次（確保預設值有被套用）
+  updateAll();
+
+  // ==================== 複製功能 ====================
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast(msg) {
+    toast.textContent = msg || '✅ 已複製';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  function copyText(text, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+    } else {
+      fallbackCopy(text, msg);
+    }
+  }
+
+  function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(msg); }
+    catch (e) { alert('複製失敗，請手動選取'); }
+    document.body.removeChild(ta);
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetEl = document.getElementById(btn.dataset.target);
+      if (!targetEl) return;
+      copyText(targetEl.innerText, '✅ 已複製指令');
+      const original = btn.textContent;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+</script>
+</body>
+</html>

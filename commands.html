@@ -387,6 +387,19 @@
       margin-left: auto; font-family: monospace;
     }
 
+    .footer-links .footer-category {
+      font-size: 15px;
+      color: var(--accent);
+      margin: 18px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .footer-links .footer-category:first-child {
+      margin-top: 0;
+    }
+
     /* Toast */
     .toast {
       position: fixed; bottom: 30px; left: 50%;
@@ -445,6 +458,7 @@
     <a class="nav-item" href="techniques.html">🛠️ 應用技術</a>
     <a class="nav-item" href="api-ref.html">📖 API 速查</a>
     <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
+    <a class="nav-item" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
     <a class="nav-item" href="commands.html">🔧 工作流</a>
     <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
   </aside>
@@ -503,6 +517,15 @@
 
     <div class="cmd-group" id="group-proc">
       <div class="cmd-group-title">程序管理類</div>
+    </div>
+
+    <!-- 給 AI 的 Prompt 小抄 -->
+    <div class="tip-box" style="background: rgba(79,156,249,0.1); border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: var(--accent);">🤖 不知道 grep 怎麼寫？</strong>
+        <span style="color: var(--text-dim); font-size: 14px; margin-left: 8px;">把下面這句丟給 AI，直接幫你寫好。</span>
+      </div>
+      <button class="copy-btn" onclick="copyText('我在 Linux 終端機，我的專案裡有很多 .c 和 .h 檔。我想要用 grep 搜尋 [例如：所有包含 pthread_mutex_lock 的行]。請直接給我完整的 grep 指令，不要解釋太多。', '✅ 已複製 Prompt')">📋 複製 Prompt</button>
     </div>
 
     <!-- 寫入指令（可展開填空框） -->
@@ -622,41 +645,170 @@
 
     <!-- 底部連結 -->
     <div class="footer-links">
+
+      <h3 class="footer-category">🏫 考場專屬</h3>
+      <a href="http://srecruit.csie.ncku.edu.tw:8000/" target="_blank" rel="noopener">
+        <span class="link-icon">🎯</span>
+        <span>成大資工考場 GitLab</span>
+        <span class="link-url">srecruit.csie.ncku.edu.tw:8000</span>
+      </a>
+
+      <h3 class="footer-category">🔍 搜尋引擎</h3>
+      <a href="https://www.google.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🔎</span>
+        <span>Google — 結果最準</span>
+        <span class="link-url">google.com</span>
+      </a>
+      <a href="https://www.bing.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🔎</span>
+        <span>Bing — 微軟搜尋</span>
+        <span class="link-url">bing.com</span>
+      </a>
+      <a href="https://duckduckgo.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🦆</span>
+        <span>DuckDuckGo — 不追蹤</span>
+        <span class="link-url">duckduckgo.com</span>
+      </a>
+      <a href="https://www.startpage.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🛡️</span>
+        <span>Startpage — 隱私搜尋，結果來自 Google</span>
+        <span class="link-url">startpage.com</span>
+      </a>
+
+      <h3 class="footer-category">🔤 輸入法（考場必備）</h3>
       <a href="https://my-rime.vercel.app/" target="_blank" rel="noopener">
         <span class="link-icon">🔤</span>
         <span>my-rime — 線上注音 / 拼音輸入</span>
         <span class="link-url">my-rime.vercel.app</span>
       </a>
-      <a href="https://translate.google.com/?hl=zh-TW&amp;sl=auto&amp;tl=zh-TW&amp;op=translate" target="_blank" rel="noopener">
+      <a href="https://translate.google.com/" target="_blank" rel="noopener">
         <span class="link-icon">🌐</span>
-        <span>Google 翻譯 — 虛擬注音鍵盤（簡繁轉換）</span>
+        <span>Google 翻譯 — 虛擬注音鍵盤</span>
         <span class="link-url">translate.google.com</span>
       </a>
 
-      <!-- 👇 PDF 與 OCR 救命工具區 👇 -->
+      <h3 class="footer-category">💬 程式碼搜尋與問答</h3>
+      <a href="https://github.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🐙</span>
+        <span>GitHub — 搜程式碼、看實際範例</span>
+        <span class="link-url">github.com</span>
+      </a>
+      <a href="https://stackoverflow.com/" target="_blank" rel="noopener">
+        <span class="link-icon">📚</span>
+        <span>Stack Overflow — 查具體錯誤</span>
+        <span class="link-url">stackoverflow.com</span>
+      </a>
+      <a href="https://www.csdn.net/" target="_blank" rel="noopener">
+        <span class="link-icon">🇨🇳</span>
+        <span>CSDN — 中文資料最全</span>
+        <span class="link-url">csdn.net</span>
+      </a>
+      <a href="https://segmentfault.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🇨🇳</span>
+        <span>思否 SegmentFault — 中文問答</span>
+        <span class="link-url">segmentfault.com</span>
+      </a>
+
+      <h3 class="footer-category">📖 C/C++ 參考</h3>
+      <a href="https://en.cppreference.com/w/cpp" target="_blank" rel="noopener">
+        <span class="link-icon">📘</span>
+        <span>cppreference (C++)</span>
+        <span class="link-url">en.cppreference.com/w/cpp</span>
+      </a>
+      <a href="https://en.cppreference.com/w/c" target="_blank" rel="noopener">
+        <span class="link-icon">📗</span>
+        <span>cppreference (C)</span>
+        <span class="link-url">en.cppreference.com/w/c</span>
+      </a>
+      <a href="https://gcc.gnu.org/onlinedocs/" target="_blank" rel="noopener">
+        <span class="link-icon">🔧</span>
+        <span>GCC Online Docs — 編譯器選項</span>
+        <span class="link-url">gcc.gnu.org/onlinedocs</span>
+      </a>
+
+      <h3 class="footer-category">🐧 Linux / 系統程式參考</h3>
+      <a href="https://man7.org/linux/man-pages/" target="_blank" rel="noopener">
+        <span class="link-icon">🐧</span>
+        <span>man7.org — pthread / epoll man pages</span>
+        <span class="link-url">man7.org/linux/man-pages</span>
+      </a>
+      <a href="https://explainshell.com/" target="_blank" rel="noopener">
+        <span class="link-icon">💡</span>
+        <span>explainshell — 解釋 shell 指令</span>
+        <span class="link-url">explainshell.com</span>
+      </a>
+      <a href="https://www.shellcheck.net/" target="_blank" rel="noopener">
+        <span class="link-icon">✅</span>
+        <span>shellcheck — 檢查 shell 腳本語法</span>
+        <span class="link-url">shellcheck.net</span>
+      </a>
+
+      <h3 class="footer-category">🤖 ROS 2 參考</h3>
+      <a href="https://docs.ros.org/en/jazzy/" target="_blank" rel="noopener">
+        <span class="link-icon">🤖</span>
+        <span>ROS 2 Jazzy 官方文件</span>
+        <span class="link-url">docs.ros.org/en/jazzy</span>
+      </a>
+      <a href="https://docs.clearpathrobotics.com/docs/ros/tutorials/cheat_sheet/" target="_blank" rel="noopener">
+        <span class="link-icon">📋</span>
+        <span>ROS 2 CLI 速查</span>
+        <span class="link-url">docs.clearpathrobotics.com</span>
+      </a>
+      <a href="https://discourse.ros.org/" target="_blank" rel="noopener">
+        <span class="link-icon">💬</span>
+        <span>ROS 2 Discourse — 官方論壇</span>
+        <span class="link-url">discourse.ros.org</span>
+      </a>
+
+      <h3 class="footer-category">🔢 位元運算與文字處理</h3>
+      <a href="https://calculator.tw/位元運算計算器/" target="_blank" rel="noopener">
+        <span class="link-icon">🔢</span>
+        <span>位元運算計算機</span>
+        <span class="link-url">calculator.tw</span>
+      </a>
+      <a href="https://regex101.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🔍</span>
+        <span>regex101 — 正規表達式測試</span>
+        <span class="link-url">regex101.com</span>
+      </a>
+
+      <h3 class="footer-category">📄 OCR / PDF</h3>
       <a href="https://tesseractocr.org/zh/ocr-online/" target="_blank" rel="noopener">
         <span class="link-icon">📄</span>
-        <span>Tesseract OCR（截圖 / 掃描檔轉文字）</span>
+        <span>Tesseract OCR — 截圖轉文字</span>
         <span class="link-url">tesseractocr.org</span>
+      </a>
+      <a href="https://tools.pdf24.org/zh/pdf-to-text" target="_blank" rel="noopener">
+        <span class="link-icon">📝</span>
+        <span>PDF24 — PDF 轉純文字 TXT</span>
+        <span class="link-url">tools.pdf24.org</span>
       </a>
       <a href="https://www.ilovepdf.com/zh-tw/pdf_to_word" target="_blank" rel="noopener">
         <span class="link-icon">📑</span>
-        <span>iLovePDF — PDF 轉 Word（純英文推薦）</span>
+        <span>iLovePDF — PDF 轉 Word</span>
         <span class="link-url">ilovepdf.com</span>
       </a>
-      <!-- 新加入的 PDF24 連結在這裡 -->
-      <a href="https://www.pdf24.org/zh/pdf-to-txt/" target="_blank" rel="noopener">
-        <span class="link-icon">📝</span>
-        <span>PDF24 — PDF 轉純文字 TXT（最乾淨）</span>
-        <span class="link-url">pdf24.org</span>
-      </a>
-      <!-- 新加入的 CP IDE 連結 -->
+
+      <h3 class="footer-category">💻 線上 IDE（無 AI，有語法錯誤提示）</h3>
       <a href="https://cpide.me/" target="_blank" rel="noopener">
-        <span class="link-icon">🌐</span>
-        <span>CP IDE — 線上 IDE</span>
+        <span class="link-icon">💻</span>
+        <span>CP IDE — 無 AI，有語法錯誤提示</span>
         <span class="link-url">cpide.me</span>
       </a>
-       </div>
+      <a href="https://www.onlinegdb.com/" target="_blank" rel="noopener">
+        <span class="link-icon">🐞</span>
+        <span>OnlineGDB — 線上 C/C++ 編譯器 + GDB</span>
+        <span class="link-url">onlinegdb.com</span>
+      </a>
+      <a href="https://godbolt.org/" target="_blank" rel="noopener">
+        <span class="link-icon">⚙️</span>
+        <span>Compiler Explorer — 看編譯後的組合語言</span>
+        <span class="link-url">godbolt.org</span>
+      </a>
+
+
+
+    </div>
 
   </main>
 </div>
