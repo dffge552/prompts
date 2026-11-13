@@ -77,7 +77,7 @@
     }
     .top-bar label { color: var(--text-dim); font-size: 15px; white-space: nowrap; }
     .top-bar input[type="text"] {
-      flex: 0 1 240px;
+      flex: 0 1 200px;
       padding: 8px 14px; background: var(--pre-bg);
       border: 1px solid var(--border); border-radius: 6px;
       color: var(--text); font-size: 16px;
@@ -141,25 +141,17 @@
       transition: all 0.15s; user-select: none;
     }
     .letter-btn:hover { border-color: var(--accent); color: var(--text); background: #1f242c; }
-
-    /* 當前作用中的字母（藍底） */
     .letter-btn.active {
       background: var(--accent); border-color: var(--accent);
-      color: #fff;
-      box-shadow: 0 0 12px rgba(79,156,249,0.5);
+      color: #fff; box-shadow: 0 0 12px rgba(79,156,249,0.5);
     }
-
-    /* 已經用過/封版的字母（綠底） */
     .letter-btn.has-progress {
-      background: var(--success);
-      border-color: var(--success);
-      color: #fff;
+      background: var(--success); border-color: var(--success); color: #fff;
     }
 
     /* 版本格子 */
     .version-grid {
-      display: grid;
-      grid-template-columns: repeat(10, 1fr);
+      display: grid; grid-template-columns: repeat(10, 1fr);
       gap: 6px; padding: 16px; background: var(--panel-bg);
       border: 1px solid var(--border); border-radius: 10px;
       margin-bottom: 20px;
@@ -173,28 +165,16 @@
       transition: all 0.15s; user-select: none;
     }
     .v-cell:hover { border-color: var(--accent); color: var(--text); background: #1f242c; }
-
-    /* 最新版（亮黃色） */
     .v-cell.is-current-latest {
-      background: var(--yellow);
-      border-color: var(--yellow);
-      color: #1a1d23;
-      font-weight: 700;
-      box-shadow: 0 0 12px rgba(250,204,21,0.6);
+      background: var(--yellow); border-color: var(--yellow);
+      color: #1a1d23; font-weight: 700; box-shadow: 0 0 12px rgba(250,204,21,0.6);
     }
-
-    /* 選中版（藍色外框） */
     .v-cell.is-selected {
-      outline: 3px solid #3b82f6;
-      outline-offset: -2px;
-      box-shadow: 0 0 16px rgba(59,130,246,0.8);
-      z-index: 2;
+      outline: 3px solid #3b82f6; outline-offset: -2px;
+      box-shadow: 0 0 16px rgba(59,130,246,0.8); z-index: 2;
     }
-
-    /* 同時是最新版又是選中版 */
     .v-cell.is-selected.is-current-latest {
-      outline: 3px solid #3b82f6;
-      outline-offset: -2px;
+      outline: 3px solid #3b82f6; outline-offset: -2px;
       box-shadow: 0 0 16px rgba(59,130,246,0.8), 0 0 12px rgba(250,204,21,0.6);
     }
 
@@ -244,8 +224,7 @@
     .write-block-header {
       padding: 12px 18px; background: #12151a;
       display: flex; justify-content: space-between; align-items: center;
-      cursor: pointer; user-select: none;
-      transition: background 0.15s;
+      cursor: pointer; user-select: none; transition: background 0.15s;
     }
     .write-block-header:hover { background: #1f242c; }
     .write-block-header .title {
@@ -255,40 +234,19 @@
     .write-block-header .arrow {
       font-size: 14px; color: var(--text-dim); transition: transform 0.25s;
     }
-    .write-block.open .write-block-header .arrow {
-      transform: rotate(180deg);
-    }
-    .write-block-body {
-      display: none;
-      padding: 18px;
-      border-top: 1px solid var(--border);
-    }
-    .write-block.open .write-block-body {
-      display: block;
-    }
-    .write-block-body .desc-line {
-      color: var(--text-dim); font-size: 14px; margin-bottom: 12px;
-    }
+    .write-block.open .write-block-header .arrow { transform: rotate(180deg); }
+    .write-block-body { display: none; padding: 18px; border-top: 1px solid var(--border); }
+    .write-block.open .write-block-body { display: block; }
+    .write-block-body .desc-line { color: var(--text-dim); font-size: 14px; margin-bottom: 12px; }
     .write-block-body textarea {
-      width: 100%;
-      min-height: 240px;
-      padding: 14px 16px;
-      background: var(--pre-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: #d4d8de;
-      font-family: "SF Mono", "Consolas", "Menlo", monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      resize: vertical;
-      outline: none;
+      width: 100%; min-height: 240px; padding: 14px 16px;
+      background: var(--pre-bg); border: 1px solid var(--border); border-radius: 8px;
+      color: #d4d8de; font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      font-size: 14px; line-height: 1.6; resize: vertical; outline: none;
     }
-    .write-block-body textarea:focus {
-      border-color: var(--accent);
-    }
+    .write-block-body textarea:focus { border-color: var(--accent); }
     .write-block-actions {
-      display: flex; gap: 12px; margin-top: 12px; align-items: center;
-      flex-wrap: wrap;
+      display: flex; gap: 12px; margin-top: 12px; align-items: center; flex-wrap: wrap;
     }
     .write-block-actions .target-name {
       font-family: "SF Mono", "Consolas", monospace;
@@ -300,50 +258,34 @@
       padding: 8px 18px; background: var(--accent);
       border: none; color: #fff; font-weight: 700;
     }
-    .write-block-actions .copy-btn:hover {
-      background: #3b82f6; color: #fff;
-    }
-    .write-block-actions .copy-btn.copied {
-      background: var(--success);
-    }
+    .write-block-actions .copy-btn:hover { background: #3b82f6; color: #fff; }
+    .write-block-actions .copy-btn.copied { background: var(--success); }
 
     /* 總表 */
     .master-table-wrap {
       background: var(--panel-bg); border: 1px solid var(--border);
       border-radius: 10px; overflow: hidden; margin-bottom: 16px;
     }
-    .master-table {
-      width: 100%; border-collapse: collapse;
-      font-size: 14px;
-    }
+    .master-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .master-table th {
       background: #12151a; color: var(--accent);
       padding: 10px 14px; text-align: left;
       font-size: 13px; font-weight: 700;
-      border-bottom: 1px solid var(--border);
-      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
       position: sticky; top: 0; z-index: 1;
     }
     .master-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid #262b34;
-      vertical-align: top;
-      color: var(--text);
+      padding: 10px 14px; border-bottom: 1px solid #262b34;
+      vertical-align: top; color: var(--text);
     }
     .master-table tr:last-child td { border-bottom: none; }
     .master-table tr.hidden { display: none; }
     .master-table tr:hover td { background: #1f242c; }
     .master-table .col-cmd {
       font-family: "SF Mono", "Consolas", "Menlo", monospace;
-      color: #86efac; font-size: 13px;
-      word-break: break-all;
+      color: #86efac; font-size: 13px; word-break: break-all;
     }
-    .master-table .col-category {
-      color: var(--text-dim); font-size: 12px; white-space: nowrap;
-    }
-    .master-table .empty-row td {
-      text-align: center; color: var(--text-dim); padding: 30px;
-    }
+    .master-table .col-category { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
 
     /* 注音表 */
     .bopomofo-table {
@@ -378,27 +320,18 @@
       color: var(--accent); text-decoration: none;
       font-size: 16px; transition: all 0.15s;
     }
-    .footer-links a:hover {
-      border-color: var(--accent); background: #1f242c; color: #fff;
-    }
+    .footer-links a:hover { border-color: var(--accent); background: #1f242c; color: #fff; }
     .footer-links a .link-icon { font-size: 18px; }
     .footer-links a .link-url {
       color: var(--text-dim); font-size: 13px;
       margin-left: auto; font-family: monospace;
     }
-
     .footer-links .footer-category {
-      font-size: 15px;
-      color: var(--accent);
-      margin: 18px 0 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      font-size: 15px; color: var(--accent);
+      margin: 18px 0 8px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border); font-weight: 700; letter-spacing: 0.5px;
     }
-    .footer-links .footer-category:first-child {
-      margin-top: 0;
-    }
+    .footer-links .footer-category:first-child { margin-top: 0; }
 
     /* Toast */
     .toast {
@@ -459,9 +392,10 @@
     <a class="nav-item" href="api-ref.html">📖 API 速查</a>
     <a class="nav-item" href="guessing.html">🎲 猜題專區</a>
     <a class="nav-item" href="gitlab-guide.html">🚀 GitLab 考場生存</a>
-    <a class="nav-item" href="commands.html">🔧 工作流</a>
+    <a class="nav-item active" href="commands.html">🔧 工作流</a>
     <a class="nav-item" href="token-counter.html">🧮 Token 計算器</a>
   </aside>
+
   <!-- 主內容 -->
   <main class="main">
     <h1 class="page-title">🔧 考場指令與版本控制</h1>
@@ -473,7 +407,11 @@
     <!-- 頂部工具列 -->
     <div class="top-bar">
       <label for="filenameInput">當前檔名：</label>
-      <input type="text" id="filenameInput" value="main.c" placeholder="例如 main.c 或 dma_test.c">
+      <input type="text" id="filenameInput" value="main.c" placeholder="例如 main.c">
+
+      <label for="dirInput" style="margin-left: 10px;">📁 工作目錄：</label>
+      <input type="text" id="dirInput" value="my_project" placeholder="例如 my_project" style="flex: 0 1 180px;">
+
       <button class="big-copy-btn" id="copyAllBtn">📋 複製全部指令給 AI</button>
     </div>
 
@@ -515,6 +453,10 @@
       <div class="cmd-group-title">檔案查找與查看類</div>
     </div>
 
+    <div class="cmd-group" id="group-env">
+      <div class="cmd-group-title">📁 資料夾與環境管理類</div>
+    </div>
+
     <div class="cmd-group" id="group-proc">
       <div class="cmd-group-title">程序管理類</div>
     </div>
@@ -553,13 +495,13 @@
     <div class="master-table-wrap">
       <table class="master-table" id="masterTable">
         <thead>
-          <tr>
-            <th style="width: 12%;">分類</th>
-            <th style="width: 30%;">指令</th>
-            <th style="width: 22%;">什麼時候用</th>
-            <th style="width: 22%;">怎麼用</th>
-            <th style="width: 14%;">注意事項</th>
-          </tr>
+        <tr>
+          <th style="width: 12%;">分類</th>
+          <th style="width: 30%;">指令</th>
+          <th style="width: 22%;">什麼時候用</th>
+          <th style="width: 22%;">怎麼用</th>
+          <th style="width: 14%;">注意事項</th>
+        </tr>
         </thead>
         <tbody id="masterTableBody"></tbody>
       </table>
@@ -573,73 +515,73 @@
 
     <table class="bopomofo-table">
       <thead>
-        <tr>
-          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
-          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
-          <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
-          <th style="width: 14%;">注音</th><th style="width: 14%;">拼音</th>
-        </tr>
+      <tr>
+        <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+        <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+        <th style="width: 12%;">注音</th><th style="width: 12%;">拼音</th>
+        <th style="width: 14%;">注音</th><th style="width: 14%;">拼音</th>
+      </tr>
       </thead>
       <tbody>
-        <tr>
-          <td class="zhuyin">ㄅ</td><td class="pinyin">b</td>
-          <td class="zhuyin">ㄆ</td><td class="pinyin">p</td>
-          <td class="zhuyin">ㄇ</td><td class="pinyin">m</td>
-          <td class="zhuyin">ㄈ</td><td class="pinyin">f</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄉ</td><td class="pinyin">d</td>
-          <td class="zhuyin">ㄊ</td><td class="pinyin">t</td>
-          <td class="zhuyin">ㄋ</td><td class="pinyin">n</td>
-          <td class="zhuyin">ㄌ</td><td class="pinyin">l</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄍ</td><td class="pinyin">g</td>
-          <td class="zhuyin">ㄎ</td><td class="pinyin">k</td>
-          <td class="zhuyin">ㄏ</td><td class="pinyin">h</td>
-          <td class="zhuyin">ㄐ</td><td class="pinyin">j</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄑ</td><td class="pinyin">q</td>
-          <td class="zhuyin">ㄒ</td><td class="pinyin">x</td>
-          <td class="zhuyin">ㄓ</td><td class="pinyin">zhi</td>
-          <td class="zhuyin">ㄔ</td><td class="pinyin">chi</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄕ</td><td class="pinyin">shi</td>
-          <td class="zhuyin">ㄖ</td><td class="pinyin">ri</td>
-          <td class="zhuyin">ㄗ</td><td class="pinyin">zi</td>
-          <td class="zhuyin">ㄘ</td><td class="pinyin">ci</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄙ</td><td class="pinyin">si</td>
-          <td class="zhuyin">ㄚ</td><td class="pinyin">a</td>
-          <td class="zhuyin">ㄛ</td><td class="pinyin">o</td>
-          <td class="zhuyin">ㄜ</td><td class="pinyin">e</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄝ</td><td class="pinyin">ê</td>
-          <td class="zhuyin">ㄞ</td><td class="pinyin">ai</td>
-          <td class="zhuyin">ㄟ</td><td class="pinyin">ei</td>
-          <td class="zhuyin">ㄠ</td><td class="pinyin">ao</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄡ</td><td class="pinyin">ou</td>
-          <td class="zhuyin">ㄢ</td><td class="pinyin">an</td>
-          <td class="zhuyin">ㄣ</td><td class="pinyin">en</td>
-          <td class="zhuyin">ㄤ</td><td class="pinyin">ang</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄥ</td><td class="pinyin">eng</td>
-          <td class="zhuyin">ㄦ</td><td class="pinyin">er</td>
-          <td class="zhuyin">ㄧ</td><td class="pinyin">i / yi</td>
-          <td class="zhuyin">ㄨ</td><td class="pinyin">u / wu</td>
-        </tr>
-        <tr>
-          <td class="zhuyin">ㄩ</td><td class="pinyin">ü / yu</td>
-          <td class="zhuyin">ㄭ</td><td class="pinyin">ih</td>
-          <td></td><td></td><td></td><td></td>
-        </tr>
+      <tr>
+        <td class="zhuyin">ㄅ</td><td class="pinyin">b</td>
+        <td class="zhuyin">ㄆ</td><td class="pinyin">p</td>
+        <td class="zhuyin">ㄇ</td><td class="pinyin">m</td>
+        <td class="zhuyin">ㄈ</td><td class="pinyin">f</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄉ</td><td class="pinyin">d</td>
+        <td class="zhuyin">ㄊ</td><td class="pinyin">t</td>
+        <td class="zhuyin">ㄋ</td><td class="pinyin">n</td>
+        <td class="zhuyin">ㄌ</td><td class="pinyin">l</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄍ</td><td class="pinyin">g</td>
+        <td class="zhuyin">ㄎ</td><td class="pinyin">k</td>
+        <td class="zhuyin">ㄏ</td><td class="pinyin">h</td>
+        <td class="zhuyin">ㄐ</td><td class="pinyin">j</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄑ</td><td class="pinyin">q</td>
+        <td class="zhuyin">ㄒ</td><td class="pinyin">x</td>
+        <td class="zhuyin">ㄓ</td><td class="pinyin">zhi</td>
+        <td class="zhuyin">ㄔ</td><td class="pinyin">chi</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄕ</td><td class="pinyin">shi</td>
+        <td class="zhuyin">ㄖ</td><td class="pinyin">ri</td>
+        <td class="zhuyin">ㄗ</td><td class="pinyin">zi</td>
+        <td class="zhuyin">ㄘ</td><td class="pinyin">ci</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄙ</td><td class="pinyin">si</td>
+        <td class="zhuyin">ㄚ</td><td class="pinyin">a</td>
+        <td class="zhuyin">ㄛ</td><td class="pinyin">o</td>
+        <td class="zhuyin">ㄜ</td><td class="pinyin">e</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄝ</td><td class="pinyin">ê</td>
+        <td class="zhuyin">ㄞ</td><td class="pinyin">ai</td>
+        <td class="zhuyin">ㄟ</td><td class="pinyin">ei</td>
+        <td class="zhuyin">ㄠ</td><td class="pinyin">ao</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄡ</td><td class="pinyin">ou</td>
+        <td class="zhuyin">ㄢ</td><td class="pinyin">an</td>
+        <td class="zhuyin">ㄣ</td><td class="pinyin">en</td>
+        <td class="zhuyin">ㄤ</td><td class="pinyin">ang</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄥ</td><td class="pinyin">eng</td>
+        <td class="zhuyin">ㄦ</td><td class="pinyin">er</td>
+        <td class="zhuyin">ㄧ</td><td class="pinyin">i / yi</td>
+        <td class="zhuyin">ㄨ</td><td class="pinyin">u / wu</td>
+      </tr>
+      <tr>
+        <td class="zhuyin">ㄩ</td><td class="pinyin">ü / yu</td>
+        <td class="zhuyin">ㄭ</td><td class="pinyin">ih</td>
+        <td></td><td></td><td></td><td></td>
+      </tr>
       </tbody>
     </table>
 
@@ -806,8 +748,6 @@
         <span class="link-url">godbolt.org</span>
       </a>
 
-
-
     </div>
 
   </main>
@@ -823,6 +763,7 @@
     'vc-diff': { when: '想知道備份檔跟現在版本差在哪，或懷疑 AI 改了不該改的地方。', how: '貼到終端機執行，會列出兩版的差異。', note: '差異太多時按 q 退出。' },
     'vc-compile': { when: '編譯備份版本，確認它能獨立編譯通過。', how: '貼到終端機執行。成功會產生執行檔。', note: 'pthread 程式必加 -pthread。' },
     'vc-compile-run': { when: '編譯備份版本並直接執行，快速確認結果。', how: '貼到終端機執行，編譯成功會自動跑起來。', note: '如果程式會無限迴圈，按 Ctrl+C 停止。' },
+    'vc-exec': { when: '編譯 vN 成功後，想單獨執行它看結果，不想重新編譯。', how: '貼到終端機執行。', note: '這只會執行編譯好的執行檔，如果沒編譯過會報錯。' },
     'vc-git': { when: '確認能跑，要提交到 GitLab 評測。', how: '貼到終端機執行，會把當前目錄所有變更加入、commit、push。', note: '一次只能跑一個 task。評測 pending 時不要重複 push。' },
     'gcc-pthread': { when: '寫了 pthread（多執行緒）程式，要編譯時。', how: '貼到終端機執行。成功會產生執行檔。', note: '不加 -pthread 會報 undefined reference to pthread_create。' },
     'gcc-run': { when: '編譯並立刻執行，省一步。', how: '貼到終端機執行，編譯成功會自動跑。', note: '如果程式卡住，按 Ctrl+C 停止。' },
@@ -850,7 +791,14 @@
     'head': { when: '只想看檔案前幾十行（例如看 include 和宣告）。', how: 'head -50 檔案名 會顯示前 50 行。', note: '數字可改，例如 -100 看前 100 行。' },
     'tail': { when: '只想看檔案最後幾十行（例如看 main 函式結尾）。', how: 'tail -20 檔案名 會顯示最後 20 行。', note: 'tail -f 會持續追蹤新內容。' },
     'ps': { when: '懷疑程式還在跑（卡住、佔用資源）時。', how: '執行後會列出所有含關鍵字的程序。', note: '記下 PID 欄位，可以用 kill 殺掉。' },
-    'kill': { when: '程式卡死、Ctrl+C 殺不掉、或佔用資源。', how: '把 PID 換成你要殺的程序編號（從 ps 查）。', note: '-9 是強制殺，最後手段。' }
+    'kill': { when: '程式卡死、Ctrl+C 殺不掉、或佔用資源。', how: '把 PID 換成你要殺的程序編號（從 ps 查）。', note: '-9 是強制殺，最後手段。' },
+    'mkdir-env': { when: '考場一進去，先建立一個專屬資料夾，避免把家目錄弄亂。', how: '複製貼上執行。', note: '-p 代表如果資料夾已存在也不會報錯。' },
+    'cd-env': { when: '要進入你剛剛建立的資料夾。', how: '複製貼上執行。', note: '進入後，你建立的檔案都會在裡面。' },
+    'pwd-env': { when: '不確定自己現在在哪裡。', how: '複製貼上執行。', note: '會印出你目前的絕對路徑。' },
+    'ls-env': { when: '想看資料夾裡面到底生出了哪些檔案。', how: '複製貼上執行。', note: '-al 會顯示所有檔案（包含隱藏檔）以及權限。' },
+    'tree-env': { when: '專案資料夾太多層，想一眼看清楚整個結構。', how: '複製貼上執行。', note: '如果沒有 tree 指令，可以用 find . 替代。' },
+    'rm-file': { when: '編譯產生的垃圾檔太多，或者想把寫錯的單一檔案刪掉。', how: '會自動帶入你當前選中的版本檔名。', note: '刪除前先用 ls 確認檔名。' },
+    'rm-dir': { when: '整個資料夾都壞了，想直接砍掉重練。', how: '會自動帶入你上方設定的資料夾名稱。', note: '⚠️ 極度危險！-rf 會直接刪除且無法復原，請務必確認名稱無誤。' }
   };
 
   // ==================== 狀態 ====================
@@ -861,8 +809,9 @@
   let state = JSON.parse(localStorage.getItem(STORAGE_KEY_STATE) || '{}');
   if (!state.currentLetter) state.currentLetter = 'a';
   if (!state.filename) state.filename = 'main.c';
-  if (!state.selections) state.selections = {}; // { a: 1, b: 1, ... }
-  if (!state.latest) state.latest = {}; // { a: 0, b: 0, ... } 0 = 還沒用過
+  if (!state.dirname) state.dirname = 'my_project'; // 新增工作目錄預設
+  if (!state.selections) state.selections = {};
+  if (!state.latest) state.latest = {};
 
   LETTERS.forEach(L => {
     if (typeof state.selections[L] !== 'number') state.selections[L] = 1;
@@ -899,18 +848,13 @@
       const btn = document.createElement('div');
       btn.className = 'letter-btn';
 
-      // 1. 如果這是當前選中的字母（藍色）
       if (L === state.currentLetter) {
         btn.classList.add('active');
-      }
-      // 2. 如果這個字母的索引小於當前字母的索引（代表是已經用過、被封版的，變綠色）
-      else if (index < currentIndex) {
+      } else if (index < currentIndex) {
         btn.classList.add('has-progress');
       }
 
       btn.textContent = L;
-
-      // Tooltip 顯示該組最新進度
       const latestN = state.latest[L] || 0;
       btn.title = latestN > 0 ? `最新進度：v${latestN}${L}` : '尚未使用';
 
@@ -936,14 +880,12 @@
       const cell = document.createElement('div');
       cell.className = 'v-cell';
 
-      // 判斷是否為最新版（黃色）
-      if (i === latest) {
-        cell.classList.add('is-current-latest');
-      }
-
-      // 判斷是否為當前選中版（藍色框）
       if (i === selected) {
         cell.classList.add('is-selected');
+      }
+
+      if (i === selected) {
+        cell.classList.add('is-current-latest');
       }
 
       cell.textContent = i;
@@ -951,16 +893,10 @@
 
       cell.addEventListener('click', () => {
         state.selections[L] = i;
-
-        // 如果點選的版本大於目前最新，更新最新紀錄
-        if (i > state.latest[L]) {
-          state.latest[L] = i;
-        }
-
+        state.latest[L] = i;
         saveState();
         renderAll();
 
-        // 點擊後直接複製檔名
         const base = getBaseName(state.filename);
         const ext = getExtension(state.filename);
         copyText(`${base}_v${i}${L}${ext}`, `已複製檔名：${base}_v${i}${L}${ext}`);
@@ -980,12 +916,16 @@
     const vFile = `${base}_v${N}${L}${ext}`;
     const vBin = `${base}_v${N}${L}`;
 
-    const cmds = [
+     const cmds = [
       { desc: '備份（存成 vN）', id: 'vc-backup', cmd: `cp ${state.filename} ${vFile}`, detailKey: 'vc-backup' },
       { desc: '回滾（回到 vN）', id: 'vc-rollback', cmd: `cp ${vFile} ${state.filename}`, detailKey: 'vc-rollback' },
       { desc: '比較（vN vs 現在）', id: 'vc-diff', cmd: `diff ${vFile} ${state.filename}`, detailKey: 'vc-diff' },
       { desc: '編譯 vN', id: 'vc-compile', cmd: `gcc ${vFile} -o ${vBin} -pthread`, detailKey: 'vc-compile' },
       { desc: '編譯 vN + 執行', id: 'vc-compile-run', cmd: `gcc ${vFile} -o ${vBin} -pthread && ./${vBin}`, detailKey: 'vc-compile-run' },
+
+      // 👇 新增這行：單獨執行 vN 👇
+      { desc: '單獨執行 vN', id: 'vc-exec', cmd: `./${vBin}`, detailKey: 'vc-exec' },
+
       { desc: 'Git 提交 vN', id: 'vc-git', cmd: `git add . && git commit -m "v${N}${L}" && git push`, detailKey: 'vc-git' },
     ];
 
@@ -1028,9 +968,13 @@
 
   // ==================== 渲染通用指令 ====================
   function buildGenericGroups() {
-    const f = state.filename;
-    const base = getBaseName(f);
-    const ext = getExtension(f).slice(1);
+    // 這裡讓 f 直接跟著當前選中的版本跑
+    const f = currentVersionFile();
+    const base = getBaseName(state.filename);
+    const ext = getExtension(state.filename).slice(1);
+    // 抓取設定的資料夾名稱
+    const dir = state.dirname || 'my_project';
+
     return {
       compile: [
         { desc: '編譯（pthread）', id: 'gcc-pthread', cmd: `gcc ${f} -o ${base} -pthread`, detailKey: 'gcc-pthread' },
@@ -1065,6 +1009,15 @@
         { desc: '看前 50 行', id: 'head', cmd: `head -50 ${f}`, detailKey: 'head' },
         { desc: '看後 20 行', id: 'tail', cmd: `tail -20 ${f}`, detailKey: 'tail' },
       ],
+      env: [
+        { desc: '建立資料夾', id: 'mkdir-env', cmd: `mkdir -p ${dir}`, detailKey: 'mkdir-env' },
+        { desc: '進入資料夾', id: 'cd-env', cmd: `cd ${dir}`, detailKey: 'cd-env' },
+        { desc: '看目前路徑', id: 'pwd-env', cmd: 'pwd', detailKey: 'pwd-env' },
+        { desc: '看資料夾內容', id: 'ls-env', cmd: 'ls -al', detailKey: 'ls-env' },
+        { desc: '看資料夾樹狀', id: 'tree-env', cmd: 'tree -L 2', detailKey: 'tree-env' },
+        { desc: '刪除單一檔案 (當前版本)', id: 'rm-file', cmd: `rm ${f}`, detailKey: 'rm-file' },
+        { desc: '強制刪除資料夾', id: 'rm-dir', cmd: `rm -rf ${dir}`, detailKey: 'rm-dir' },
+      ],
       proc: [
         { desc: '看程序', id: 'ps', cmd: `ps aux | grep ${base}`, detailKey: 'ps' },
         { desc: '強制殺程序', id: 'kill', cmd: 'kill -9 PID', detailKey: 'kill' },
@@ -1074,12 +1027,20 @@
 
   function renderGenericGroups() {
     const groups = buildGenericGroups();
-    const mapping = { compile: 'group-compile', git: 'group-git', ros: 'group-ros', file: 'group-file', proc: 'group-proc' };
+    const mapping = {
+      compile: 'group-compile',
+      git: 'group-git',
+      ros: 'group-ros',
+      file: 'group-file',
+      env: 'group-env',
+      proc: 'group-proc'
+    };
     Object.entries(groups).forEach(([key, items]) => {
       const groupEl = document.getElementById(mapping[key]);
+      if (!groupEl) return;
       const titleEl = groupEl.querySelector('.cmd-group-title');
       groupEl.innerHTML = '';
-      groupEl.appendChild(titleEl);
+      if (titleEl) groupEl.appendChild(titleEl);
       items.forEach(item => groupEl.appendChild(makeCmdRow(item)));
     });
     bindCopyButtons();
@@ -1163,9 +1124,8 @@
   // ==================== 指令總表 ====================
   function renderMasterTable() {
     const tbody = document.getElementById('masterTableBody');
-    tbody.innerHTML = '';   // ✅ 補上 = 號
+    tbody.innerHTML = '';
 
-    // 收集所有指令
     const groups = buildGenericGroups();
 
     const L = state.currentLetter;
@@ -1195,6 +1155,7 @@
       { category: 'Git 類', items: groups.git },
       { category: 'ROS 2 類', items: groups.ros },
       { category: '檔案查找與查看類', items: groups.file },
+      { category: '資料夾與環境管理類', items: groups.env },
       { category: '程序管理類', items: groups.proc },
     ];
 
@@ -1227,12 +1188,10 @@
   const searchInput = document.getElementById('searchInput');
   function applySearch() {
     const q = searchInput.value.trim().toLowerCase();
-    // 過濾指令區
     document.querySelectorAll('.cmd-row').forEach(row => {
       const text = (row.dataset.searchText || '').toLowerCase();
       row.classList.toggle('hidden', q && !text.includes(q));
     });
-    // 過濾總表
     document.querySelectorAll('#masterTableBody tr').forEach(tr => {
       const text = (tr.dataset.searchText || '').toLowerCase();
       tr.classList.toggle('hidden', q && !text.includes(q));
@@ -1260,11 +1219,13 @@
     const N = state.selections[L];
     const vFile = currentVersionFile();
     const groups = buildGenericGroups();
+    const dir = state.dirname || 'my_project';
 
     let out = '';
     out += `【考場指令包】\n`;
     out += `我目前在成大資工上機考。\n`;
-    out += `當前檔名：${state.filename}\n`;
+    out += `當前主檔名：${state.filename}\n`;
+    out += `工作目錄：${dir}\n`;
     out += `當前選中版本：v${N}${L}（備份檔為 ${vFile}）\n\n`;
 
     out += `=== 與 v${N}${L} 相關 ===\n`;
@@ -1274,7 +1235,7 @@
     out += `4. gcc ${vFile} -o ${getBaseName(state.filename)}_v${N}${L} -pthread\n   用途：編譯 v${N}${L}\n`;
     out += `5. git add . && git commit -m "v${N}${L}" && git push\n   用途：提交到 GitLab\n\n`;
 
-    const groupNames = { compile: '編譯類', git: 'Git / GitLab 類', ros: 'ROS 2 類', file: '檔案查找類', proc: '程序管理類' };
+    const groupNames = { compile: '編譯類', git: 'Git / GitLab 類', ros: 'ROS 2 類', file: '檔案查找類', env: '資料夾與環境類', proc: '程序管理類' };
     Object.entries(groups).forEach(([key, items]) => {
       out += `=== ${groupNames[key]} ===\n`;
       items.forEach((item, i) => {
@@ -1289,11 +1250,19 @@
     return out;
   }
 
-  // ==================== 檔名輸入 ====================
+  // ==================== 檔名與資料夾名稱輸入 ====================
   const filenameInput = document.getElementById('filenameInput');
   filenameInput.value = state.filename;
   filenameInput.addEventListener('input', () => {
     state.filename = filenameInput.value.trim() || 'main.c';
+    saveState();
+    renderAll();
+  });
+
+  const dirInput = document.getElementById('dirInput');
+  dirInput.value = state.dirname;
+  dirInput.addEventListener('input', () => {
+    state.dirname = dirInput.value.trim() || 'my_project';
     saveState();
     renderAll();
   });
